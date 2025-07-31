@@ -1,11 +1,11 @@
-# ZKP Blockchain Identity
+# Digital Identity App with Zero-Knowledge Proofs
 
-A privacy-first student identity verification system using zero-knowledge proofs and blockchain technology for secure, selective data sharing via QR codes.
+A React Native application that enables privacy-preserving student identity verification using zero-knowledge proofs and blockchain technology.
 
 ## 📁 Project Structure
 
 ```
-zkp-blockchain-identity/
+digital_id_app/
 ├── digital-app/           # React Native frontend
 ├── zk-proofs/            # Zero-knowledge circuits and smart contracts
 ├── zkp-backend/          # Express.js backend server
