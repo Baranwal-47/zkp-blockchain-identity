@@ -20,10 +20,10 @@ const vKey = JSON.parse(fs.readFileSync('./verification_key.json'));
 const verifierAbi = require('../zk-proofs/artifacts/contracts/IdentityVerifier.sol/Groth16Verifier.json').abi;
 
 // Deployed verifier contract address on your local Hardhat network
-const verifierAddress = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+const verifierAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 
 // Provider connects to your local Hardhat Ethereum node
-const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545');
+const provider = new ethers.JsonRpcProvider('http://172.27.70.33:8545');
 
 // Contract instance for on-chain verification (read-only calls)
 const verifierContract = new ethers.Contract(verifierAddress, verifierAbi, provider);

@@ -13,9 +13,13 @@ module.exports = {
     ]
   },
   networks: {
-    hardhat: {},
+    hardhat: {
+      // Bind to all interfaces so mobile devices can connect
+      host: "0.0.0.0",
+      port: 8545
+    },
     localhost: {
-      url: "http://127.0.0.1:8545"
+      url: "http://0.0.0.0:8545" // Bind to all interfaces for mobile access
     }
     // ...add other networks as needed
   }
