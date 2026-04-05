@@ -2,6 +2,8 @@
 
 A React Native application that enables privacy-preserving student identity verification using zero-knowledge proofs and blockchain technology.
 
+The current app opens on a landing screen, then moves into identity entry, proof generation, QR sharing, and off-chain/on-chain verification.
+
 ## 📁 Project Structure
 
 ```
@@ -40,43 +42,47 @@ npm install
 
 ### Step 2: Configuration Files to Update
 
-#### 🔧 **Critical Configuration Changes**
+The project now uses environment files instead of scattering values through code.
 
-**1. Backend Server IP Address**
+**1. Frontend backend URL**
 ```javascript
 // File: digital-app/environment.js
-export const BACKEND_URL = 'http://YOUR_IP_ADDRESS:3001';
+export const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://10.199.147.52:3001';
 ```
-- Replace `YOUR_IP_ADDRESS` with your actual machine's IP address
-- Current: `http://10.226.189.52:3001`
-- To find your IP: `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
+- For Expo Go on a phone, use the Windows LAN IP, not the WSL IP.
+- Current fallback: `http://10.199.147.52:3001`
+- You can override it in `digital-app/.env` with `EXPO_PUBLIC_BACKEND_URL=...`
 
-**2. Blockchain Network Configuration**
+**2. Backend blockchain RPC and verifier address**
 ```javascript
-// File: zkp-backend/server.js (Line 25)
-const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545');
+// File: zkp-backend/server.js
+const provider = new ethers.JsonRpcProvider(process.env.BLOCKCHAIN_RPC_URL || 'http://127.0.0.1:8545');
+const verifierAddress = process.env.VERIFIER_ADDRESS || '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 ```
-- For local development: Keep as `http://127.0.0.1:8545`
-- For remote blockchain: Replace with your RPC URL
+- For local development: keep the RPC pointed at `http://127.0.0.1:8545`
+- If you redeploy the contract, update `VERIFIER_ADDRESS`
+- You can store the values in `zkp-backend/.env`
 
-**3. Smart Contract Address**
-```javascript
-// File: zkp-backend/server.js (Line 23)
-const verifierAddress = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
-```
-- **⚠️ MUST UPDATE**: This address changes every time you redeploy contracts
-- Get new address after running deployment script
-
-**4. Hardhat Network Configuration**
+**3. Hardhat network configuration**
 ```javascript
 // File: zk-proofs/hardhat.config.js
 networks: {
   hardhat: {},
   localhost: {
-    url: "http://127.0.0.1:8545"  // Update if using different port
+    url: 'http://127.0.0.1:8545'
   }
 }
 ```
+- The verifier contract is redeployed against the local Hardhat node.
+- After redeploying, copy the new address from the terminal output.
+
+**4. Android native project warning**
+```javascript
+// File: digital-app/android/local.properties
+sdk.dir=/mnt/c/Users/DELL/AppData/Local/Android/Sdk
+```
+- This only matters if VS Code inspects the native Android project.
+- If you are only using Expo Go and `expo start --tunnel`, you can ignore native Android build warnings.
 
 ## 🛠️ Step-by-Step Restart Process
 
@@ -103,11 +109,13 @@ npx hardhat run scripts/deployVerifier.js --network localhost
 Groth16Verifier deployed to: 0xYOUR_NEW_CONTRACT_ADDRESS
 ```
 
-### Step 5: Update Contract Address
+### Step 5: Set Backend Environment Values
 
-```javascript
-// Update zkp-backend/server.js line 23
-const verifierAddress = 'YOUR_NEW_CONTRACT_ADDRESS';
+```bash
+# zkp-backend/.env
+PORT=3001
+BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545
+VERIFIER_ADDRESS=0xYOUR_NEW_CONTRACT_ADDRESS
 ```
 
 ### Step 6: Prepare ZK Circuit Files
@@ -117,12 +125,12 @@ Ensure these files exist in `zkp-backend/`:
 - `identity_final.zkey` 
 - `verification_key.json`
 
-If missing, copy from `zk-proofs/build/`:
+If missing, copy from `zk-proofs/` build outputs:
 ```bash
 cd zkp-backend
 cp ../zk-proofs/build/identity_js/identity.wasm ./
-cp ../zk-proofs/build/identity_final.zkey ./
-cp ../zk-proofs/build/verification_key.json ./
+cp ../zk-proofs/identity_final.zkey ./
+cp ../zk-proofs/verification_key.json ./
 ```
 
 ### Step 7: Start Backend Server
@@ -132,16 +140,30 @@ cd zkp-backend
 node server.js
 ```
 - Server runs on port 3001
-- Should display: "ZKP backend running"
+- Should display: `Verifier API listening on port 3001`
+- `curl http://YOUR_IP:3001/` should return `ZKP backend running`
 
 ### Step 8: Start Frontend App
 
 ```bash
 cd digital-app
-expo start
+expo start --tunnel
 ```
-- Scan QR code with Expo Go app (mobile)
-- Or press 'w' for web version
+- Scan the QR code with Expo Go on your phone
+- Use tunnel mode if the phone cannot reach the local network directly
+- If you are debugging the UI only, you can still run the web version
+
+## 🔁 Current Runtime Flow
+
+1. Hardhat node starts first.
+2. `deployVerifier.js` deploys the verifier contract to the local chain.
+3. `zkp-backend/server.js` starts and reads the proving artifacts plus contract address.
+4. Expo starts the mobile app.
+5. The app opens on the landing screen in `digital-app/screens/HomeScreen.js`.
+6. The user enters identity data in `IdentityForm.js`.
+7. `LoadingScreen.js` sends the data to the backend to generate and verify the proof.
+8. `ShowProof.js` packages the proof into QR-friendly JSON.
+9. `VerifyProof.js`, `QRScannerScreen.js`, and `ManualQRInput.js` verify the shared payload.
 
 ## 🔍 Troubleshooting
 
@@ -150,7 +172,8 @@ expo start
 **❌ "Network Error" in app**
 - Check `BACKEND_URL` in `environment.js`
 - Ensure backend server is running
-- Verify IP address is correct
+- Verify the backend URL is reachable from the phone
+- If you are using WSL, prefer the Windows LAN IP in `EXPO_PUBLIC_BACKEND_URL`
 
 **❌ "Contract call failed"**
 - Verify contract address in `server.js`
@@ -165,6 +188,11 @@ expo start
 - Ensure device and computer are on same network
 - Check firewall settings
 - Try different IP address format
+
+**❌ Android SDK location warning in VS Code**
+- This warning only affects native Android tooling
+- It does not block Expo Go with `expo start --tunnel`
+- Reload VS Code if the diagnostic remains after `local.properties` is added
 
 ### Verification Commands
 
@@ -186,17 +214,26 @@ npx hardhat console --network localhost
 Create `.env` files for easier configuration:
 
 ```bash
+# digital-app/.env
+EXPO_PUBLIC_BACKEND_URL=http://10.199.147.52:3001
+
 # zkp-backend/.env
 PORT=3001
-BLOCKCHAIN_RPC=http://127.0.0.1:8545
-VERIFIER_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545
+VERIFIER_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512(for example, you will get the address when u deploy the contract)
 ```
+
+Example files are available in:
+- `digital-app/.env.example`
+- `zkp-backend/.env.example`
+- `zk-proofs/.env.example`
 
 ### Network Configuration for Different Environments
 
 **Local Development:**
 - Blockchain: `http://127.0.0.1:8545`
 - Backend: `http://YOUR_IP:3001`
+- Expo Go: `expo start --tunnel`
 
 **Production/Remote:**
 - Update RPC URLs accordingly
@@ -206,6 +243,7 @@ VERIFIER_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 ## 📱 App Features
 
 - **Identity Form**: Input student details
+- **Landing Screen**: New first screen with app overview and action buttons
 - **Privacy Controls**: Choose which details to share
 - **QR Code Generation**: Share proof via QR code
 - **Dual Verification**: Off-chain + blockchain validation
@@ -228,5 +266,5 @@ VERIFIER_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 
 ---
 
-**Last Updated**: July 31, 2025
+**Last Updated**: April 6, 2026
 **Version**: 1.0.0
