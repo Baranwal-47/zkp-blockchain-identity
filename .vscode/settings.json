@@ -1,0 +1,8 @@
+{
+  "java.import.exclusions": [
+    "digital-app/android/**"
+  ],
+  "java.diagnostic.filter": [
+    "**/digital-app/android/**"
+  ]
+}

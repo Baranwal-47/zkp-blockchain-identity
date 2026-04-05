@@ -81,4 +81,6 @@ zk-proofs/identity_js/
 # Backend local files
 zkp-backend/.env
 zkp-backend/.env.*
+digital-app/android/local.properties
 
+zkp-backend/package-lock.json

@@ -1,39 +1,35 @@
-// server.js
-
 const express = require('express');
 const snarkjs = require('snarkjs');
 const fs = require('fs');
 const cors = require('cors');
-const circomlibjs = require('circomlibjs');
+const path = require('path');
+require('dotenv').config();
 const { ethers } = require('ethers');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// File paths - update if your files are in different location
-const wasmPath = './identity.wasm';
-const zkeyPath = './identity_final.zkey';
-const vKey = JSON.parse(fs.readFileSync('./verification_key.json'));
+const wasmPath = process.env.WASM_PATH || path.join(__dirname, 'identity.wasm');
+const zkeyPath = process.env.ZKEY_PATH || path.join(__dirname, 'identity_final.zkey');
+const vKeyPath = process.env.VKEY_PATH || path.join(__dirname, 'verification_key.json');
+const vKey = JSON.parse(fs.readFileSync(vKeyPath, 'utf8'));
 
-// Load ABI of the deployed Solidity verifier contract
-const verifierAbi = require('../zk-proofs/artifacts/contracts/IdentityVerifier.sol/Groth16Verifier.json').abi;
+const verifierAbiPath = process.env.VERIFIER_ABI_PATH || path.join(__dirname, '../zk-proofs/artifacts/contracts/IdentityVerifier.sol/Groth16Verifier.json');
+const verifierAbi = require(verifierAbiPath).abi;
 
-// Deployed verifier contract address on your local Hardhat network
-const verifierAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const verifierAddress = process.env.VERIFIER_ADDRESS || '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || 'http://127.0.0.1:8545';
+const port = Number(process.env.PORT || 3001);
 
-// Provider connects to your local Hardhat Ethereum node
-const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545');
+const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-// Contract instance for on-chain verification (read-only calls)
 const verifierContract = new ethers.Contract(verifierAddress, verifierAbi, provider);
 
-// Basic route to check server status
 app.get('/', (req, res) => {
   res.send('ZKP backend running');
 });
 
-// Endpoint: Generate zk-SNARK proof off-chain
 app.post('/generate-proof', async (req, res) => {
   console.log('Received input:', req.body);
   try {
@@ -54,7 +50,6 @@ app.post('/generate-proof', async (req, res) => {
   }
 });
 
-// Endpoint: Verify zk-SNARK proof off-chain using snarkjs
 app.post('/verify', async (req, res) => {
   const { proof, publicSignals } = req.body;
   try {
@@ -65,7 +60,6 @@ app.post('/verify', async (req, res) => {
   }
 });
 
-// New Endpoint: Verify zk-SNARK proof ON-CHAIN via Solidity verifier
 app.post('/verify-onchain', async (req, res) => {
   const { proof, publicSignals } = req.body;
 
@@ -95,8 +89,6 @@ app.post('/verify-onchain', async (req, res) => {
   }
 });
 
-// Start the backend server
-const PORT = 3001;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Verifier API listening on port ${PORT}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Verifier API listening on port ${port}`);
 });

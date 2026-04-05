@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import HomeScreen from './screens/HomeScreen';
 import IdentityForm from './screens/IdentityForm';
 import LoadingScreen from './screens/LoadingScreen';
 import ShowProof from './screens/ShowProof';
@@ -8,17 +9,10 @@ import VerifyProof from './screens/VerifyProof';
 import ErrorScreen from './screens/ErrorScreen';
 import QRScannerScreen from './screens/QRScannerScreen';
 import ManualQRInput from './screens/ManualQRInput';
-import sha256 from 'js-sha256';
 
 const Stack = createStackNavigator();
 
-function poseidonHash(str) {
-  return BigInt('0x' + sha256(str));
-}
-
 export default function App() {
-  const [proofData, setProofData] = useState(null);
-
   const screenOptions = {
     headerStyle: {
       backgroundColor: '#3b82f6',
@@ -47,6 +41,12 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={screenOptions}>
+        <Stack.Screen 
+          name="HomeScreen" 
+          component={HomeScreen}
+          options={{ headerShown: false }}
+        />
+
         <Stack.Screen 
           name="IdentityForm" 
           component={IdentityForm}
