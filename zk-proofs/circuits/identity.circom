@@ -8,7 +8,7 @@ template Identity() {
     signal input name;     
     signal input rollNo;   
     signal input dob;       
-    signal input phoneNo;  
+    signal input phoneNo;
     signal input branch;    
 
     // Public output: the computed hash of all attributes

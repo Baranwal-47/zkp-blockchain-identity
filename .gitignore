@@ -1,0 +1,84 @@
+# Workspace handoff
+copilot_handoff.md
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE metadata
+.idea/
+*.iml
+*.hprof
+*.jsbundle
+
+# Local environment and secrets
+.env
+.env.*
+.env*.local
+*.pem
+*.key
+*.p12
+*.p8
+*.jks
+*.keystore
+*.mobileprovision
+
+# Node / Expo caches
+**/node_modules/
+digital-app/package-lock.json
+digital-app/.expo/
+digital-app/.expo-shared/
+digital-app/.metro-health-check*
+digital-app/dist/
+digital-app/web-build/
+digital-app/expo-env.d.ts
+digital-app/*.log
+zkp-backend/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+
+# Android / React Native generated state
+digital-app/android/.gradle/
+digital-app/android/.cxx/
+digital-app/android/.idea/
+digital-app/android/.kotlin/
+digital-app/android/build/
+digital-app/android/app/build/
+digital-app/android/app/debug.keystore
+digital-app/android/app/src/debug/
+digital-app/android/app/src/main/res/
+digital-app/android/local.properties
+digital-app/android/*.orig.*
+
+# Hardhat / Solidity generated state
+zk-proofs/artifacts/
+zk-proofs/cache/
+zk-proofs/build/
+zk-proofs/coverage/
+zk-proofs/coverage.json
+zk-proofs/ignition/deployments/chain-31337/
+zk-proofs/target/
+zk-proofs/typechain/
+zk-proofs/typechain-types/
+
+# Circom / zk-SNARK build outputs
+zk-proofs/*.ptau
+zk-proofs/*.r1cs
+zk-proofs/*.sym
+zk-proofs/*.wasm
+zk-proofs/*.wtns
+zk-proofs/*.zkey
+zk-proofs/circuits/proof.json
+zk-proofs/circuits/public.json
+zk-proofs/circuits/witness.wtns
+zk-proofs/identity_cpp/
+zk-proofs/identity_js/
+
+# Backend local files
+zkp-backend/.env
+zkp-backend/.env.*
+

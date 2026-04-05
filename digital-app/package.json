@@ -4,14 +4,14 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-clipboard/clipboard": "^1.16.3",
-    "@react-native-community/datetimepicker": "^8.4.3",
+    "@react-native-community/datetimepicker": "^8.4.1",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/stack": "^7.4.2",
     "axios": "^1.10.0",
@@ -21,6 +21,7 @@
     "expo-asset": "~11.1.7",
     "expo-barcode-scanner": "^13.0.1",
     "expo-camera": "^16.1.11",
+    "expo-clipboard": "~7.1.5",
     "expo-file-system": "~18.1.11",
     "expo-status-bar": "~2.2.3",
     "js-sha256": "^0.11.1",
@@ -30,8 +31,7 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-snarkjs": "^0.0.4",
-    "snarkjs": "^0.7.5",
-    "expo-clipboard": "~7.1.5"
+    "snarkjs": "^0.7.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
