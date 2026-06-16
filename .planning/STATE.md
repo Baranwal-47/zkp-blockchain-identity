@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-06-16T13:31:20.297Z"
-last_activity: 2026-06-16 -- Phase 01 planning complete
+last_updated: "2026-06-16T21:03:17.141Z"
+last_activity: 2026-06-16 -- Phase 01 execution started
 progress:
   total_phases: 5
   completed_phases: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-16)
 
 **Core value:** A verifier can cryptographically confirm a student's selectively-disclosed identity attributes and predicates against an on-chain Merkle-root commitment, with replay-proof freshness.
-**Current focus:** Phase 1 — Freeze Spec & Field-Set Consistency
+**Current focus:** Phase 01 — freeze-spec-field-set-consistency
 
 ## Current Position
 
-Phase: 1 of 5 (Freeze Spec & Field-Set Consistency)
-Plan: 0 of TBD in current phase
-Status: Ready to execute
-Last activity: 2026-06-16 -- Phase 01 planning complete
+Phase: 01 (freeze-spec-field-set-consistency) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 01
+Last activity: 2026-06-16 -- Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 

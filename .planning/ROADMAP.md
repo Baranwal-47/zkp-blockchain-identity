@@ -30,8 +30,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Re-seeding a test student and recomputing the commitment yields the same root from both the admin issuance path and the prover-side leaf computation.
   4. The credential issuer string reads "PrivdID — IIITDM Jabalpur" with no VIT references in issuance output.
 **Plans**: 4 plans
-- [ ] 01-01-PLAN.md — Frozen IDENTITY_SPEC.md spec doc + canonical enumCodes.js (SPEC-01)
-- [ ] 01-02-PLAN.md — Shared identityCommitment.js module: hash-to-field, salts, salted Merkle root (SPEC-01/02)
+- [x] 01-01-PLAN.md — Frozen IDENTITY_SPEC.md spec doc + canonical enumCodes.js (SPEC-01)
+- [x] 01-02-PLAN.md — Shared identityCommitment.js module: hash-to-field, salts, salted Merkle root (SPEC-01/02)
 - [ ] 01-03-PLAN.md — Admin issuance refactor: schema, validator, both recompute sites, branding (SPEC-02/03)
 - [ ] 01-04-PLAN.md — Wipe-and-reseed script + root-equality acceptance gate (SPEC-02)
 
@@ -82,7 +82,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Freeze Spec & Field-Set Consistency | 0/4 | Not started | - |
+| 1. Freeze Spec & Field-Set Consistency | 2/4 | In Progress|  |
 | 2. E1+E2 Circuit Build | 0/TBD | Not started | - |
 | 3. Trusted Setup & Redeploy | 0/TBD | Not started | - |
 | 4. ZKP Backend Integration & Nonce Enforcement | 0/TBD | Not started | - |
