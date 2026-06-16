@@ -22,7 +22,7 @@ Leaf indices are Merkle tree positions. Order is frozen; never insert, reorder, 
 | 4 | `discipline` | Integer code | enum code from enumCodes.js | Discipline dropdown |
 | 5 | `batch` | Integer | 4-digit year integer directly | Batch/admission-year field |
 | 6 | `email` | String | hash-to-field (maxChunks=2) | Email text field (max 62 bytes enforced) |
-| 7 | zero-padding | — | `Poseidon(2)(0, 0)` = `14744269619966411208460611736853059166543709924778005885397896789179099038553` | Reserved; no admin input |
+| 7 | zero-padding | — | `Poseidon(2)(0, 0)` = `14744269619966411208579211824598458697587494354926760081771325075741142829156` | Reserved; no admin input |
 
 **Leaves 0–6** are committed attributes. **Leaf 7** is reserved zero-padding with `attr=0, salt=0`; it is a non-zero field element because Poseidon is a permutation (not the identity). Do NOT use bare `0` as the leaf value in the Merkle combine step.
 
@@ -114,7 +114,7 @@ Level-2 nodes: `node0123 = Poseidon(2)(node01, node23)`, `node4567 = Poseidon(2)
 
 Root: `root = Poseidon(2)(node0123, node4567)`.
 
-**Zero-padding leaf value (leaf[7]):** `Poseidon(2)(0n, 0n)` = `14744269619966411208460611736853059166543709924778005885397896789179099038553`. This is non-zero. The prover will set `attr[7] = 0`, `salt[7] = 0` and compute the leaf hash identically. Do NOT use bare `0` as the leaf value passed into `node67`; it must be the Poseidon output.
+**Zero-padding leaf value (leaf[7]):** `Poseidon(2)(0n, 0n)` = `14744269619966411208579211824598458697587494354926760081771325075741142829156`. This is non-zero. The prover will set `attr[7] = 0`, `salt[7] = 0` and compute the leaf hash identically. Do NOT use bare `0` as the leaf value passed into `node67`; it must be the Poseidon output.
 
 ### Root → bytes32 conversion
 
@@ -220,7 +220,7 @@ Poseidon(2)(1n, 2n)
   = 7853200120776062878684798364095072458815029376092732009249414926327459813530
 
 Poseidon(2)(0n, 0n)   [zero-padding leaf — leaf[7] value]
-  = 14744269619966411208460611736853059166543709924778005885397896789179099038553
+  = 14744269619966411208579211824598458697587494354926760081771325075741142829156
   NOTE: this is NON-ZERO; do not substitute bare 0 in the Merkle combine step.
 
 --- hashToField — single-chunk (all bytes fit in one 31-byte chunk) ---
