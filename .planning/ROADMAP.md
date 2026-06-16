@@ -12,7 +12,7 @@ This milestone rebuilds the cryptographic core of PrivdID along a strict design-
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Freeze Spec & Field-Set Consistency** - Lock the 7-attribute spec and make admin issuance byte-for-byte identical to the prover input
+- [x] **Phase 1: Freeze Spec & Field-Set Consistency** - Lock the 7-attribute spec and make admin issuance byte-for-byte identical to the prover input (completed 2026-06-16)
 - [ ] **Phase 2: E1+E2 Circuit Build** - Build and freeze the depth-3 Merkle circuit with salted leaves, disclosure binding, predicates, and nonce binding
 - [ ] **Phase 3: Trusted Setup & Redeploy** - Run the Groth16 Phase-2 ceremony, export and redeploy IdentityVerifier.sol, ship fresh artifacts to the ZKP backend
 - [ ] **Phase 4: ZKP Backend Integration & Nonce Enforcement** - Wire the new proof input/output shape and the session-nonce challenge + freshness + one-time-use enforcement
@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 01-01-PLAN.md — Frozen IDENTITY_SPEC.md spec doc + canonical enumCodes.js (SPEC-01)
 - [x] 01-02-PLAN.md — Shared identityCommitment.js module: hash-to-field, salts, salted Merkle root (SPEC-01/02)
 - [x] 01-03-PLAN.md — Admin issuance refactor: schema, validator, both recompute sites, branding (SPEC-02/03)
-- [ ] 01-04-PLAN.md — Wipe-and-reseed script + root-equality acceptance gate (SPEC-02)
+- [x] 01-04-PLAN.md — Wipe-and-reseed script + root-equality acceptance gate (SPEC-02)
 
 ### Phase 2: E1+E2 Circuit Build
 **Goal**: A single frozen `identity.circom` computes the depth-3 Merkle root from salted per-attribute leaves, binds selective disclosure, evaluates the age and postgrad predicates, and binds the verifier nonce — built together so the circuit can be frozen exactly once.
@@ -82,7 +82,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Freeze Spec & Field-Set Consistency | 3/4 | In Progress|  |
+| 1. Freeze Spec & Field-Set Consistency | 4/4 | Complete   | 2026-06-16 |
 | 2. E1+E2 Circuit Build | 0/TBD | Not started | - |
 | 3. Trusted Setup & Redeploy | 0/TBD | Not started | - |
 | 4. ZKP Backend Integration & Nonce Enforcement | 0/TBD | Not started | - |
