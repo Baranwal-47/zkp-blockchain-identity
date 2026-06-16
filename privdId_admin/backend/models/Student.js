@@ -37,7 +37,8 @@ const studentSchema = new mongoose.Schema(
     },
     hashedData: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     password: {
       type: String,
