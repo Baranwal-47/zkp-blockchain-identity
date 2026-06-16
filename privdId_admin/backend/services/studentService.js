@@ -1,9 +1,11 @@
 import AppError from "../utils/appError.js";
 import Student from "../models/Student.js";
-import { hashPoseidonFields } from "../utils/poseidonHash.js";
+import { hashPoseidonFields } from "../utils/poseidonHash.js"; // kept for legacy callers; NOT called from new commitment path
 import { generateTemporaryPassword } from "../utils/password.js";
 import { sendCredentialsEmail } from "./emailService.js";
 import { issueCredentialOnChain, revokeCredentialOnChain } from "./credentialService.js";
+import { hashToField, generateSalts, computeMerkleRoot, CHUNK_COUNTS } from "../utils/identityCommitment.js";
+import { PROGRAMME_LEVEL, DISCIPLINE } from "../constants/enumCodes.js";
 
 function normalizePhone(contactNo) {
   if (!contactNo) return "";
@@ -21,13 +23,20 @@ function normalizePhone(contactNo) {
 }
 
 export function normalizeStudentInput(studentPayload) {
+  // parse YYYY-MM-DD → YYYYMMDD integer for commitment; keep dob string for display
+  const dobStr = String(studentPayload.dob ?? "").trim();
+  const dobInt = dobStr ? parseInt(dobStr.replace(/-/g, ""), 10) : null;
   return {
     name: String(studentPayload.name ?? "").trim(),
     email: String(studentPayload.email ?? "").trim().toLowerCase(),
     rollNo: String(studentPayload.rollNo ?? "").trim(),
-    programme: String(studentPayload.programme ?? "").trim(),
-    contactNo: String(studentPayload.contactNo ?? "").trim(),
-    dob: String(studentPayload.dob ?? "").trim(),
+    programme: String(studentPayload.programme ?? "").trim(),       // retained as display field; not committed
+    programmeLevel: String(studentPayload.programmeLevel ?? "").trim(),
+    discipline: String(studentPayload.discipline ?? "").trim(),
+    batch: Number(studentPayload.batch) || null,
+    contactNo: String(studentPayload.contactNo ?? "").trim(),       // retained as operational field; not committed
+    dob: dobStr,                                                    // display string
+    dobInt,                                                         // YYYYMMDD integer for commitment (leaf 2)
   };
 }
 
@@ -65,21 +74,53 @@ export async function findDuplicateStudent({ email, rollNo }) {
 
 export async function buildStudentRecord(studentPayload) {
   const normalizedStudent = normalizeStudentInput(studentPayload);
+
+  // Input guards — all 4 committed integer/enum attributes are required
   if (!normalizedStudent.dob) {
     throw new AppError("Date of Birth is required to issue a credential.", 400);
   }
+  if (!normalizedStudent.dobInt) {
+    throw new AppError("Date of Birth could not be parsed to an integer. Expected YYYY-MM-DD.", 400);
+  }
+  if (!normalizedStudent.programmeLevel) {
+    throw new AppError("programmeLevel is required to issue a credential.", 400);
+  }
+  if (!normalizedStudent.discipline) {
+    throw new AppError("discipline is required to issue a credential.", 400);
+  }
+  if (!normalizedStudent.batch) {
+    throw new AppError("batch is required to issue a credential.", 400);
+  }
+
+  // Enum code lookup — throws if the string is not in the frozen map (T-01-09)
+  const programmeLevelCode = PROGRAMME_LEVEL[normalizedStudent.programmeLevel];
+  const disciplineCode = DISCIPLINE[normalizedStudent.discipline];
+  if (programmeLevelCode === undefined) {
+    throw new AppError(`Unknown programmeLevel: "${normalizedStudent.programmeLevel}"`, 400);
+  }
+  if (disciplineCode === undefined) {
+    throw new AppError(`Unknown discipline: "${normalizedStudent.discipline}"`, 400);
+  }
+
   const temporaryPassword = generateTemporaryPassword();
-  const hashedData = await hashPoseidonFields([
-    normalizedStudent.name,
-    normalizedStudent.rollNo,
-    normalizedStudent.dob,
-    normalizePhone(normalizedStudent.contactNo),
-    normalizedStudent.programme,
-  ]);
+
+  // 7-attribute salted Merkle commitment — frozen leaf order per IDENTITY_SPEC §1
+  const salts = generateSalts(7);
+  const attrs = [
+    await hashToField(normalizedStudent.name, CHUNK_COUNTS.name),        // leaf 0: name
+    await hashToField(normalizedStudent.rollNo, CHUNK_COUNTS.rollNo),    // leaf 1: rollNo
+    String(normalizedStudent.dobInt),                                     // leaf 2: dob YYYYMMDD int
+    String(programmeLevelCode),                                           // leaf 3: programmeLevel code
+    String(disciplineCode),                                               // leaf 4: discipline code
+    String(normalizedStudent.batch),                                      // leaf 5: batch year int
+    await hashToField(normalizedStudent.email, CHUNK_COUNTS.email),      // leaf 6: email
+  ];
+  const merkleRoot = await computeMerkleRoot(attrs, salts);
 
   return {
     ...normalizedStudent,
-    hashedData,
+    merkleRoot,
+    salts,
     password: temporaryPassword,
   };
 }
@@ -91,9 +132,14 @@ export async function createStudent(studentPayload) {
     email: record.email,
     rollNo: record.rollNo,
     programme: record.programme,
+    programmeLevel: record.programmeLevel,
+    discipline: record.discipline,
+    batch: record.batch,
     contactNo: record.contactNo,
     dob: record.dob,
-    hashedData: record.hashedData,
+    dobInt: record.dobInt,
+    salts: record.salts,
+    merkleRoot: record.merkleRoot,
     password: record.password,
     emailSent: false,
     emailSentAt: null,
@@ -103,9 +149,8 @@ export async function createStudent(studentPayload) {
   try {
     const { cid, txHash, blockNumber } = await issueCredentialOnChain({
       rollNo: student.rollNo,
-      programme: student.programme,
       email: student.email,
-      hashedData: student.hashedData,
+      merkleRoot: student.merkleRoot,
     });
     student.ipfsCID = cid;
     student.onChainTxHash = txHash;
@@ -144,9 +189,8 @@ export async function insertBulkStudents(preparedStudents) {
     try {
       const { cid, txHash, blockNumber } = await issueCredentialOnChain({
         rollNo: student.rollNo,
-        programme: student.programme,
         email: student.email,
-        hashedData: student.hashedData,
+        merkleRoot: student.merkleRoot,
       });
       await Student.updateOne(
         { _id: student._id },
@@ -168,23 +212,59 @@ export async function updateStudent(id, payload) {
   if (!student) throw new AppError("Student not found.", 404);
   if (student.revoked) throw new AppError("Cannot update a revoked credential.", 400);
 
-  const allowedFields = ["name", "programme", "contactNo", "dob"];
+  const allowedFields = ["name", "programmeLevel", "discipline", "batch", "contactNo", "dob", "programme"];
   allowedFields.forEach((field) => {
     if (payload[field] !== undefined) student[field] = String(payload[field]).trim();
   });
+  // batch is a Number — coerce separately after the String pass above
+  if (payload.batch !== undefined) student.batch = Number(payload.batch) || null;
 
   if (!student.dob) {
     throw new AppError("Date of Birth is required to issue a credential.", 400);
   }
 
-  // Recompute Poseidon hash with updated fields
-  student.hashedData = await hashPoseidonFields([
-    student.name,
-    student.rollNo,
-    student.dob,
-    normalizePhone(student.contactNo),
-    student.programme,
-  ]);
+  // Input guards for commitment fields
+  if (!student.programmeLevel) {
+    throw new AppError("programmeLevel is required to issue a credential.", 400);
+  }
+  if (!student.discipline) {
+    throw new AppError("discipline is required to issue a credential.", 400);
+  }
+  if (!student.batch) {
+    throw new AppError("batch is required to issue a credential.", 400);
+  }
+
+  // Enum code lookup — throws if not in the frozen map (T-01-09)
+  const programmeLevelCode = PROGRAMME_LEVEL[student.programmeLevel];
+  const disciplineCode = DISCIPLINE[student.discipline];
+  if (programmeLevelCode === undefined) {
+    throw new AppError(`Unknown programmeLevel: "${student.programmeLevel}"`, 400);
+  }
+  if (disciplineCode === undefined) {
+    throw new AppError(`Unknown discipline: "${student.discipline}"`, 400);
+  }
+
+  // Re-parse dobInt from the stored dob display string
+  const dobStr = String(student.dob ?? "").trim();
+  const dobInt = dobStr ? parseInt(dobStr.replace(/-/g, ""), 10) : null;
+  if (!dobInt) {
+    throw new AppError("Date of Birth could not be parsed to an integer. Expected YYYY-MM-DD.", 400);
+  }
+  student.dobInt = dobInt;
+
+  // Recompute 7-attribute salted Merkle commitment — both sites must use computeMerkleRoot (T-01-08)
+  const salts = generateSalts(7);
+  const attrs = [
+    await hashToField(student.name, CHUNK_COUNTS.name),        // leaf 0: name
+    await hashToField(student.rollNo, CHUNK_COUNTS.rollNo),    // leaf 1: rollNo
+    String(dobInt),                                             // leaf 2: dob YYYYMMDD int
+    String(programmeLevelCode),                                 // leaf 3: programmeLevel code
+    String(disciplineCode),                                     // leaf 4: discipline code
+    String(student.batch),                                      // leaf 5: batch year int
+    await hashToField(student.email, CHUNK_COUNTS.email),      // leaf 6: email
+  ];
+  student.salts = salts;
+  student.merkleRoot = await computeMerkleRoot(attrs, salts);
 
   await student.save();
 
@@ -192,9 +272,8 @@ export async function updateStudent(id, payload) {
   try {
     const { cid, txHash, blockNumber } = await issueCredentialOnChain({
       rollNo: student.rollNo,
-      programme: student.programme,
       email: student.email,
-      hashedData: student.hashedData,
+      merkleRoot: student.merkleRoot,
     });
     student.ipfsCID = cid;
     student.onChainTxHash = txHash;
