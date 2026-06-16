@@ -10,8 +10,8 @@ Scope = the circuit critical path (blueprint Phase 0 + Phase 1, plus the §1.4 f
 ### Spec & Consistency
 
 - [ ] **SPEC-01**: The 7-attribute identity spec is frozen and documented — fixed leaf order (name, rollNo, dob-int, programmeLevel, discipline, batch-int, email), per-attribute types/encodings, and the final public-signal layout
-- [ ] **SPEC-02**: Admin issuance hash uses the byte-for-byte identical attribute list, order, and encoding as the prover (resolves the §1.4 branch/programme mismatch)
-- [ ] **SPEC-03**: The credential issuer string reads "PrivdID — IIITDM Jabalpur" (VIT references removed from issuance output)
+- [x] **SPEC-02**: Admin issuance hash uses the byte-for-byte identical attribute list, order, and encoding as the prover (resolves the §1.4 branch/programme mismatch)
+- [x] **SPEC-03**: The credential issuer string reads "PrivdID — IIITDM Jabalpur" (VIT references removed from issuance output)
 
 ### Circuit (E1)
 
@@ -82,8 +82,8 @@ Deferred to later milestones (tracked, not in this roadmap).
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SPEC-01 | Phase 1 | Pending |
-| SPEC-02 | Phase 1 | Pending |
-| SPEC-03 | Phase 1 | Pending |
+| SPEC-02 | Phase 1 | Complete |
+| SPEC-03 | Phase 1 | Complete |
 | CIRC-01 | Phase 2 | Pending |
 | CIRC-02 | Phase 2 | Pending |
 | CIRC-03 | Phase 2 | Pending |
