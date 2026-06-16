@@ -102,9 +102,11 @@ await asyncTest("hashToField('utkarshbaranwal47@students.iiitdmj.ac.in', 2) — 
 console.log("\n-- computeLeaf --");
 await asyncTest("computeLeaf(0, 0) === Poseidon(2)(0,0) — verified zero-pad leaf", async () => {
   const result = await m.computeLeaf(0, 0);
+  // Value verified by running against circomlibjs@0.1.7 installed in privdId_admin/backend/
+  // Note: research doc had a transcription error; this is the actual library output.
   assert.strictEqual(
     result,
-    "14744269619966411208460611736853059166543709924778005885397896789179099038553",
+    "14744269619966411208579211824598458697587494354926760081771325075741142829156",
     `Got: ${result}`
   );
 });
