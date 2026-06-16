@@ -31,13 +31,13 @@ async function pinToIPFS(credential) {
   return response.data.IpfsHash;
 }
 
-async function anchorOnChain(rollNo, cid, hashedData) {
+async function anchorOnChain(rollNo, cid, merkleRoot) {
   const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
   const wallet = new ethers.Wallet(`0x${process.env.PRIVATE_KEY}`, provider);
   const registry = new ethers.Contract(process.env.REGISTRY_ADDRESS, registryArtifact.abi, wallet);
 
-  // hashedData is a decimal string from Poseidon — convert to bytes32
-  const pubHashBytes32 = ethers.zeroPadValue(ethers.toBeHex(BigInt(hashedData)), 32);
+  // merkleRoot is a decimal string field element — convert to bytes32 (IDENTITY_SPEC §4)
+  const pubHashBytes32 = ethers.zeroPadValue(ethers.toBeHex(BigInt(merkleRoot)), 32);
 
   const tx = await registry.issueCredential(rollNo, cid, pubHashBytes32);
   const receipt = await tx.wait();
@@ -60,17 +60,16 @@ export async function revokeCredentialOnChain(rollNo) {
 export async function issueCredentialOnChain(student) {
   const credential = {
     rollNo: student.rollNo,
-    programme: student.programme,
     email: student.email,
-    hashedData: student.hashedData,
+    merkleRoot: student.merkleRoot,
     issuedAt: new Date().toISOString(),
-    issuer: 'PrivdID — VIT Bhopal University',
+    issuer: 'PrivdID — IIITDM Jabalpur',
     type: 'StudentIdentityCredential',
-    version: '1.0',
+    version: '2.0',
   };
 
   const cid = await pinToIPFS(credential);
-  const { txHash, blockNumber } = await anchorOnChain(student.rollNo, cid, student.hashedData);
+  const { txHash, blockNumber } = await anchorOnChain(student.rollNo, cid, student.merkleRoot);
 
   console.log(`[credential] Anchored ${student.rollNo} → IPFS: ${cid} | Tx: ${txHash}`);
   return { cid, txHash, blockNumber };
