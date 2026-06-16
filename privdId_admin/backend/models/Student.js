@@ -71,6 +71,37 @@ const studentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // --- 7-attribute salted Merkle commitment fields (plan 03) ---
+    programmeLevel: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    discipline: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    batch: {
+      type: Number,
+      required: false,
+      default: null,
+    },
+    dobInt: {
+      type: Number,
+      required: false,
+      default: null,
+    },
+    salts: {
+      type: [String],
+      required: false,
+      default: [],
+    },
+    merkleRoot: {
+      type: String,
+      required: false,
+      default: null,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
