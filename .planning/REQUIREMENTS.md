@@ -79,35 +79,33 @@ Deferred to later milestones (tracked, not in this roadmap).
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SPEC-01 | TBD | Pending |
-| SPEC-02 | TBD | Pending |
-| SPEC-03 | TBD | Pending |
-| CIRC-01 | TBD | Pending |
-| CIRC-02 | TBD | Pending |
-| CIRC-03 | TBD | Pending |
-| CIRC-04 | TBD | Pending |
-| CIRC-05 | TBD | Pending |
-| REPL-01 | TBD | Pending |
-| REPL-02 | TBD | Pending |
-| REPL-03 | TBD | Pending |
-| SETUP-01 | TBD | Pending |
-| SETUP-02 | TBD | Pending |
-| SETUP-03 | TBD | Pending |
-| BACK-01 | TBD | Pending |
-| BACK-02 | TBD | Pending |
-| BACK-03 | TBD | Pending |
-| PERF-01 | TBD | Pending |
-| PERF-02 | TBD | Pending |
+| SPEC-01 | Phase 1 | Pending |
+| SPEC-02 | Phase 1 | Pending |
+| SPEC-03 | Phase 1 | Pending |
+| CIRC-01 | Phase 2 | Pending |
+| CIRC-02 | Phase 2 | Pending |
+| CIRC-03 | Phase 2 | Pending |
+| CIRC-04 | Phase 2 | Pending |
+| CIRC-05 | Phase 2 | Pending |
+| REPL-01 | Phase 2 | Pending |
+| REPL-02 | Phase 2 | Pending |
+| REPL-03 | Phase 4 | Pending |
+| SETUP-01 | Phase 3 | Pending |
+| SETUP-02 | Phase 3 | Pending |
+| SETUP-03 | Phase 3 | Pending |
+| BACK-01 | Phase 4 | Pending |
+| BACK-02 | Phase 4 | Pending |
+| BACK-03 | Phase 4 | Pending |
+| PERF-01 | Phase 5 | Pending |
+| PERF-02 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-16*
-*Last updated: 2026-06-16 after initial definition*
+*Last updated: 2026-06-16 after roadmap creation (traceability mapped)*
