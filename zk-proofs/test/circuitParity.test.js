@@ -219,6 +219,84 @@ describe("Circuit witness-level parity gate (D-14) + nonce-rejection (REPL-02)",
     });
   });
 
+  describe("Task 4: age/postgrad predicate boundary coverage (CIRC-04/CIRC-05, WR-02)", function () {
+    // currentDateInt fixed at "20260617" by buildInput's default. Age
+    // threshold per the circuit's digit-shift logic:
+    //   currentDateInt - 18*10000 = 20260617 - 180000 = 20080617
+    // isOver18 = (currentDateInt - 180000) >= dobInt (GreaterEqThan is
+    // inclusive — see circomlib comparators.circom GreaterEqThan, which
+    // delegates to LessThan(in[1], in[0]+1)), i.e. dobInt <= 20080617.
+    const baseAttrsFor = (dobInt, programmeLevel) => [
+      "2689494646062948360487866858549161268023147861439580363715484426041810573382",
+      "15150160435819557810078120971221321758887516517285291325240673283662695955468",
+      dobInt,
+      programmeLevel,
+      DISCIPLINE,
+      BATCH,
+      "6744441775314583329532040559385253235651674879202368422786321712697490882813",
+    ];
+
+    it("isOver18=false: a dob just under the 18-year threshold causes witness generation to reject when isOver18='1' is asserted", async function () {
+      // dobInt = 20080618 is one day AFTER the threshold 20080617, i.e. the
+      // person turns 18 the day after currentDateInt — under 18 today.
+      const underageAttrs = baseAttrsFor("20080618", PROGRAMME_LEVEL);
+
+      await assert.rejects(
+        calculateWitness(
+          buildInput(underageAttrs, FIXED_SALTS, { isOver18: "1" })
+        ),
+        /Error/,
+        "witness generation must reject isOver18='1' for a dob that is under the 18-year threshold"
+      );
+
+      // Confirm the same dob succeeds when isOver18='0' is correctly asserted.
+      const witness = await calculateWitness(
+        buildInput(underageAttrs, FIXED_SALTS, { isOver18: "0" })
+      );
+      assert.strictEqual(witness[WITNESS_IDX.isOver18].toString(), "0");
+    });
+
+    it("isOver18 boundary: a dob exactly at the 18-year threshold (turning 18 today) computes isOver18=true (inclusive boundary)", async function () {
+      // dobInt = 20080617 exactly equals currentDateInt - 180000.
+      const boundaryAttrs = baseAttrsFor("20080617", PROGRAMME_LEVEL);
+
+      const witness = await calculateWitness(
+        buildInput(boundaryAttrs, FIXED_SALTS, { isOver18: "1" })
+      );
+      assert.strictEqual(
+        witness[WITNESS_IDX.isOver18].toString(),
+        "1",
+        "dob exactly at the 18-year boundary must compute isOver18=1 (GreaterEqThan is inclusive)"
+      );
+    });
+
+    it("isPostgrad=true: programmeLevel=4 (M.Tech, in set {4,5,6}) computes isPostgrad=1", async function () {
+      const pgAttrs = baseAttrsFor(DOB_INT, "4");
+
+      const witness = await calculateWitness(
+        buildInput(pgAttrs, FIXED_SALTS, { isPostgrad: "1" })
+      );
+      assert.strictEqual(witness[WITNESS_IDX.isPostgrad].toString(), "1");
+    });
+
+    it("isPostgrad=false: programmeLevel=3 (Dual, explicitly excluded per D-13) computes isPostgrad=0", async function () {
+      const dualAttrs = baseAttrsFor(DOB_INT, "3");
+
+      const witness = await calculateWitness(
+        buildInput(dualAttrs, FIXED_SALTS, { isPostgrad: "0" })
+      );
+      assert.strictEqual(witness[WITNESS_IDX.isPostgrad].toString(), "0");
+
+      // Confirm asserting isPostgrad='1' for the same dual-degree attrs is
+      // rejected (proving 3 really is excluded, not just defaulted to 0).
+      await assert.rejects(
+        calculateWitness(buildInput(dualAttrs, FIXED_SALTS, { isPostgrad: "1" })),
+        /Error/,
+        "witness generation must reject isPostgrad='1' for programmeLevel=3 (Dual is excluded from postgrad set)"
+      );
+    });
+  });
+
   describe("Task 3: selective disclosure (CIRC-03) — witness-level coverage (WR-01)", function () {
     // Witness public-signal indices for revealedValue[0..6]/revealMask[0..6]
     // (signals [5..11]/[12..18], witness indices 6..12/13..19 — see
