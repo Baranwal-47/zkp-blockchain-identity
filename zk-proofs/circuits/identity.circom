@@ -29,10 +29,20 @@ include "comparators.circom";
 //   [5..11]  revealedValue[7]
 //   [12..18] revealMask[7]
 //
-// Declaration sequence below intentionally matches this order: pubHash
-// (output) first, then nonce/currentDateInt (public inputs), then
-// isOver18/isPostgrad (outputs), then revealedValue/revealMask (public
-// inputs), then the private attr/salt inputs last. Verified against the
+// circom emits a component's public signal list as ALL signal outputs
+// (declaration order) followed by ALL public signal inputs (declaration
+// order) — outputs and public inputs cannot be interleaved positionally.
+// Since pubHash must be the lone signal [0] and isOver18/isPostgrad must sit
+// at signals [3]/[4] AFTER the nonce/currentDateInt public inputs at [1]/[2],
+// isOver18 and isPostgrad are declared as public INPUT signals (not circom
+// `signal output`s) that the circuit computes internally and then asserts
+// equal to via `===`. This is the standard circom idiom for forcing a
+// derived value into a specific public-signal position: the prover supplies
+// isOver18/isPostgrad as part of the witness, and the circuit constrains
+// them to equal the in-circuit-computed predicate — a malicious prover
+// cannot supply a value that does not match the computed predicate because
+// the equality constraint would fail. pubHash remains the only true
+// `signal output`, so it alone occupies position [0]. Verified against the
 // emitted .sym file in Task 2 of this plan.
 template Identity() {
     // ---- Public signals (declared in blueprint section 3 order) ----
@@ -41,8 +51,11 @@ template Identity() {
     signal input nonce;
     signal input currentDateInt;
 
-    signal output isOver18;
-    signal output isPostgrad;
+    // Public inputs constrained (not free) to equal the in-circuit-computed
+    // predicates below — see note above on why these are `signal input`
+    // rather than `signal output`.
+    signal input isOver18;
+    signal input isPostgrad;
 
     signal input revealedValue[7];
     signal input revealMask[7];
@@ -172,7 +185,9 @@ template Identity() {
     component ageCheck = GreaterEqThan(32);
     ageCheck.in[0] <== currentDateInt - 18 * 10000;
     ageCheck.in[1] <== attr[2];
-    isOver18 <== ageCheck.out;
+    // isOver18 is a public input constrained equal to the computed
+    // predicate (see template-level note on output/input signal ordering).
+    isOver18 === ageCheck.out;
 
     // ================= POSTGRAD PREDICATE (CIRC-05) =================
     // Set-membership of attr[3] (programmeLevel) over {4,5,6} (M.Tech, M.Des,
@@ -192,8 +207,10 @@ template Identity() {
 
     // Sum is safe and stays boolean because at most one IsEqual can fire for
     // any given attr[3] value (mutually exclusive equality checks) — cheaper
-    // than chaining OR gates.
-    isPostgrad <== eq4.out + eq5.out + eq6.out;
+    // than chaining OR gates. isPostgrad is a public input constrained equal
+    // to the computed predicate (see template-level note on output/input
+    // signal ordering).
+    isPostgrad === eq4.out + eq5.out + eq6.out;
 
     // ================= NONCE BINDING (REPL-01) =================
     // nonceSq is otherwise unused; it exists solely to force nonce into a
@@ -202,4 +219,4 @@ template Identity() {
     nonceSq <== nonce * nonce;
 }
 
-component main {public [nonce, currentDateInt, revealedValue, revealMask]} = Identity();
+component main {public [nonce, currentDateInt, isOver18, isPostgrad, revealedValue, revealMask]} = Identity();
