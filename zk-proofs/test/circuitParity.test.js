@@ -364,8 +364,9 @@ describe("Circuit witness-level parity gate (D-14) + nonce-rejection (REPL-02)",
 
   describe("Task 2: nonce-rejection (REPL-02) — witness-level binding check", function () {
     // Full Groth16 groth16.verify(nonce-A-proof, publicSignals-with-nonce-B)
-    // === false is DEFERRED to Phase 4, once build/pot12_final.ptau exists
-    // and a real .zkey can be produced (RESEARCH.md section 4 risk 8). That
+    // === false is DEFERRED to Phase 4, once build/identity_final.zkey exists
+    // (produced from the Phase 3 trusted setup against powersOfTau28_hez_final_14.ptau,
+    // per RESEARCH.md section 4 risk 8). That
     // assertion tests the exact same nonce-binding property this witness-
         // level check tests; without a zkey, this is the strongest no-ptau
     // check available this phase.
