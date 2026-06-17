@@ -55,10 +55,9 @@ digital-app/android/app/src/main/res/
 digital-app/android/local.properties
 digital-app/android/*.orig.*
 
-# Hardhat / Solidity generated state
+# Hardhat / Solidity generated state (regenerable via `npx hardhat compile`)
 zk-proofs/artifacts/
 zk-proofs/cache/
-zk-proofs/build/
 zk-proofs/coverage/
 zk-proofs/coverage.json
 zk-proofs/ignition/deployments/chain-31337/
@@ -66,18 +65,18 @@ zk-proofs/target/
 zk-proofs/typechain/
 zk-proofs/typechain-types/
 
-# Circom / zk-SNARK build outputs
-zk-proofs/*.ptau
-zk-proofs/*.r1cs
-zk-proofs/*.sym
-zk-proofs/*.wasm
-zk-proofs/*.wtns
-zk-proofs/*.zkey
+# Circom / zk-SNARK build outputs that are large and/or deterministically regenerable
+# from tracked source (identity.circom) or a fixed public download URL.
+# NOT ignored: build/identity.r1cs, build/identity.sym, build/identity_*.zkey,
+# build/identity_final.zkey — these are the irreplaceable trusted-setup ceremony
+# artifacts (contributor randomness can't be reproduced) and must be tracked.
+zk-proofs/build/*.ptau
+zk-proofs/build/identity_js/
+zk-proofs/build/identity_cpp/
+zk-proofs/build/*.wtns
 zk-proofs/circuits/proof.json
 zk-proofs/circuits/public.json
 zk-proofs/circuits/witness.wtns
-zk-proofs/identity_cpp/
-zk-proofs/identity_js/
 
 # Backend local files
 zkp-backend/.env

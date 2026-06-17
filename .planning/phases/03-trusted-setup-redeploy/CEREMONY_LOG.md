@@ -7,6 +7,14 @@ any later circuit edit forces this entire ceremony to be redone).
 **Date:** 2026-06-18
 **Operator:** Phase 3 plan 03-01 (autonomous execution)
 
+**Note — ceremony re-run:** The first run of this ceremony executed inside a git worktree.
+Its gitignored binary outputs (`*.ptau`, `identity_*.zkey`) were never committed and were lost
+when the worktree was cleaned up after merge (the tracked exports — `verification_key.json`,
+`IdentityVerifier.sol` — survived but no longer had a corresponding zkey on disk). The ceremony
+below is the second, authoritative run, executed directly on `main` (no worktree) after widening
+`.gitignore` so `zk-proofs/build/identity*.zkey` and `.r1cs`/`.sym` are now tracked and cannot be
+lost this way again. All values in this log reflect the second run.
+
 ## 1. Frozen Circuit Input
 
 - Circuit: `zk-proofs/circuits/identity.circom` (CIRCUIT FROZEN, sign-off in `02-02-SUMMARY.md`)
@@ -48,10 +56,10 @@ hash back.
 
 ## 4. Beacon Finalization (Mitigates Toxic-Waste / Single-Party-Bias Threats T-03-02, T-03-03)
 
-- Beacon source: a real, externally-verifiable **Ethereum mainnet** block hash, fetched live at ceremony time
-  via the public `https://ethereum-rpc.publicnode.com` JSON-RPC endpoint (`eth_getBlockByNumber("latest")`).
-- Block number: **25339596**
-- Beacon hash (0x-stripped for the snarkjs CLI, as required): `5766f60d6a22379499dc75d9d7e162004a872729a7d4e5f8e0c7b6bf09bd8343`
+- Beacon source: a real, externally-verifiable **Ethereum Sepolia** block hash, fetched live at ceremony time
+  via the public `https://ethereum-sepolia-rpc.publicnode.com` JSON-RPC endpoint (`eth_getBlockByNumber("latest")`).
+- Block number: **11082309**
+- Beacon hash (0x-stripped for the snarkjs CLI, as required): `6b0e7b87a2f03dad3e79b715c8ff7bbec3893b287d6f58645b8e72943f235683`
 - Beacon iterations: **10** (SHA256 iterations applied to derive the final randomness, per Pattern 1)
 - Command: `snarkjs zkey beacon identity_0003.zkey identity_final.zkey <hash> 10 -n="final beacon"`
 - Output: `identity_final.zkey`
@@ -85,7 +93,7 @@ internally consistent with the frozen r1cs and the pot14 ptau. This is the proje
 
 - `npx hardhat compile` succeeded against the freshly exported `IdentityVerifier.sol` (target: paris, solidity 0.8.28)
 - `npx hardhat run scripts/deployVerifier.js --network localhost` (against a locally started `npx hardhat node`)
-  deployed the `Groth16Verifier` contract to: **`0x5FbDB2315678afecb367f032d93F642f64180aa3`**
+  deployed the `Groth16Verifier` contract to: **`0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`**
 - This is a zero-cost local-network address ONLY, proving the exported+compiled contract is deployable.
   It is **NOT** the production address — the Sepolia deploy (with real secrets and gas) and the copy of the
   3 artifacts (`identity.wasm`, `identity_final.zkey`, `verification_key.json`) into `zkp-backend/` are both
