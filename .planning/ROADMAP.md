@@ -13,7 +13,7 @@ This milestone rebuilds the cryptographic core of PrivdID along a strict design-
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Freeze Spec & Field-Set Consistency** - Lock the 7-attribute spec and make admin issuance byte-for-byte identical to the prover input (completed 2026-06-16)
-- [ ] **Phase 2: E1+E2 Circuit Build** - Build and freeze the depth-3 Merkle circuit with salted leaves, disclosure binding, predicates, and nonce binding
+- [x] **Phase 2: E1+E2 Circuit Build** - Build and freeze the depth-3 Merkle circuit with salted leaves, disclosure binding, predicates, and nonce binding (completed 2026-06-17)
 - [ ] **Phase 3: Trusted Setup & Redeploy** - Run the Groth16 Phase-2 ceremony, export and redeploy IdentityVerifier.sol, ship fresh artifacts to the ZKP backend
 - [ ] **Phase 4: ZKP Backend Integration & Nonce Enforcement** - Wire the new proof input/output shape and the session-nonce challenge + freshness + one-time-use enforcement
 - [ ] **Phase 5: Benchmarking & Metrics** - Instrument every new crypto op and report mean ± σ over n≥19 runs
@@ -46,7 +46,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `nonce` is a public input forced into the constraint system (`nonceSq <== nonce * nonce`) so the compiler cannot optimize it away, and a witness/proof generated for nonce A fails verification against nonce B.
 **Plans**: 2 plans
 - [x] 02-01-PLAN.md — Rewrite identity.circom (Merkle + disclosure + predicates + nonce) and compile/count constraints (CIRC-01..05, REPL-01)
-- [ ] 02-02-PLAN.md — Witness-level parity gate (section 9 vectors) + nonce-rejection test + freeze sign-off (REPL-02)
+- [x] 02-02-PLAN.md — Witness-level parity gate (section 9 vectors) + nonce-rejection test + freeze sign-off (REPL-02)
 
 ### Phase 3: Trusted Setup & Redeploy
 **Goal**: A fresh Groth16 Phase-2 setup is performed against the frozen circuit, the Solidity verifier is exported and redeployed, and the new wasm/zkey/vkey are live in the ZKP backend — run once, only after the circuit is final.
@@ -85,7 +85,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Freeze Spec & Field-Set Consistency | 4/4 | Complete   | 2026-06-16 |
-| 2. E1+E2 Circuit Build | 1/2 | In Progress|  |
+| 2. E1+E2 Circuit Build | 2/2 | Complete   | 2026-06-17 |
 | 3. Trusted Setup & Redeploy | 0/TBD | Not started | - |
 | 4. ZKP Backend Integration & Nonce Enforcement | 0/TBD | Not started | - |
 | 5. Benchmarking & Metrics | 0/TBD | Not started | - |
