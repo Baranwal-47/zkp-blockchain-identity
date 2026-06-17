@@ -182,6 +182,24 @@ template Identity() {
     //
     // Bit width 32: YYYYMMDD's max value is ~10^8 < 2^27, far under
     // GreaterEqThan's n<=252 ceiling; 32 leaves comfortable headroom.
+    //
+    // Soundness note (CR-01 fix): GreaterEqThan(32)/LessThan(32) from
+    // circomlib's comparators.circom are only sound when BOTH operands are
+    // independently guaranteed to fit within 32 bits BEFORE the comparison —
+    // the underlying construction computes Num2Bits(33) on
+    // in[0] + 2^32 - in[1], which silently wraps in the BN128 field if either
+    // operand is not already range-checked. Without this, a prover-controlled
+    // attr[2] near the field modulus could force isOver18=1 for a dob that
+    // does not correspond to any real YYYYMMDD date. Explicitly range-check
+    // both operands via Num2Bits(32) (transitively included through
+    // comparators.circom -> bitify.circom, no new include needed) before
+    // they reach GreaterEqThan.
+    component attrDobRangeCheck = Num2Bits(32);
+    attrDobRangeCheck.in <== attr[2];
+
+    component currentDateRangeCheck = Num2Bits(32);
+    currentDateRangeCheck.in <== currentDateInt;
+
     component ageCheck = GreaterEqThan(32);
     ageCheck.in[0] <== currentDateInt - 18 * 10000;
     ageCheck.in[1] <== attr[2];
