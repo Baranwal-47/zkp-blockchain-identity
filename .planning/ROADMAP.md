@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Freeze Spec & Field-Set Consistency** - Lock the 7-attribute spec and make admin issuance byte-for-byte identical to the prover input (completed 2026-06-16)
 - [x] **Phase 2: E1+E2 Circuit Build** - Build and freeze the depth-3 Merkle circuit with salted leaves, disclosure binding, predicates, and nonce binding (completed 2026-06-17)
-- [ ] **Phase 3: Trusted Setup & Redeploy** - Run the Groth16 Phase-2 ceremony, export and redeploy IdentityVerifier.sol, ship fresh artifacts to the ZKP backend
+- [x] **Phase 3: Trusted Setup & Redeploy** - Run the Groth16 Phase-2 ceremony, export and redeploy IdentityVerifier.sol, ship fresh artifacts to the ZKP backend (completed 2026-06-17)
 - [ ] **Phase 4: ZKP Backend Integration & Nonce Enforcement** - Wire the new proof input/output shape and the session-nonce challenge + freshness + one-time-use enforcement
 - [ ] **Phase 5: Benchmarking & Metrics** - Instrument every new crypto op and report mean ± σ over n≥19 runs
 
@@ -57,8 +57,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. `verification_key.json` and `IdentityVerifier.sol` are exported from `identity_final.zkey`, and the verifier is redeployed (Sepolia + local) with `VERIFIER_ADDRESS` updated in env.
   3. Fresh `identity.wasm`, `identity_final.zkey`, and `verification_key.json` are copied into the ZKP backend, and proof generation uses these new artifacts (not the stale flat-Poseidon(5) ones).
 **Plans**: 2 plans
-- [ ] 03-01-PLAN.md — Download pot14, run the 3-contribution + beacon ceremony, `zkey verify` (SETUP-01), export verifier + vkey, compile + local deploy (SETUP-02 local)
-- [ ] 03-02-PLAN.md — Deploy verifier to Sepolia (checkpoint: real secrets/gas), update VERIFIER_ADDRESS, copy 3 artifacts into zkp-backend, smoke-verify wiring (SETUP-02 Sepolia + SETUP-03)
+- [x] 03-01-PLAN.md — Download pot14, run the 3-contribution + beacon ceremony, `zkey verify` (SETUP-01), export verifier + vkey, compile + local deploy (SETUP-02 local)
+- [x] 03-02-PLAN.md — Deploy verifier to Sepolia (checkpoint: real secrets/gas), update VERIFIER_ADDRESS, copy 3 artifacts into zkp-backend, smoke-verify wiring (SETUP-02 Sepolia + SETUP-03)
 
 ### Phase 4: ZKP Backend Integration & Nonce Enforcement
 **Goal**: The ZKP backend accepts the new proof input shape, returns publicSignals in the frozen §3 order, verifies proofs both off-chain and on-chain, and enforces the full session-nonce lifecycle (issue → match → freshness → one-time use).
@@ -88,6 +88,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Freeze Spec & Field-Set Consistency | 4/4 | Complete   | 2026-06-16 |
 | 2. E1+E2 Circuit Build | 2/2 | Complete   | 2026-06-17 |
-| 3. Trusted Setup & Redeploy | 0/2 | Not started | - |
+| 3. Trusted Setup & Redeploy | 2/2 | Complete   | 2026-06-17 |
 | 4. ZKP Backend Integration & Nonce Enforcement | 0/TBD | Not started | - |
 | 5. Benchmarking & Metrics | 0/TBD | Not started | - |
