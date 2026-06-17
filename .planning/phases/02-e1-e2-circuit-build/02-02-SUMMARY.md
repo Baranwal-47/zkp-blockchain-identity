@@ -137,3 +137,10 @@ Sign-off basis:
 ---
 *Phase: 02-e1-e2-circuit-build*
 *Completed: 2026-06-17*
+
+## Self-Check: PASSED
+
+- FOUND: zk-proofs/test/circuitParity.test.js
+- FOUND: .planning/phases/02-e1-e2-circuit-build/02-02-SUMMARY.md
+- FOUND commit: e5bb777 (Task 1+2)
+- FOUND commit: 26e241d (SUMMARY)
