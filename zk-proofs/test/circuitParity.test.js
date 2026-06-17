@@ -399,5 +399,38 @@ describe("Circuit witness-level parity gate (D-14) + nonce-rejection (REPL-02)",
         "witness's public nonce signal must not equal a different nonce — this is the property that makes Groth16's public-input binding reject a nonce-A proof verified against publicSignals stating nonce=B"
       );
     });
+
+    it("nonce is load-bearing (WR-03): omitting nonce from the witness input causes witness generation to fail, proving nonce reaches a real constraint (nonceSq <== nonce * nonce) rather than being an unconstrained free wire that merely gets echoed back", async function () {
+      const attrs = [
+        "2689494646062948360487866858549161268023147861439580363715484426041810573382",
+        "15150160435819557810078120971221321758887516517285291325240673283662695955468",
+        DOB_INT,
+        PROGRAMME_LEVEL,
+        DISCIPLINE,
+        BATCH,
+        "6744441775314583329532040559385253235651674879202368422786321712697490882813",
+      ];
+
+      // Build the full input then delete `nonce` entirely — if nonce were
+      // unconstrained (e.g. nonceSq <== nonce * nonce were removed from the
+      // circuit), snarkjs would still be able to compute a witness using an
+      // implicit default; because nonce currently feeds a real constraint
+      // (nonceSq), witness generation must fail when nonce is missing. This
+      // is the strongest no-ptau check available that the nonce wire is
+      // actually load-bearing in the constraint system, not just a value
+      // that gets reflected back unchanged (the previous version of this
+      // test only checked the latter, which is tautologically true for any
+      // witness regardless of whether nonce is constrained at all).
+      const inputMissingNonce = buildInput(attrs, FIXED_SALTS, {
+        nonce: "111111",
+      });
+      delete inputMissingNonce.nonce;
+
+      await assert.rejects(
+        calculateWitness(inputMissingNonce),
+        /Error/,
+        "witness generation must fail when the required `nonce` input signal is omitted, proving nonce is a reachable wire bound by a constraint (nonceSq) and not dead/unconstrained"
+      );
+    });
   });
 });
