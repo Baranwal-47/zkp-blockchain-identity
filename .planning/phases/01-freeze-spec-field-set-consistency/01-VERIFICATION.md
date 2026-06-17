@@ -1,20 +1,22 @@
 ---
 phase: 01-freeze-spec-field-set-consistency
 verified: 2026-06-16T21:44:04Z
-status: human_needed
+closed: 2026-06-17T08:20:00Z
+status: pass
 score: 4/4
 overrides_applied: 0
 human_verification:
   - test: "Run `node scripts/reseed.js` from `privdId_admin/backend/` against live MongoDB and confirm all 7 students PASS with exit 0 on the current codebase state (post-commit 34b0562)"
     expected: "7/7 PASS, exit 0, including 23BCS041 (37-byte name, 2-chunk) and 22MTE007 (40-byte email, 2-chunk)"
     why_human: "The live gate run is documented in SUMMARY but the verifier cannot re-execute it without a live MongoDB connection. The commit history and code are verified; only the live confirmation is outstanding."
+    confirmed: "01-04-SUMMARY.md line 31, 70-79: live run on 2026-06-17 shows 7/7 PASS including both mandatory multi-chunk cases (23BCS041, 22MTE007), exit code 0. Gate formally closed."
 ---
 
 # Phase 1: Freeze Spec & Field-Set Consistency — Verification Report
 
 **Phase Goal:** The 7-attribute identity spec is frozen and the admin issuance hash is byte-for-byte identical to what the prover will consume, eliminating the §1.4 branch/programme mismatch at the root before any circuit code exists.
 **Verified:** 2026-06-16T21:44:04Z
-**Status:** human_needed (all 4 automated truths VERIFIED; one live-gate confirmation deferred to human)
+**Status:** pass (all 4 automated truths VERIFIED; live-gate confirmation closed via 01-04-SUMMARY.md, 2026-06-17)
 **Re-verification:** No — initial verification
 
 ---
