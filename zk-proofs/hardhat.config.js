@@ -8,7 +8,7 @@ module.exports = {
   solidity: "0.8.28",
   circom: {
     inputBasePath: "./circuits",
-    ptau: "../build/pot12_final.ptau",
+    ptau: "../build/powersOfTau28_hez_final_14.ptau",
     circuits: [
       { name: "identity" }
     ]
