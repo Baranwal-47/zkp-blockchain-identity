@@ -45,7 +45,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `isOver18` is computed from `currentDateInt` vs `dobInt` (with `dobInt` bound to leaf attr 2): an over-18 DOB yields `isOver18=1` and an under-18 DOB yields `0`; `isPostgrad` is set-membership of `programmeLevel` over {M.Tech, M.Des, PhD}.
   4. `nonce` is a public input forced into the constraint system (`nonceSq <== nonce * nonce`) so the compiler cannot optimize it away, and a witness/proof generated for nonce A fails verification against nonce B.
 **Plans**: 2 plans
-- [ ] 02-01-PLAN.md — Rewrite identity.circom (Merkle + disclosure + predicates + nonce) and compile/count constraints (CIRC-01..05, REPL-01)
+- [x] 02-01-PLAN.md — Rewrite identity.circom (Merkle + disclosure + predicates + nonce) and compile/count constraints (CIRC-01..05, REPL-01)
 - [ ] 02-02-PLAN.md — Witness-level parity gate (section 9 vectors) + nonce-rejection test + freeze sign-off (REPL-02)
 
 ### Phase 3: Trusted Setup & Redeploy
@@ -85,7 +85,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Freeze Spec & Field-Set Consistency | 4/4 | Complete   | 2026-06-16 |
-| 2. E1+E2 Circuit Build | 0/2 | Not started | - |
+| 2. E1+E2 Circuit Build | 1/2 | In Progress|  |
 | 3. Trusted Setup & Redeploy | 0/TBD | Not started | - |
 | 4. ZKP Backend Integration & Nonce Enforcement | 0/TBD | Not started | - |
 | 5. Benchmarking & Metrics | 0/TBD | Not started | - |
