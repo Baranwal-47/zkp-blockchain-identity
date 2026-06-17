@@ -56,7 +56,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. A fresh Phase-2 setup runs as a 3-contribution chain plus final beacon, `snarkjs zkey verify` passes, and the circuit constraint count is recorded.
   2. `verification_key.json` and `IdentityVerifier.sol` are exported from `identity_final.zkey`, and the verifier is redeployed (Sepolia + local) with `VERIFIER_ADDRESS` updated in env.
   3. Fresh `identity.wasm`, `identity_final.zkey`, and `verification_key.json` are copied into the ZKP backend, and proof generation uses these new artifacts (not the stale flat-Poseidon(5) ones).
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 03-01-PLAN.md — Download pot14, run the 3-contribution + beacon ceremony, `zkey verify` (SETUP-01), export verifier + vkey, compile + local deploy (SETUP-02 local)
+- [ ] 03-02-PLAN.md — Deploy verifier to Sepolia (checkpoint: real secrets/gas), update VERIFIER_ADDRESS, copy 3 artifacts into zkp-backend, smoke-verify wiring (SETUP-02 Sepolia + SETUP-03)
 
 ### Phase 4: ZKP Backend Integration & Nonce Enforcement
 **Goal**: The ZKP backend accepts the new proof input shape, returns publicSignals in the frozen §3 order, verifies proofs both off-chain and on-chain, and enforces the full session-nonce lifecycle (issue → match → freshness → one-time use).
@@ -86,6 +88,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Freeze Spec & Field-Set Consistency | 4/4 | Complete   | 2026-06-16 |
 | 2. E1+E2 Circuit Build | 2/2 | Complete   | 2026-06-17 |
-| 3. Trusted Setup & Redeploy | 0/TBD | Not started | - |
+| 3. Trusted Setup & Redeploy | 0/2 | Not started | - |
 | 4. ZKP Backend Integration & Nonce Enforcement | 0/TBD | Not started | - |
 | 5. Benchmarking & Metrics | 0/TBD | Not started | - |
