@@ -219,6 +219,71 @@ describe("Circuit witness-level parity gate (D-14) + nonce-rejection (REPL-02)",
     });
   });
 
+  describe("Task 3: selective disclosure (CIRC-03) — witness-level coverage (WR-01)", function () {
+    // Witness public-signal indices for revealedValue[0..6]/revealMask[0..6]
+    // (signals [5..11]/[12..18], witness indices 6..12/13..19 — see
+    // WITNESS_IDX comment block above).
+    const REVEALED_VALUE_BASE = 6;
+    const REVEAL_MASK_BASE = 13;
+
+    const baseAttrs = [
+      "2689494646062948360487866858549161268023147861439580363715484426041810573382",
+      "15150160435819557810078120971221321758887516517285291325240673283662695955468",
+      DOB_INT,
+      PROGRAMME_LEVEL,
+      DISCIPLINE,
+      BATCH,
+      "6744441775314583329532040559385253235651674879202368422786321712697490882813",
+    ];
+
+    it("positive: revealMask[2]=1 with revealedValue[2]=attr[2] succeeds and the witness reflects the disclosed value, while other attributes remain hidden/zeroed", async function () {
+      const revealedValue = ["0", "0", "0", "0", "0", "0", "0"];
+      const revealMask = ["0", "0", "0", "0", "0", "0", "0"];
+      revealedValue[2] = baseAttrs[2]; // disclose dob
+      revealMask[2] = "1";
+
+      const witness = await calculateWitness(
+        buildInput(baseAttrs, FIXED_SALTS, { revealedValue, revealMask })
+      );
+
+      // Disclosed attribute (index 2) must equal the committed attr value.
+      assert.strictEqual(
+        witness[REVEALED_VALUE_BASE + 2].toString(),
+        baseAttrs[2],
+        "disclosed revealedValue[2] must equal the committed attr[2]"
+      );
+      assert.strictEqual(witness[REVEAL_MASK_BASE + 2].toString(), "1");
+
+      // All other attributes must remain hidden/zeroed in revealedValue and
+      // their revealMask must remain 0.
+      for (let i = 0; i < 7; i++) {
+        if (i === 2) continue;
+        assert.strictEqual(
+          witness[REVEALED_VALUE_BASE + i].toString(),
+          "0",
+          `revealedValue[${i}] must be zeroed when revealMask[${i}]=0`
+        );
+        assert.strictEqual(witness[REVEAL_MASK_BASE + i].toString(), "0");
+      }
+    });
+
+    it("negative: revealMask[2]=1 with a wrong revealedValue[2] causes witness generation to reject (the === constraint actually fires)", async function () {
+      const revealedValue = ["0", "0", "0", "0", "0", "0", "0"];
+      const revealMask = ["0", "0", "0", "0", "0", "0", "0"];
+      // Deliberately wrong disclosed value (does not match committed attr[2]).
+      revealedValue[2] = "999999999";
+      revealMask[2] = "1";
+
+      await assert.rejects(
+        calculateWitness(
+          buildInput(baseAttrs, FIXED_SALTS, { revealedValue, revealMask })
+        ),
+        /Error/,
+        "witness generation must reject a revealMask[i]=1 disclosure with a mismatched revealedValue[i]"
+      );
+    });
+  });
+
   describe("Task 2: nonce-rejection (REPL-02) — witness-level binding check", function () {
     // Full Groth16 groth16.verify(nonce-A-proof, publicSignals-with-nonce-B)
     // === false is DEFERRED to Phase 4, once build/pot12_final.ptau exists
