@@ -15,16 +15,16 @@ Scope = the circuit critical path (blueprint Phase 0 + Phase 1, plus the §1.4 f
 
 ### Circuit (E1)
 
-- [ ] **CIRC-01**: The circuit computes `leaf_i = Poseidon(2)(attr_i, salt_i)` for 7 attributes plus a zero-padding leaf, and outputs the depth-3 Merkle root as `pubHash`
-- [ ] **CIRC-02**: Every committed attribute carries a mandatory random salt so low-entropy attributes (dob, level, discipline, batch) are not brute-forceable when hidden
-- [ ] **CIRC-03**: Selective disclosure is bound in-circuit — each `revealMask_i` is boolean, `revealMask_i * (revealedValue_i - attr_i) === 0`, and hidden attributes never appear in the public signals
-- [ ] **CIRC-04**: The circuit computes `isOver18` from `currentDateInt` vs `dobInt`, with `dobInt` bound to leaf attribute 2
-- [ ] **CIRC-05**: The circuit computes `isPostgrad` as set-membership of `programmeLevel` over {M.Tech, M.Des, PhD}
+- [x] **CIRC-01**: The circuit computes `leaf_i = Poseidon(2)(attr_i, salt_i)` for 7 attributes plus a zero-padding leaf, and outputs the depth-3 Merkle root as `pubHash`
+- [x] **CIRC-02**: Every committed attribute carries a mandatory random salt so low-entropy attributes (dob, level, discipline, batch) are not brute-forceable when hidden
+- [x] **CIRC-03**: Selective disclosure is bound in-circuit — each `revealMask_i` is boolean, `revealMask_i * (revealedValue_i - attr_i) === 0`, and hidden attributes never appear in the public signals
+- [x] **CIRC-04**: The circuit computes `isOver18` from `currentDateInt` vs `dobInt`, with `dobInt` bound to leaf attribute 2
+- [x] **CIRC-05**: The circuit computes `isPostgrad` as set-membership of `programmeLevel` over {M.Tech, M.Des, PhD}
 
 ### Replay Protection (E2)
 
-- [ ] **REPL-01**: `nonce` is a public input forced into the constraint system (e.g. `nonceSq <== nonce * nonce`) so the compiler cannot optimize it away
-- [ ] **REPL-02**: A proof generated for nonce A is rejected when verified against nonce B
+- [x] **REPL-01**: `nonce` is a public input forced into the constraint system (e.g. `nonceSq <== nonce * nonce`) so the compiler cannot optimize it away
+- [x] **REPL-02**: A proof generated for nonce A is rejected when verified against nonce B
 - [ ] **REPL-03**: The backend issues nonces via `POST /session/nonce` (random field element < BN128 order, sessionId, 5-min TTL) and at verify-time enforces nonce match AND freshness AND one-time use (marks consumed)
 
 ### Trusted Setup & Redeploy
@@ -84,13 +84,13 @@ Deferred to later milestones (tracked, not in this roadmap).
 | SPEC-01 | Phase 1 | Pending |
 | SPEC-02 | Phase 1 | Complete |
 | SPEC-03 | Phase 1 | Complete |
-| CIRC-01 | Phase 2 | Pending |
-| CIRC-02 | Phase 2 | Pending |
-| CIRC-03 | Phase 2 | Pending |
-| CIRC-04 | Phase 2 | Pending |
-| CIRC-05 | Phase 2 | Pending |
-| REPL-01 | Phase 2 | Pending |
-| REPL-02 | Phase 2 | Pending |
+| CIRC-01 | Phase 2 | Complete |
+| CIRC-02 | Phase 2 | Complete |
+| CIRC-03 | Phase 2 | Complete |
+| CIRC-04 | Phase 2 | Complete |
+| CIRC-05 | Phase 2 | Complete |
+| REPL-01 | Phase 2 | Complete |
+| REPL-02 | Phase 2 | Complete |
 | REPL-03 | Phase 4 | Pending |
 | SETUP-01 | Phase 3 | Pending |
 | SETUP-02 | Phase 3 | Pending |
