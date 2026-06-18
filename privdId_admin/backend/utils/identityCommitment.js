@@ -25,6 +25,7 @@
 
 import { buildPoseidon } from "circomlibjs";
 import crypto from "crypto";
+import { timed } from "./timing.js";
 
 // BN128 scalar field order — verified from ffjavascript/src/curves.js in installed node_modules.
 // Any field element produced by this module must be < this value.
@@ -166,7 +167,8 @@ export async function computeLeaf(encodedAttr, salt) {
  *   Level 2: n0123 = P(n01, n23)         n4567 = P(n45, n67)
  *   Root:    P(n0123, n4567)
  *
- * Timing: console.time('computeMerkleRoot') prints elapsed ms on each call (blueprint §10).
+ * Timing: wrapped in timed('computeMerkleRoot', ...) (./timing.js), which prints
+ * elapsed seconds as `[perf] computeMerkleRoot: {s.sss} s` per blueprint §10.1.
  *
  * @param {string[]} attrs — 7 encoded leaf attribute values (indices 0..6 in frozen order)
  * @param {string[]} salts — at least 7 salt decimal strings (indices 0..6; salt[7] = 0 used internally)
@@ -180,41 +182,41 @@ export async function computeMerkleRoot(attrs, salts) {
     throw new Error(`computeMerkleRoot: expected at least 7 salts, got ${salts.length}`);
   }
 
-  console.time("computeMerkleRoot");
+  const { out: root } = await timed("computeMerkleRoot", async () => {
+    const poseidon = await getPoseidon();
 
-  const poseidon = await getPoseidon();
+    // --- Level 0: compute 8 leaves ---
+    // leaves 0..6: real attributes with their salts
+    const leafValues = [];
+    for (let i = 0; i < 7; i++) {
+      const lv = poseidon([BigInt(attrs[i]), BigInt(salts[i])]);
+      leafValues.push(poseidon.F.toString(lv));
+    }
+    // leaf 7: zero-padding — Poseidon(2)(0, 0)
+    const zeroPadLeaf = poseidon([0n, 0n]);
+    leafValues.push(poseidon.F.toString(zeroPadLeaf));
 
-  // --- Level 0: compute 8 leaves ---
-  // leaves 0..6: real attributes with their salts
-  const leafValues = [];
-  for (let i = 0; i < 7; i++) {
-    const lv = poseidon([BigInt(attrs[i]), BigInt(salts[i])]);
-    leafValues.push(poseidon.F.toString(lv));
-  }
-  // leaf 7: zero-padding — Poseidon(2)(0, 0)
-  const zeroPadLeaf = poseidon([0n, 0n]);
-  leafValues.push(poseidon.F.toString(zeroPadLeaf));
+    // --- Level 1: 4 parent nodes, left-child-first order ---
+    // n01 = Poseidon(2)(leaf[0], leaf[1])
+    const n01 = poseidon.F.toString(poseidon([BigInt(leafValues[0]), BigInt(leafValues[1])]));
+    // n23 = Poseidon(2)(leaf[2], leaf[3])
+    const n23 = poseidon.F.toString(poseidon([BigInt(leafValues[2]), BigInt(leafValues[3])]));
+    // n45 = Poseidon(2)(leaf[4], leaf[5])
+    const n45 = poseidon.F.toString(poseidon([BigInt(leafValues[4]), BigInt(leafValues[5])]));
+    // n67 = Poseidon(2)(leaf[6], leaf[7])
+    const n67 = poseidon.F.toString(poseidon([BigInt(leafValues[6]), BigInt(leafValues[7])]));
 
-  // --- Level 1: 4 parent nodes, left-child-first order ---
-  // n01 = Poseidon(2)(leaf[0], leaf[1])
-  const n01 = poseidon.F.toString(poseidon([BigInt(leafValues[0]), BigInt(leafValues[1])]));
-  // n23 = Poseidon(2)(leaf[2], leaf[3])
-  const n23 = poseidon.F.toString(poseidon([BigInt(leafValues[2]), BigInt(leafValues[3])]));
-  // n45 = Poseidon(2)(leaf[4], leaf[5])
-  const n45 = poseidon.F.toString(poseidon([BigInt(leafValues[4]), BigInt(leafValues[5])]));
-  // n67 = Poseidon(2)(leaf[6], leaf[7])
-  const n67 = poseidon.F.toString(poseidon([BigInt(leafValues[6]), BigInt(leafValues[7])]));
+    // --- Level 2: 2 parent nodes ---
+    // n0123 = Poseidon(2)(n01, n23)
+    const n0123 = poseidon.F.toString(poseidon([BigInt(n01), BigInt(n23)]));
+    // n4567 = Poseidon(2)(n45, n67)
+    const n4567 = poseidon.F.toString(poseidon([BigInt(n45), BigInt(n67)]));
 
-  // --- Level 2: 2 parent nodes ---
-  // n0123 = Poseidon(2)(n01, n23)
-  const n0123 = poseidon.F.toString(poseidon([BigInt(n01), BigInt(n23)]));
-  // n4567 = Poseidon(2)(n45, n67)
-  const n4567 = poseidon.F.toString(poseidon([BigInt(n45), BigInt(n67)]));
+    // --- Root ---
+    const root = poseidon.F.toString(poseidon([BigInt(n0123), BigInt(n4567)]));
 
-  // --- Root ---
-  const root = poseidon.F.toString(poseidon([BigInt(n0123), BigInt(n4567)]));
-
-  console.timeEnd("computeMerkleRoot");
+    return root;
+  });
 
   return root;
 }
