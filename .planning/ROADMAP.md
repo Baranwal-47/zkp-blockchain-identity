@@ -79,8 +79,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Requirements**: PERF-01, PERF-02
 **Success Criteria** (what must be TRUE):
   1. Every new crypto operation prints elapsed seconds via the shared timing helper, and `bench.js` reports mean ± σ over n≥19 runs (dropping a warm-up run).
-  2. PERFORMANCE_METRICS.md records constraint count, proof-gen time, off-chain and on-chain verify time, nonce issue+check time, and QR payload size for the new E1+E2 circuit.
-**Plans**: TBD
+  2. `docs/improvement/PERFORMANCE_METRICS_E1E2.md` records constraint count, proof-gen time, off-chain and on-chain verify time, nonce issue+check time, and QR payload size for the new E1+E2 circuit (plus free side-effect numbers: proof size, public-signal count, end-to-end latency).
+**Plans**: 2 plans
+- [ ] 05-01-PLAN.md — Shared timed() helper (CommonJS + ESM) + migrate 5 call sites + add nonce-issue/check timing (PERF-01)
+- [ ] 05-02-PLAN.md — bench.js (N=20/n=19 mean±σ over 6 ops + QR size) + PERFORMANCE_METRICS_E1E2.md deliverable (PERF-01, PERF-02)
 
 ## Progress
 
@@ -93,4 +95,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. E1+E2 Circuit Build | 2/2 | Complete   | 2026-06-17 |
 | 3. Trusted Setup & Redeploy | 2/2 | Complete   | 2026-06-17 |
 | 4. ZKP Backend Integration & Nonce Enforcement | 3/3 | Complete   | 2026-06-18 |
-| 5. Benchmarking & Metrics | 0/TBD | Not started | - |
+| 5. Benchmarking & Metrics | 0/2 | Not started | - |
