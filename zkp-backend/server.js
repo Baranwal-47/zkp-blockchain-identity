@@ -8,7 +8,7 @@ const { ethers } = require('ethers');
 
 const { buildWitnessInput } = require('./lib/witnessBuilder');
 const { generateSalts } = require('./lib/encoding');
-const { issueNonce } = require('./lib/nonceStore');
+const { issueNonce, validateAndConsume } = require('./lib/nonceStore');
 
 const app = express();
 app.use(cors());
@@ -35,9 +35,20 @@ const verifierAbi = require(verifierAbiPath).abi;
 const registryAbiPath = process.env.REGISTRY_ABI_PATH || path.join(__dirname, '../zk-proofs/artifacts/contracts/CredentialRegistry.sol/CredentialRegistry.json');
 const registryAbi = require(registryAbiPath).abi;
 
-const verifierAddress = process.env.VERIFIER_ADDRESS || '0x2625C6fDBEDcCD572836FfbFA391D2C25de7ae26';
-const registryAddress = process.env.REGISTRY_ADDRESS || '0xB7a915C78C546A1082CB66bA294fAFee52E4EB07';
-const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || 'https://eth-sepolia.g.alchemy.com/v2/Lmv_xbdd0nSBMkbWSz9kk';
+// Fail loud on missing config (RESEARCH anti-pattern "hardcoded fallback
+// addresses" / threat T-04-09): a missing env var must throw at startup,
+// never silently resolve to a stale/dead contract address.
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} must be set in the environment (no fallback default — see CLAUDE.md ground rules)`);
+  }
+  return value;
+}
+
+const verifierAddress = requireEnv('VERIFIER_ADDRESS');
+const registryAddress = requireEnv('REGISTRY_ADDRESS');
+const rpcUrl = requireEnv('BLOCKCHAIN_RPC_URL');
 const port = Number(process.env.PORT || 3001);
 
 const provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -115,23 +126,48 @@ app.post('/session/nonce', (req, res) => {
   res.json({ nonce, sessionId, expiresAt });
 });
 
+// POST /verify — off-chain groth16 verify + nonce enforcement (BACK-02,
+// REPL-03 enforcement half). Accepts { proof, publicSignals, sessionId }.
+// Nonce enforcement order (decision #2 / threat T-04-08): the cryptographic
+// proof is checked FIRST; the nonce is only consumed via validateAndConsume
+// when the proof is valid, so a bad/tampered proof never burns a nonce.
+// All outcomes — bad proof, bad nonce, or success — return HTTP 200 with
+// {valid, reason?}, never a 4xx, to keep the response shape uniform.
 app.post('/verify', async (req, res) => {
-  const { proof, publicSignals } = req.body;
+  const { proof, publicSignals, sessionId } = req.body;
   try {
     console.time('OffChainVerification');
     const isValid = await snarkjs.groth16.verify(vKey, publicSignals, proof);
     console.timeEnd('OffChainVerification');
-    res.json({ valid: isValid });
+
+    if (!isValid) {
+      return res.json({ valid: false, reason: 'invalid_proof' });
+    }
+
+    const nonceResult = validateAndConsume(sessionId, publicSignals[1]);
+    if (!nonceResult.ok) {
+      return res.json({ valid: false, reason: nonceResult.reason });
+    }
+
+    res.json({ valid: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
+// POST /verify-onchain — on-chain groth16 verify (view call) + the same
+// nonce-enforcement contract as /verify (BACK-02, REPL-03). Accepts
+// { proof, publicSignals, sessionId }. pA/pB-swap/pC formatting is
+// unchanged (RESEARCH Pattern 4 — already correct); only publicSignals
+// length is confirmed (19 signals) before the on-chain call.
 app.post('/verify-onchain', async (req, res) => {
-  const { proof, publicSignals } = req.body;
+  const { proof, publicSignals, sessionId } = req.body;
 
   if (!proof || !publicSignals) {
     return res.status(400).json({ error: 'Missing proof or public signals' });
+  }
+  if (!Array.isArray(publicSignals) || publicSignals.length !== 19) {
+    return res.status(400).json({ error: 'publicSignals must be an array of length 19' });
   }
 
   try {
@@ -151,7 +187,16 @@ app.post('/verify-onchain', async (req, res) => {
     const isValid = await verifierContract.verifyProof(pA, pB, pC, publicSignals);
     console.timeEnd('OnChainVerification');
 
-    res.json({ valid: isValid });
+    if (!isValid) {
+      return res.json({ valid: false, reason: 'invalid_proof' });
+    }
+
+    const nonceResult = validateAndConsume(sessionId, publicSignals[1]);
+    if (!nonceResult.ok) {
+      return res.json({ valid: false, reason: nonceResult.reason });
+    }
+
+    res.json({ valid: true });
   } catch (err) {
     console.error('On-chain proof verification failed:', err);
     res.status(500).json({ error: 'On-chain verification failed', details: err.message });
