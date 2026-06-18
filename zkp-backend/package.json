@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test/**/*.test.js --exit"
+    "test": "mocha test/**/*.test.js --exit",
+    "bench": "node bench.js"
   },
   "keywords": [],
   "author": "",
