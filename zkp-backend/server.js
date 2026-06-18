@@ -70,7 +70,7 @@ app.get('/', (req, res) => {
 // in the frozen circuit order (component main public declaration); never
 // manually reordered (Pitfall 1) — snarkjs emits it directly.
 app.post('/generate-proof', async (req, res) => {
-  console.log('Received input:', req.body);
+  console.log('Received /generate-proof request', { hasAttrs: !!req.body?.attrs, hasSalts: Array.isArray(req.body?.salts) });
 
   const { attrs, reveal, nonce, currentDateInt } = req.body || {};
   let { salts } = req.body || {};
