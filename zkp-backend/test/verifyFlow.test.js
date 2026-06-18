@@ -21,12 +21,12 @@ describe("POST /verify — nonce lifecycle enforcement", function () {
   const FIXED_SALTS = ["1", "2", "3", "4", "5", "6", "7"];
   const studentAttrs = {
     name: "Utkarsh Baranwal",
-    rollNo: "21BCS027",
-    dob: "20040215",
+    rollNo: "22BCSD01",
+    dob: "20041014",
     programmeLevel: "B.Tech",
     discipline: "CSE",
-    batch: "2021",
-    email: "21bcs027@iiitdmj.ac.in",
+    batch: "2022",
+    email: "22bcsd01@iiitdmj.ac.in",
   };
   const CURRENT_DATE_INT = "20260617";
 
