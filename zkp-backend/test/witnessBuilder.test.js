@@ -60,12 +60,12 @@ describe("witnessBuilder: pubHash parity against the JS oracle", function () {
   const FIXED_SALTS = ["1", "2", "3", "4", "5", "6", "7"];
   const studentAttrs = {
     name: "Utkarsh Baranwal",
-    rollNo: "21BCS027",
-    dob: "20040215",
+    rollNo: "22BCSD01",
+    dob: "20041014",
     programmeLevel: "B.Tech",
     discipline: "CSE",
-    batch: "2021",
-    email: "21bcs027@iiitdmj.ac.in",
+    batch: "2022",
+    email: "22bcsd01@iiitdmj.ac.in",
   };
   const NONCE = "1";
   const CURRENT_DATE_INT = "20260617";
@@ -85,15 +85,15 @@ describe("witnessBuilder: pubHash parity against the JS oracle", function () {
     );
     assert.strictEqual(
       input.attr[1],
-      "15150160435819557810078120971221321758887516517285291325240673283662695955468"
+      "17425832092592319413180526979504767455641968223880575080654107782930034285770"
     );
-    assert.strictEqual(input.attr[2], "20040215");
+    assert.strictEqual(input.attr[2], "20041014");
     assert.strictEqual(input.attr[3], "1"); // B.Tech
     assert.strictEqual(input.attr[4], "1"); // CSE
-    assert.strictEqual(input.attr[5], "2021");
+    assert.strictEqual(input.attr[5], "2022");
     assert.strictEqual(
       input.attr[6],
-      "6744441775314583329532040559385253235651674879202368422786321712697490882813"
+      "16840526011907698207050203546069050573252923154187967909506713386987286094350"
     );
     assert.deepStrictEqual(input.salt, FIXED_SALTS);
     assert.strictEqual(input.isOver18, "1"); // well over 18 by 20260617
