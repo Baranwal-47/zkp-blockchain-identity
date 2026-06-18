@@ -132,3 +132,15 @@ None — no external service configuration required beyond the standard `npm ins
 ---
 *Phase: 04-zkp-backend-integration-nonce-enforcement*
 *Completed: 2026-06-18*
+
+## Self-Check: PASSED
+
+- FOUND: zkp-backend/lib/nonceStore.js
+- FOUND: zkp-backend/test/nonceStore.test.js
+- FOUND: zkp-backend/test/generateProof.test.js
+- FOUND: .planning/phases/04-zkp-backend-integration-nonce-enforcement/04-02-SUMMARY.md
+- FOUND commit: d705376 (Task 1)
+- FOUND commit: a68dd46 (Task 2)
+- FOUND commit: 165af69 (deviation fix)
+- CONFIRMED: 25/25 tests passing (`cd zkp-backend && npm test`)
+- CONFIRMED: 0 occurrences of stringToBigInt in zkp-backend/server.js
