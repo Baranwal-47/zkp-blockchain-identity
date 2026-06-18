@@ -121,3 +121,14 @@ To exercise the 2 RPC-gated on-chain tests (`/verify-onchain`, `/credential-info
 ---
 *Phase: 04-zkp-backend-integration-nonce-enforcement*
 *Completed: 2026-06-18*
+
+## Self-Check: PASSED
+
+- FOUND: zkp-backend/server.js
+- FOUND: zkp-backend/test/verifyFlow.test.js
+- FOUND: .planning/phases/04-zkp-backend-integration-nonce-enforcement/04-03-SUMMARY.md
+- FOUND commit: ec2f1b1 (Task 1)
+- FOUND commit: 0077437 (Task 2)
+- FOUND commit: e6408cd (Summary)
+- CONFIRMED: 30 passing, 2 pending (`cd zkp-backend && npm test`)
+- CONFIRMED: 0 occurrences of stale fallback addresses in zkp-backend/server.js
