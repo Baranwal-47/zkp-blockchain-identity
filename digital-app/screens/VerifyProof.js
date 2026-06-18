@@ -11,12 +11,15 @@ import {
 import { BACKEND_URL } from '../environment';
 
 export default function VerifyProof({ route, navigation }) {
-  const { proof, publicSignals, revealedDetails, privacySettings, generatedAt, proofType } = route.params || {};
+  const { proof, publicSignals, sessionId, revealedDetails, privacySettings, generatedAt, proofType } = route.params || {};
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [verificationPhase, setVerificationPhase] = useState('ready'); // 'ready', 'offchain', 'blockchain', 'registry', 'complete'
+  // ponytail: the nonce is one-time-use per sessionId (zkp-backend/lib/nonceStore.js),
+  // and /verify + /verify-onchain both consume it — so only one can run per proof.
+  // /verify-onchain is the authoritative check (re-runs Groth16 on Sepolia), so the
+  // separate off-chain pre-check is dropped rather than threading a second nonce through.
+  const [verificationPhase, setVerificationPhase] = useState('ready'); // 'ready', 'blockchain', 'registry', 'complete'
   const [verificationResults, setVerificationResults] = useState({
-    offchain: null,
     blockchain: null,
     registry: null,
   });
@@ -40,30 +43,24 @@ export default function VerifyProof({ route, navigation }) {
   const handleVerify = async () => {
     setIsLoading(true);
     setResult(null);
-    setVerificationResults({ offchain: null, blockchain: null });
-    
-    try {
-      // Phase 1: Off-chain Verification
-      setVerificationPhase('offchain');
-      const offchainResult = await verifyOffChain();
-      setVerificationResults(prev => ({ ...prev, offchain: offchainResult }));
+    setVerificationResults({ blockchain: null, registry: null });
 
-      // Phase 2: Blockchain Verification (Groth16 on Sepolia)
+    try {
+      // Phase 1: Blockchain Verification (Groth16 on Sepolia) + nonce consumption
       setVerificationPhase('blockchain');
       const blockchainResult = await verifyOnChain();
       setVerificationResults(prev => ({ ...prev, blockchain: blockchainResult }));
 
-      // Phase 3: Credential Registry Lookup (IPFS + Sepolia registry)
+      // Phase 2: Credential Registry Lookup (IPFS + Sepolia registry)
       setVerificationPhase('registry');
       const registryResult = await lookupRegistry();
       setVerificationResults(prev => ({ ...prev, registry: registryResult }));
 
       setVerificationPhase('complete');
       setResult({
-        offchain: offchainResult,
         blockchain: blockchainResult,
         registry: registryResult,
-        overallValid: offchainResult.valid && blockchainResult.valid && registryResult.found && !registryResult.revoked,
+        overallValid: blockchainResult.valid && registryResult.found && !registryResult.revoked,
       });
 
     } catch (err) {
@@ -74,30 +71,11 @@ export default function VerifyProof({ route, navigation }) {
     }
   };
 
-  const verifyOffChain = async () => {
-    const response = await fetch(`${BACKEND_URL}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ proof, publicSignals }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Off-chain verification failed: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return {
-      valid: data.valid,
-      timestamp: new Date().toISOString(),
-      method: 'off-chain'
-    };
-  };
-
   const verifyOnChain = async () => {
     const response = await fetch(`${BACKEND_URL}/verify-onchain`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ proof, publicSignals }),
+      body: JSON.stringify({ proof, publicSignals, sessionId }),
     });
 
     if (!response.ok) {
@@ -184,55 +162,40 @@ export default function VerifyProof({ route, navigation }) {
       );
     }
 
-    // Handle dual verification results
-    if (result.offchain && result.blockchain) {
+    // Handle verification results (on-chain + registry)
+    if (result.blockchain) {
       const isFullyValid = result.overallValid;
-      const offchainValid = result.offchain.valid;
       const blockchainValid = result.blockchain.valid;
 
       return (
         <View style={styles.resultContainer}>
           <Text style={styles.successResultIcon}>
-            {isFullyValid ? '🔗✅' : (offchainValid || blockchainValid) ? '⚠️' : '❌'}
+            {isFullyValid ? '🔗✅' : blockchainValid ? '⚠️' : '❌'}
           </Text>
           <Text style={styles.successResultTitle}>
             {isFullyValid ? 'Fully Verified!' : 'Partial Verification'}
           </Text>
           <Text style={styles.successResultText}>
-            {isFullyValid 
-              ? `The proof has been verified through both off-chain cryptography and blockchain validation. This confirms the holder is a valid student with authentic academic credentials through zero-knowledge verification.${revealedDetails ? ' The shared details below have been cryptographically verified.' : ''}`
-              : 'Some verification steps completed, but not all methods confirmed validity.'
+            {isFullyValid
+              ? `The proof has been verified on-chain via Groth16 validation on Sepolia. This confirms the holder is a valid student with authentic academic credentials through zero-knowledge verification.${revealedDetails ? ' The shared details below have been cryptographically verified.' : ''}`
+              : 'Verification completed, but not all checks confirmed validity.'
             }
           </Text>
-          
+
           {/* What was verified */}
           {isFullyValid && (
             <View style={styles.verificationSummary}>
               <Text style={styles.summaryTitle}>✅ Verified Claims:</Text>
               <Text style={styles.summaryItem}>🎓 Valid student status</Text>
               <Text style={styles.summaryItem}>📋 Authentic roll number</Text>
-              <Text style={styles.summaryItem}>🏫 Valid department/branch</Text>
-              <Text style={styles.summaryItem}>📱 Verified contact details</Text>
+              <Text style={styles.summaryItem}>🏫 Valid programme/discipline</Text>
               <Text style={styles.summaryItem}>🆔 Consistent identity hash</Text>
             </View>
           )}
-          
+
           {/* Verification Breakdown */}
           <View style={styles.verificationBreakdown}>
             <Text style={styles.detailTitle}>Verification Results:</Text>
-            
-            <View style={styles.verificationMethod}>
-              <Text style={styles.methodIcon}>⚡</Text>
-              <View style={styles.methodDetails}>
-                <Text style={styles.methodName}>Off-chain Verification</Text>
-                <Text style={[
-                  styles.methodStatus,
-                  offchainValid ? styles.successStatus : styles.errorStatus
-                ]}>
-                  {offchainValid ? '✅ Valid' : '❌ Invalid'}
-                </Text>
-              </View>
-            </View>
 
             <View style={styles.verificationMethod}>
               <Text style={styles.methodIcon}>🔗</Text>
@@ -290,26 +253,25 @@ export default function VerifyProof({ route, navigation }) {
 
             <View style={styles.trustLevel}>
               <Text style={styles.trustText}>
-                🏆 Trust Level: {isFullyValid ? 'Maximum (Blockchain + Crypto)' : 
-                  blockchainValid ? 'High (Blockchain Only)' : 
-                  offchainValid ? 'Medium (Crypto Only)' : 'None - Invalid Proof'}
+                🏆 Trust Level: {isFullyValid ? 'Maximum (Blockchain + Registry)' :
+                  blockchainValid ? 'Medium (Blockchain Only)' : 'None - Invalid Proof'}
               </Text>
             </View>
 
             {/* Warning for partial verification */}
-            {!isFullyValid && (offchainValid || blockchainValid) && (
+            {!isFullyValid && blockchainValid && (
               <View style={styles.partialWarning}>
                 <Text style={styles.partialWarningText}>
-                  ⚠️ Partial Verification: Only some validation methods succeeded. Use caution when trusting this proof.
+                  ⚠️ Partial Verification: The proof is cryptographically valid but the registry check did not fully pass. Use caution when trusting this proof.
                 </Text>
               </View>
             )}
 
-            {/* Critical warning when both fail */}
-            {!offchainValid && !blockchainValid && (
+            {/* Critical warning when proof itself fails */}
+            {!blockchainValid && (
               <View style={styles.criticalWarning}>
                 <Text style={styles.criticalWarningText}>
-                  🚨 Critical: Both verification methods failed. This proof should not be trusted.
+                  🚨 Critical: Blockchain verification failed. This proof should not be trusted.
                 </Text>
               </View>
             )}
@@ -373,14 +335,30 @@ export default function VerifyProof({ route, navigation }) {
               </View>
             )}
             
-            {revealedDetails.branch && (
+            {revealedDetails.programmeLevel && (
               <View style={styles.identityItem}>
-                <Text style={styles.identityLabel}>Branch/Department:</Text>
-                <Text style={styles.identityValue}>{revealedDetails.branch}</Text>
+                <Text style={styles.identityLabel}>Programme Level:</Text>
+                <Text style={styles.identityValue}>{revealedDetails.programmeLevel}</Text>
                 {renderDetailBadge()}
               </View>
             )}
-            
+
+            {revealedDetails.discipline && (
+              <View style={styles.identityItem}>
+                <Text style={styles.identityLabel}>Discipline:</Text>
+                <Text style={styles.identityValue}>{revealedDetails.discipline}</Text>
+                {renderDetailBadge()}
+              </View>
+            )}
+
+            {revealedDetails.batch && (
+              <View style={styles.identityItem}>
+                <Text style={styles.identityLabel}>Batch:</Text>
+                <Text style={styles.identityValue}>{revealedDetails.batch}</Text>
+                {renderDetailBadge()}
+              </View>
+            )}
+
             {revealedDetails.dob && (
               <View style={styles.identityItem}>
                 <Text style={styles.identityLabel}>Date of Birth:</Text>
@@ -388,11 +366,11 @@ export default function VerifyProof({ route, navigation }) {
                 {renderDetailBadge()}
               </View>
             )}
-            
-            {revealedDetails.phoneNo && (
+
+            {revealedDetails.email && (
               <View style={styles.identityItem}>
-                <Text style={styles.identityLabel}>Phone Number:</Text>
-                <Text style={styles.identityValue}>{revealedDetails.phoneNo}</Text>
+                <Text style={styles.identityLabel}>Email:</Text>
+                <Text style={styles.identityValue}>{revealedDetails.email}</Text>
                 {renderDetailBadge()}
               </View>
             )}
@@ -409,10 +387,12 @@ export default function VerifyProof({ route, navigation }) {
                   if (!isShared && !revealedDetails[field]) {
                     const fieldNames = {
                       name: 'Full Name',
-                      rollNo: 'Roll Number', 
-                      branch: 'Branch/Department',
+                      rollNo: 'Roll Number',
+                      programmeLevel: 'Programme Level',
+                      discipline: 'Discipline',
+                      batch: 'Batch',
                       dob: 'Date of Birth',
-                      phoneNo: 'Phone Number'
+                      email: 'Email'
                     };
                     return (
                       <View key={field} style={styles.hiddenItem}>
@@ -485,7 +465,7 @@ export default function VerifyProof({ route, navigation }) {
           <Text style={styles.capabilitiesTitle}>🎓 The below proof verifies:</Text>
           <Text style={styles.capabilityItem}>• Valid student identity</Text>
           <Text style={styles.capabilityItem}>• Authentic personal details (name, roll number)</Text>
-          <Text style={styles.capabilityItem}>• Valid academic information (branch/department)</Text>
+          <Text style={styles.capabilityItem}>• Valid academic information (programme/discipline)</Text>
           <Text style={styles.capabilityItem}>• Verified contact information</Text>
           <Text style={styles.capabilityNote}>
             ℹ️ The actual details remain private and are not revealed during verification unless explicitly shared above
@@ -503,8 +483,7 @@ export default function VerifyProof({ route, navigation }) {
             <View style={styles.loadingContainer}>
               <ActivityIndicator color="#ffffff" size="small" />
               <Text style={styles.verifyButtonText}>
-                {verificationPhase === 'offchain'  ? 'Validating cryptographic proof...' :
-                 verificationPhase === 'blockchain' ? 'Verifying on Sepolia...' :
+                {verificationPhase === 'blockchain' ? 'Verifying on Sepolia...' :
                  verificationPhase === 'registry'   ? 'Checking credential registry...' :
                  'Validating authenticity...'}
               </Text>
@@ -517,13 +496,6 @@ export default function VerifyProof({ route, navigation }) {
         {/* Verification Status Indicators */}
         {isLoading && (
           <View style={styles.verificationStatusContainer}>
-            <View style={styles.statusItem}>
-              <Text style={styles.statusIcon}>
-                {verificationPhase === 'offchain' ? '⏳' : verificationResults.offchain ? '✅' : '⚪'}
-              </Text>
-              <Text style={styles.statusText}>Off-chain Verification</Text>
-            </View>
-            
             <View style={styles.statusItem}>
               <Text style={styles.statusIcon}>
                 {verificationPhase === 'blockchain' ? '⏳' : verificationResults.blockchain ? '🔗✅' : '⚪'}
