@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 5 context gathered
-last_updated: "2026-06-18T18:09:34.158Z"
-last_activity: 2026-06-18 -- Phase 05 execution started
+last_updated: "2026-06-18T18:33:13.290Z"
+last_activity: 2026-06-18
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 11
-  percent: 80
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -26,12 +26,12 @@ See: .planning/PROJECT.md (updated 2026-06-16)
 ## Current Position
 
 Phase: 05 (benchmarking-metrics) — EXECUTING
-Plan: 1 of 2
+Plan: 2 of 2
 Next: Phase 04 (ZKP Backend Integration & Nonce Enforcement) — not started
-Status: Executing Phase 05
-Last activity: 2026-06-18 -- Phase 05 execution started
+Status: Ready to execute
+Last activity: 2026-06-18
 
-Progress: [████████████░░░░░░░░] 60%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [████████████░░░░░░░░] 60%
 
 *Updated after each plan completion*
 | Phase 01 P03 | 252 | 3 tasks | 4 files |
+| Phase 05 P02 | 24min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Recent decisions affecting current work:
 - [Phase ?]: D-03: dobInt stored as YYYYMMDD integer alongside dob display string
 - [Phase ?]: D-04: email max(62) enforces maxChunks=2 contract at Joi layer
 - [Phase ?]: D-11: issuer 'PrivdID — IIITDM Jabalpur'; version 2.0
+- [Phase ?]: Mirrored identityCommitment.js's Poseidon(2) leaf/level/root math directly in bench.js (no cross-service import from privdId_admin/backend, per D-16 scope)
+- [Phase ?]: Force-added docs/improvement/PERFORMANCE_METRICS_E1E2.md despite docs/ being wholesale gitignored, following the existing precedent of docs/current/research/PERFORMANCE_METRICS.md already being tracked
+- [Phase ?]: Reused one funded proof across all 20 OnChainVerification iterations (D-17: verify-onchain is a stateless 0-gas view call)
 
 ### Pending Todos
 
@@ -92,6 +96,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T17:47:32.156Z
+Last session: 2026-06-18T18:29:16.091Z
 Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-benchmarking-metrics/05-CONTEXT.md
+Resume file: None

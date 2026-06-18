@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: E1+E2 Circuit Build** - Build and freeze the depth-3 Merkle circuit with salted leaves, disclosure binding, predicates, and nonce binding (completed 2026-06-17)
 - [x] **Phase 3: Trusted Setup & Redeploy** - Run the Groth16 Phase-2 ceremony, export and redeploy IdentityVerifier.sol, ship fresh artifacts to the ZKP backend (completed 2026-06-17)
 - [x] **Phase 4: ZKP Backend Integration & Nonce Enforcement** - Wire the new proof input/output shape and the session-nonce challenge + freshness + one-time-use enforcement (completed 2026-06-18)
-- [ ] **Phase 5: Benchmarking & Metrics** - Instrument every new crypto op and report mean ± σ over n≥19 runs
+- [x] **Phase 5: Benchmarking & Metrics** - Instrument every new crypto op and report mean ± σ over n≥19 runs (completed 2026-06-18)
 
 ## Phase Details
 
@@ -82,7 +82,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. `docs/improvement/PERFORMANCE_METRICS_E1E2.md` records constraint count, proof-gen time, off-chain and on-chain verify time, nonce issue+check time, and QR payload size for the new E1+E2 circuit (plus free side-effect numbers: proof size, public-signal count, end-to-end latency).
 **Plans**: 2 plans
 - [x] 05-01-PLAN.md — Shared timed() helper (CommonJS + ESM) + migrate 5 call sites + add nonce-issue/check timing (PERF-01)
-- [ ] 05-02-PLAN.md — bench.js (N=20/n=19 mean±σ over 6 ops + QR size) + PERFORMANCE_METRICS_E1E2.md deliverable (PERF-01, PERF-02)
+- [x] 05-02-PLAN.md — bench.js (N=20/n=19 mean±σ over 6 ops + QR size) + PERFORMANCE_METRICS_E1E2.md deliverable (PERF-01, PERF-02)
 
 ## Progress
 
@@ -95,4 +95,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. E1+E2 Circuit Build | 2/2 | Complete   | 2026-06-17 |
 | 3. Trusted Setup & Redeploy | 2/2 | Complete   | 2026-06-17 |
 | 4. ZKP Backend Integration & Nonce Enforcement | 3/3 | Complete   | 2026-06-18 |
-| 5. Benchmarking & Metrics | 1/2 | In Progress|  |
+| 5. Benchmarking & Metrics | 2/2 | Complete   | 2026-06-18 |
