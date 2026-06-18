@@ -19,8 +19,10 @@ export default function IdentityForm({ onSubmit, navigation }) {
     name: '',
     rollNo: '',
     dob: '',
-    phoneNo: '',
-    branch: ''
+    programmeLevel: '',
+    discipline: '',
+    batch: '',
+    email: ''
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -29,7 +31,9 @@ export default function IdentityForm({ onSubmit, navigation }) {
   const [isFormValid, setIsFormValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const branches = ['CSE', 'ECE', 'ME', 'SM', 'Design'];
+  // Frozen codes — must match zkp-backend/lib/witnessBuilder.js PROGRAMME_LEVEL/DISCIPLINE
+  const programmeLevels = ['B.Tech', 'B.Des', 'Dual', 'M.Tech', 'M.Des', 'PhD'];
+  const disciplines = ['CSE', 'ECE', 'ME', 'SmartMfg', 'Design', 'NatSci'];
 
   const handleGoToDashboard = () => {
     navigation.reset({
@@ -48,48 +52,6 @@ export default function IdentityForm({ onSubmit, navigation }) {
     return cleaned.toUpperCase();
   };
 
-  const formatPhoneNo = (text) => {
-    const cleaned = text.replace(/\D/g, '');
-    
-    if (cleaned.length === 0) {
-      return '';
-    }
-    
-    if (text.startsWith('+91')) {
-      const numberPart = text.substring(3);
-      const cleanedNumber = numberPart.replace(/\D/g, '');
-      
-      if (cleanedNumber.length === 0) {
-        return '';
-      }
-      
-      // Don't accept more than 10 digits - return previous valid state
-      if (cleanedNumber.length > 10) {
-        return text.substring(0, text.length - 1);
-      }
-      
-      return `+91${cleanedNumber}`;
-    }
-    
-    if (cleaned.startsWith('91') && cleaned.length > 2) {
-      const numberPart = cleaned.substring(2);
-      
-      // Don't accept more than 10 digits - return previous valid state  
-      if (numberPart.length > 10) {
-        return text.substring(0, text.length - 1);
-      }
-      
-      return `+91${numberPart}`;
-    }
-    
-    // Don't accept more than 10 digits - return previous valid state
-    if (cleaned.length > 10) {
-      return text.substring(0, text.length - 1);
-    }
-    
-    return `+91${cleaned}`;
-  };
-
   const handleDateChange = (event, date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
@@ -100,15 +62,16 @@ export default function IdentityForm({ onSubmit, navigation }) {
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
-      setForm(f => ({ ...f, dob: `${day}${month}${year}` }));
+      // YYYYMMDD — matches witnessBuilder.js::resolveDobInt's expected dobInt format
+      setForm(f => ({ ...f, dob: `${year}${month}${day}` }));
     }
   };
 
   const formatDateDisplay = (dateString) => {
     if (!dateString || dateString.length !== 8) return 'Select Date of Birth';
-    const day = dateString.substring(0, 2);
-    const month = dateString.substring(2, 4);
-    const year = dateString.substring(4, 8);
+    const year = dateString.substring(0, 4);
+    const month = dateString.substring(4, 6);
+    const day = dateString.substring(6, 8);
     return `${day}/${month}/${year}`;
   };
 
@@ -138,26 +101,29 @@ export default function IdentityForm({ onSubmit, navigation }) {
         }
         break;
 
-      case 'phoneNo':
+      case 'email':
         if (!value) {
-          errors.phoneNo = 'Phone number is required';
-        } else if (!value.startsWith('+91')) {
-          errors.phoneNo = 'Phone number must start with +91';
-        } else {
-          const numberPart = value.substring(3);
-          if (numberPart.length < 10) {
-            errors.phoneNo = `Phone number is too short (${numberPart.length}/10 digits)`;
-          } else if (numberPart.length > 10) {
-            errors.phoneNo = `Phone number is too long (${numberPart.length}/10 digits)`;
-          } else if (!value.match(/^\+91\d{10}$/)) {
-            errors.phoneNo = 'Phone number must contain only digits after +91';
-          }
+          errors.email = 'Email is required';
+        } else if (!value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+          errors.email = 'Enter a valid email address';
         }
         break;
 
-      case 'branch':
+      case 'programmeLevel':
         if (!value) {
-          errors.branch = 'Please select your branch';
+          errors.programmeLevel = 'Please select your programme level';
+        }
+        break;
+
+      case 'discipline':
+        if (!value) {
+          errors.discipline = 'Please select your discipline';
+        }
+        break;
+
+      case 'batch':
+        if (!value || !value.match(/^\d{4}$/)) {
+          errors.batch = 'Enter a 4-digit admission year';
         }
         break;
     }
@@ -234,8 +200,10 @@ export default function IdentityForm({ onSubmit, navigation }) {
               name: '',
               rollNo: '',
               dob: '',
-              phoneNo: '',
-              branch: ''
+              programmeLevel: '',
+              discipline: '',
+              batch: '',
+              email: ''
             });
             setTouchedFields({});
             setFieldErrors({});
@@ -353,41 +321,78 @@ export default function IdentityForm({ onSubmit, navigation }) {
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Phone Number *</Text>
-          <TextInput 
-            style={getFieldStyle('phoneNo')}
-            placeholder="+91XXXXXXXXXX" 
-            value={form.phoneNo}
-            onChangeText={v => handleFieldChange('phoneNo', formatPhoneNo(v))} 
-            keyboardType="phone-pad"
-            maxLength={13}
+          <Text style={styles.label}>Email *</Text>
+          <TextInput
+            style={getFieldStyle('email')}
+            placeholder="you@iiitdmj.ac.in"
+            value={form.email}
+            onChangeText={v => handleFieldChange('email', v)}
+            keyboardType="email-address"
+            autoCapitalize="none"
             autoCorrect={false}
           />
-          {touchedFields.phoneNo && fieldErrors.phoneNo && <Text style={styles.errorText}>{fieldErrors.phoneNo}</Text>}
+          {touchedFields.email && fieldErrors.email && <Text style={styles.errorText}>{fieldErrors.email}</Text>}
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Branch *</Text>
+          <Text style={styles.label}>Programme Level *</Text>
           <View style={styles.branchContainer}>
-            {branches.map((branch) => (
+            {programmeLevels.map((level) => (
               <TouchableOpacity
-                key={branch}
+                key={level}
                 style={[
                   styles.branchButton,
-                  form.branch === branch && styles.branchButtonSelected
+                  form.programmeLevel === level && styles.branchButtonSelected
                 ]}
-                onPress={() => handleFieldChange('branch', branch)}
+                onPress={() => handleFieldChange('programmeLevel', level)}
               >
                 <Text style={[
                   styles.branchButtonText,
-                  form.branch === branch && styles.branchButtonTextSelected
+                  form.programmeLevel === level && styles.branchButtonTextSelected
                 ]}>
-                  {branch}
+                  {level}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-          {touchedFields.branch && fieldErrors.branch && <Text style={styles.errorText}>{fieldErrors.branch}</Text>}
+          {touchedFields.programmeLevel && fieldErrors.programmeLevel && <Text style={styles.errorText}>{fieldErrors.programmeLevel}</Text>}
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Discipline *</Text>
+          <View style={styles.branchContainer}>
+            {disciplines.map((d) => (
+              <TouchableOpacity
+                key={d}
+                style={[
+                  styles.branchButton,
+                  form.discipline === d && styles.branchButtonSelected
+                ]}
+                onPress={() => handleFieldChange('discipline', d)}
+              >
+                <Text style={[
+                  styles.branchButtonText,
+                  form.discipline === d && styles.branchButtonTextSelected
+                ]}>
+                  {d}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {touchedFields.discipline && fieldErrors.discipline && <Text style={styles.errorText}>{fieldErrors.discipline}</Text>}
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Batch (Admission Year) *</Text>
+          <TextInput
+            style={getFieldStyle('batch')}
+            placeholder="e.g., 2022"
+            value={form.batch}
+            onChangeText={v => handleFieldChange('batch', v.replace(/\D/g, '').slice(0, 4))}
+            keyboardType="number-pad"
+            maxLength={4}
+          />
+          {touchedFields.batch && fieldErrors.batch && <Text style={styles.errorText}>{fieldErrors.batch}</Text>}
         </View>
 
         <View style={styles.actionContainer}>

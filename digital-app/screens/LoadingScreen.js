@@ -6,27 +6,17 @@ export default function LoadingScreen({ navigation, route }) {
   const { form } = route.params;
   const [progress] = useState(new Animated.Value(0));
   const [step, setStep] = useState(0);
-  const [phase, setPhase] = useState('generating'); // 'generating', 'offchain', 'blockchain'
-  const [proofData, setProofData] = useState(null);
-  const [verificationResults, setVerificationResults] = useState({
-    offchain: null,
-    blockchain: null
-  });
-  
+  const [phase, setPhase] = useState('generating');
+
+  // ponytail: nonce is single-use (zkp-backend/lib/nonceStore.js) and is baked
+  // into the proof at generation time, so the holder's device cannot also
+  // consume it here — verification happens once, later, in VerifyProof.js.
   const steps = {
     generating: [
+      'Requesting verification session...',
       'Preparing input data...',
       'Generating zero-knowledge proof...',
     ],
-    offchain: [
-      'Verifying proof off-chain...',
-      'Off-chain verification complete! ✅'
-    ],
-    blockchain: [
-      'Connecting to blockchain...',
-      'Submitting proof to smart contract...',
-      'Blockchain verification complete! 🔗✅'
-    ]
   };
 
   useEffect(() => {
@@ -35,48 +25,25 @@ export default function LoadingScreen({ navigation, route }) {
 
   const startProofGeneration = async () => {
     try {
-      // Phase 1: Generate Proof (0-60%)
       setPhase('generating');
-      animateProgress(0, 0.6, 4000);
-      
+      animateProgress(0, 1.0, 4000);
+
       await simulateSteps(steps.generating, 1200);
-      const proof = await generateProof(form);
-      
-      if (!proof) {
+      const result = await generateProof(form);
+
+      if (!result) {
         throw new Error('Proof generation failed');
       }
 
-      setProofData(proof);
-      
-      // Phase 2: Off-chain Verification (60-80%)
-      setPhase('offchain');
-      setStep(0);
-      animateProgress(0.6, 0.8, 2000);
-      
-      await simulateSteps(steps.offchain, 1000);
-      const offchainResult = await verifyOffChain(proof);
-      setVerificationResults(prev => ({ ...prev, offchain: offchainResult }));
-      
-      // Phase 3: Blockchain Verification (80-100%)
-      setPhase('blockchain');
-      setStep(0);
-      animateProgress(0.8, 1.0, 3000);
-      
-      await simulateSteps(steps.blockchain, 1000);
-      const blockchainResult = await verifyOnChain(proof);
-      setVerificationResults(prev => ({ ...prev, blockchain: blockchainResult }));
-      
-      // Navigate to results
-      navigation.replace('ShowProof', { 
-        proof: proof.proof, 
-        publicSignals: proof.publicSignals,
+      // Navigate to results — verification happens later, once, when a
+      // verifier scans the QR (VerifyProof.js), not here on the holder's device.
+      navigation.replace('ShowProof', {
+        proof: result.proof,
+        publicSignals: result.publicSignals,
+        sessionId: result.sessionId,
         formData: form,
-        verification: {
-          offchain: offchainResult,
-          blockchain: blockchainResult
-        }
       });
-      
+
     } catch (error) {
       console.error('Error in proof pipeline:', error);
       navigation.navigate('ErrorScreen', { 
@@ -106,119 +73,66 @@ export default function LoadingScreen({ navigation, route }) {
     }
   };
 
+  const todayInt = () => {
+    const d = new Date();
+    return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   const generateProof = async (form) => {
-    const preparedInput = {
+    const nonceRes = await fetch(`${BACKEND_URL}/session/nonce`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const { nonce, sessionId } = await nonceRes.json();
+
+    const attrs = {
       name: form.name,
       rollNo: form.rollNo,
       dob: form.dob,
-      phoneNo: form.phoneNo,
-      branch: form.branch
+      programmeLevel: form.programmeLevel,
+      discipline: form.discipline,
+      batch: form.batch,
+      email: form.email,
+    };
+    // Reveal everything except dob/email — isOver18 (derived server-side)
+    // covers the age claim without exposing the raw date of birth.
+    const reveal = {
+      name: true,
+      rollNo: true,
+      dob: false,
+      programmeLevel: true,
+      discipline: true,
+      batch: true,
+      email: false,
     };
 
     const startTime = performance.now();
     const response = await fetch(`${BACKEND_URL}/generate-proof`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(preparedInput),
+      body: JSON.stringify({ attrs, reveal, nonce, currentDateInt: todayInt() }),
     });
     const endTime = performance.now();
     console.log(`Proof generation API call took ${((endTime - startTime) / 1000).toFixed(2)} s`);
 
-
     const text = await response.text();
-    let data = JSON.parse(text);
+    const data = JSON.parse(text);
 
-    if (!data.proof || !data.publicSignals) {
-      throw new Error('Invalid proof data received');
+    if (!response.ok || !data.proof || !data.publicSignals) {
+      throw new Error(data.error || 'Invalid proof data received');
     }
 
-    return data;
-  };
-
-  const verifyOffChain = async (proofData) => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          proof: proofData.proof,
-          publicSignals: proofData.publicSignals
-        }),
-      });
-
-      const result = await response.json();
-      return {
-        success: true,
-        valid: result.valid,
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString()
-      };
-    }
-  };
-
-  const verifyOnChain = async (proofData) => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/verify-onchain`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          proof: proofData.proof,
-          publicSignals: proofData.publicSignals
-        }),
-      });
-
-      const result = await response.json();
-      return {
-        success: true,
-        valid: result.valid,
-        timestamp: new Date().toISOString(),
-        blockchain: true
-      };
-    } catch (error) {
-      // If blockchain verification fails, we still continue but mark it as failed
-      return {
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        blockchain: true
-      };
-    }
+    return { proof: data.proof, publicSignals: data.publicSignals, sessionId };
   };
 
   const getCurrentStep = () => {
     return steps[phase] ? steps[phase][step] : 'Processing...';
   };
 
-  const getPhaseTitle = () => {
-    switch (phase) {
-      case 'generating':
-        return '🔐 Generating Zero-Knowledge Proof';
-      case 'offchain':
-        return '⚡ Quick Verification';
-      case 'blockchain':
-        return '🔗 Blockchain Verification';
-      default:
-        return 'Processing...';
-    }
-  };
+  const getPhaseTitle = () => '🔐 Generating Zero-Knowledge Proof';
 
-  const getPhaseSubtitle = () => {
-    switch (phase) {
-      case 'generating':
-        return 'Creating cryptographic proof of your identity...';
-      case 'offchain':
-        return 'Performing fast verification for immediate feedback...';
-      case 'blockchain':
-        return 'Final verification on blockchain for ultimate trust...';
-      default:
-        return '';
-    }
-  };
+  const getPhaseSubtitle = () => 'Creating cryptographic proof of your identity...';
 
   const progressWidth = progress.interpolate({
     inputRange: [0, 1],
@@ -249,24 +163,8 @@ export default function LoadingScreen({ navigation, route }) {
         {/* Verification Status Indicators */}
         <View style={styles.statusContainer}>
           <View style={styles.statusItem}>
-            <Text style={styles.statusIcon}>
-              {phase === 'generating' ? '⏳' : '✅'}
-            </Text>
+            <Text style={styles.statusIcon}>⏳</Text>
             <Text style={styles.statusText}>Proof Generation</Text>
-          </View>
-          
-          <View style={styles.statusItem}>
-            <Text style={styles.statusIcon}>
-              {phase === 'offchain' ? '⏳' : verificationResults.offchain ? '✅' : '⚪'}
-            </Text>
-            <Text style={styles.statusText}>Off-chain Verification</Text>
-          </View>
-          
-          <View style={styles.statusItem}>
-            <Text style={styles.statusIcon}>
-              {phase === 'blockchain' ? '⏳' : verificationResults.blockchain ? '🔗✅' : '⚪'}
-            </Text>
-            <Text style={styles.statusText}>Blockchain Verification</Text>
           </View>
         </View>
       </View>

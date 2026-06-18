@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-06-18T18:02:10.885Z"
-last_activity: 2026-06-18 -- Phase 05 planning complete
+stopped_at: context exhaustion at 79% (2026-06-18)
+last_updated: "2026-06-18T22:56:37.144Z"
+last_activity: 2026-06-18
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 11
-  percent: 80
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-16)
 
 **Core value:** A verifier can cryptographically confirm a student's selectively-disclosed identity attributes and predicates against an on-chain Merkle-root commitment, with replay-proof freshness.
-**Current focus:** Phase 04 — zkp-backend-integration-nonce-enforcement
+**Current focus:** Phase 05 — benchmarking-metrics
 
 ## Current Position
 
-Phase: 04 (zkp-backend-integration-nonce-enforcement) — EXECUTING
-Plan: 1 of 3
+Phase: 05 (benchmarking-metrics) — EXECUTING
+Plan: 2 of 2
 Next: Phase 04 (ZKP Backend Integration & Nonce Enforcement) — not started
 Status: Ready to execute
-Last activity: 2026-06-18 -- Phase 05 planning complete
+Last activity: 2026-06-18
 
-Progress: [████████████░░░░░░░░] 60%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [████████████░░░░░░░░] 60%
 
 *Updated after each plan completion*
 | Phase 01 P03 | 252 | 3 tasks | 4 files |
+| Phase 05 P02 | 24min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -68,10 +69,13 @@ Recent decisions affecting current work:
 - [Phase ?]: D-03: dobInt stored as YYYYMMDD integer alongside dob display string
 - [Phase ?]: D-04: email max(62) enforces maxChunks=2 contract at Joi layer
 - [Phase ?]: D-11: issuer 'PrivdID — IIITDM Jabalpur'; version 2.0
+- [Phase ?]: Mirrored identityCommitment.js's Poseidon(2) leaf/level/root math directly in bench.js (no cross-service import from privdId_admin/backend, per D-16 scope)
+- [Phase ?]: Force-added docs/improvement/PERFORMANCE_METRICS_E1E2.md despite docs/ being wholesale gitignored, following the existing precedent of docs/current/research/PERFORMANCE_METRICS.md already being tracked
+- [Phase ?]: Reused one funded proof across all 20 OnChainVerification iterations (D-17: verify-onchain is a stateless 0-gas view call)
 
 ### Pending Todos
 
-None yet.
+None yet. (2026-06-19 session closed both v1.0-MILESTONE-AUDIT.md blockers: wrote 03-VERIFICATION.md for Phase 3, and fixed the mobile E2E proof flow — IdentityForm/LoadingScreen/ShowProof/VerifyProof/QRScannerScreen/ManualQRInput now use the 7-attribute schema and thread sessionId through nonce-gated /verify + /verify-onchain calls. Re-run the milestone audit to confirm 19/19 · 5/5 · 15/15.)
 
 ### Blockers/Concerns
 
@@ -92,6 +96,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T17:47:32.156Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-benchmarking-metrics/05-CONTEXT.md
+Last session: 2026-06-18T22:56:37.140Z
+Stopped at: context exhaustion at 79% (2026-06-18)
+Resume file: None

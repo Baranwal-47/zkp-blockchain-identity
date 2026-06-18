@@ -41,8 +41,8 @@ Scope = the circuit critical path (blueprint Phase 0 + Phase 1, plus the §1.4 f
 
 ### Performance (research deliverable)
 
-- [ ] **PERF-01**: Every new crypto operation prints elapsed seconds, and a benchmark script reports mean ± σ over n≥19 runs
-- [ ] **PERF-02**: Constraint count, proof-gen time, off-chain/on-chain verify time, nonce issue+check time, and QR payload size are recorded in PERFORMANCE_METRICS.md
+- [x] **PERF-01**: Every new crypto operation prints elapsed seconds, and a benchmark script reports mean ± σ over n≥19 runs
+- [x] **PERF-02**: Constraint count, proof-gen time, off-chain/on-chain verify time, nonce issue+check time, and QR payload size are recorded in PERFORMANCE_METRICS.md
 
 ## v2 Requirements
 
@@ -98,8 +98,8 @@ Deferred to later milestones (tracked, not in this roadmap).
 | BACK-01 | Phase 4 | Pending |
 | BACK-02 | Phase 4 | Pending |
 | BACK-03 | Phase 4 | Pending |
-| PERF-01 | Phase 5 | Pending |
-| PERF-02 | Phase 5 | Pending |
+| PERF-01 | Phase 5 | Complete |
+| PERF-02 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 19 total
