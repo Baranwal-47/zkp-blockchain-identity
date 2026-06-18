@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Freeze Spec & Field-Set Consistency** - Lock the 7-attribute spec and make admin issuance byte-for-byte identical to the prover input (completed 2026-06-16)
 - [x] **Phase 2: E1+E2 Circuit Build** - Build and freeze the depth-3 Merkle circuit with salted leaves, disclosure binding, predicates, and nonce binding (completed 2026-06-17)
 - [x] **Phase 3: Trusted Setup & Redeploy** - Run the Groth16 Phase-2 ceremony, export and redeploy IdentityVerifier.sol, ship fresh artifacts to the ZKP backend (completed 2026-06-17)
-- [ ] **Phase 4: ZKP Backend Integration & Nonce Enforcement** - Wire the new proof input/output shape and the session-nonce challenge + freshness + one-time-use enforcement
+- [x] **Phase 4: ZKP Backend Integration & Nonce Enforcement** - Wire the new proof input/output shape and the session-nonce challenge + freshness + one-time-use enforcement (completed 2026-06-18)
 - [ ] **Phase 5: Benchmarking & Metrics** - Instrument every new crypto op and report mean ± σ over n≥19 runs
 
 ## Phase Details
@@ -71,7 +71,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 - [x] 04-01-PLAN.md — Field-set-consistent witness library: encoding (hashToField), predicates, witnessBuilder + pubHash-parity gate (BACK-01)
 - [x] 04-02-PLAN.md — Rewrite /generate-proof to new 19-signal shape + in-memory nonce store + POST /session/nonce (BACK-01, REPL-03)
-- [ ] 04-03-PLAN.md — Nonce-enforced /verify + /verify-onchain, confirm /credential-info, remove stale fallbacks, e2e lifecycle test (BACK-02, BACK-03, REPL-03)
+- [x] 04-03-PLAN.md — Nonce-enforced /verify + /verify-onchain, confirm /credential-info, remove stale fallbacks, e2e lifecycle test (BACK-02, BACK-03, REPL-03)
 
 ### Phase 5: Benchmarking & Metrics
 **Goal**: Every new cryptographic operation is instrumented to print elapsed seconds and a benchmark script produces statistically rigorous timings, recorded as a research deliverable.
@@ -92,5 +92,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Freeze Spec & Field-Set Consistency | 4/4 | Complete   | 2026-06-16 |
 | 2. E1+E2 Circuit Build | 2/2 | Complete   | 2026-06-17 |
 | 3. Trusted Setup & Redeploy | 2/2 | Complete   | 2026-06-17 |
-| 4. ZKP Backend Integration & Nonce Enforcement | 2/3 | In Progress|  |
+| 4. ZKP Backend Integration & Nonce Enforcement | 3/3 | Complete   | 2026-06-18 |
 | 5. Benchmarking & Metrics | 0/TBD | Not started | - |
