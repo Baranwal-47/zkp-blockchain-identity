@@ -51,6 +51,7 @@ describe("Circuit witness-level parity gate (D-14) + nonce-rejection (REPL-02)",
   this.timeout(60000);
 
   let computeMerkleRoot;
+  let computeLeaf;
   let tmpDir;
   let wtnsCounter = 0;
 
@@ -61,6 +62,7 @@ describe("Circuit witness-level parity gate (D-14) + nonce-rejection (REPL-02)",
       "../../privdId_admin/backend/utils/identityCommitment.js"
     );
     computeMerkleRoot = oracle.computeMerkleRoot;
+    computeLeaf = oracle.computeLeaf;
 
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circuitParity-"));
 
@@ -174,10 +176,7 @@ describe("Circuit witness-level parity gate (D-14) + nonce-rejection (REPL-02)",
       const ZERO_PAD_LEAF =
         "14744269619966411208579211824598458697587494354926760081771325075741142829156";
 
-      const oracle = await import(
-        "../../privdId_admin/backend/utils/identityCommitment.js"
-      );
-      const jsZeroPadLeaf = await oracle.computeLeaf(0, 0);
+      const jsZeroPadLeaf = await computeLeaf(0, 0);
 
       assert.strictEqual(jsZeroPadLeaf, ZERO_PAD_LEAF);
 
