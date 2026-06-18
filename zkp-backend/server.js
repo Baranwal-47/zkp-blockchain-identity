@@ -9,6 +9,7 @@ const { ethers } = require('ethers');
 const { buildWitnessInput } = require('./lib/witnessBuilder');
 const { generateSalts } = require('./lib/encoding');
 const { issueNonce, validateAndConsume } = require('./lib/nonceStore');
+const { timed } = require('./utils/timing');
 
 const app = express();
 app.use(cors());
@@ -102,14 +103,10 @@ app.post('/generate-proof', async (req, res) => {
   try {
     const input = await buildWitnessInput({ attrs, salts, reveal, nonce, currentDateInt });
 
-    console.time('ProofGeneration');
     // Generate proof and public signals using snarkjs
-    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-      input,
-      wasmPath,
-      zkeyPath
+    const { out: { proof, publicSignals } } = await timed('ProofGeneration', () =>
+      snarkjs.groth16.fullProve(input, wasmPath, zkeyPath)
     );
-    console.timeEnd('ProofGeneration');
 
     res.json({ proof, publicSignals, salts });
   } catch (err) {
@@ -121,8 +118,8 @@ app.post('/generate-proof', async (req, res) => {
 // POST /session/nonce — issues a fresh verifier-session nonce (REPL-03
 // issue side). expiresAt is epoch milliseconds (same unit as Date.now()
 // internally — see lib/nonceStore.js Pitfall-4 note).
-app.post('/session/nonce', (req, res) => {
-  const { nonce, sessionId, expiresAt } = issueNonce();
+app.post('/session/nonce', async (req, res) => {
+  const { out: { nonce, sessionId, expiresAt } } = await timed('NonceIssue', async () => issueNonce());
   res.json({ nonce, sessionId, expiresAt });
 });
 
@@ -136,15 +133,17 @@ app.post('/session/nonce', (req, res) => {
 app.post('/verify', async (req, res) => {
   const { proof, publicSignals, sessionId } = req.body;
   try {
-    console.time('OffChainVerification');
-    const isValid = await snarkjs.groth16.verify(vKey, publicSignals, proof);
-    console.timeEnd('OffChainVerification');
+    const { out: isValid } = await timed('OffChainVerification', () =>
+      snarkjs.groth16.verify(vKey, publicSignals, proof)
+    );
 
     if (!isValid) {
       return res.json({ valid: false, reason: 'invalid_proof' });
     }
 
-    const nonceResult = validateAndConsume(sessionId, publicSignals[1]);
+    const { out: nonceResult } = await timed('NonceCheck', async () =>
+      validateAndConsume(sessionId, publicSignals[1])
+    );
     if (!nonceResult.ok) {
       return res.json({ valid: false, reason: nonceResult.reason });
     }
@@ -182,16 +181,18 @@ app.post('/verify-onchain', async (req, res) => {
 
     const pC = [proof.pi_c[0], proof.pi_c[1]];
 
-    console.time('OnChainVerification');
     // Call the Solidity verifier contract's verifyProof method (read-only)
-    const isValid = await verifierContract.verifyProof(pA, pB, pC, publicSignals);
-    console.timeEnd('OnChainVerification');
+    const { out: isValid } = await timed('OnChainVerification', () =>
+      verifierContract.verifyProof(pA, pB, pC, publicSignals)
+    );
 
     if (!isValid) {
       return res.json({ valid: false, reason: 'invalid_proof' });
     }
 
-    const nonceResult = validateAndConsume(sessionId, publicSignals[1]);
+    const { out: nonceResult } = await timed('NonceCheck', async () =>
+      validateAndConsume(sessionId, publicSignals[1])
+    );
     if (!nonceResult.ok) {
       return res.json({ valid: false, reason: nonceResult.reason });
     }
