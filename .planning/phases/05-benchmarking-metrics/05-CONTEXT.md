@@ -39,7 +39,7 @@ Plus two static facts to record (not timed loops): circuit constraint count (alr
 - **D-17:** On-chain verify gets the **full N=20 / n=19 live-Sepolia treatment**, same as every other op — no reduced sample size, no methodology exception. Accept that this loop is slower (network-bound) than the off-chain loops; that's a real, reportable characteristic of on-chain verification, not noise to work around.
 
 ### Metrics doc placement (PERF-02)
-- **D-18:** Write a **new standalone file**, `docs/current/research/PERFORMANCE_METRICS_E1E2.md`, scoped to this milestone's six measured ops + constraint count + QR payload size. Do **not** append to the existing `docs/current/research/PERFORMANCE_METRICS.md` (that file holds the OLD flat-`Poseidon(5)` baseline and Phase 3's constraint-count entry — leave it untouched as the historical record).
+- **D-18 (revised 2026-06-18):** Write a **new standalone file**, `docs/improvement/PERFORMANCE_METRICS_E1E2.md` (not `docs/current/research/` — that directory's `PERFORMANCE_METRICS.md` stays untouched as the existing/historical record). Scope: this milestone's six measured ops + constraint count + QR payload size, **plus any other research-paper-relevant number that falls out of this phase's work for free** (e.g. proof size in bytes, public-signal count, verifier gas cost if already on record from the Phase 3 deploy, end-to-end issue-nonce→proof→verify latency) — this doc feeds the team's research paper, so capture any real number already at hand rather than narrowly six rows. Do not invent new measurement surfaces to chase this — only record numbers that are already produced as a side effect of `bench.js` or already on record from prior phases.
   - Carry the constraint count forward from Phase 3's already-verified number (**7891 total constraints**, recorded in `.planning/phases/03-trusted-setup-redeploy/CEREMONY_LOG.md` and `docs/current/research/PERFORMANCE_METRICS.md`) — do not recompute via `snarkjs r1cs info`, just cite the frozen figure with its source.
 
 ### QR payload size (PERF-02)
@@ -71,7 +71,7 @@ Plus two static facts to record (not timed loops): circuit constraint count (alr
 
 ### Source of the already-frozen constraint count (do not recompute)
 - `.planning/phases/03-trusted-setup-redeploy/CEREMONY_LOG.md` and `03-01-SUMMARY.md` — **7891 total constraints** (3770 non-linear + 4121 linear), verified via `snarkjs zkey verify` ("ZKey Ok!")
-- `docs/current/research/PERFORMANCE_METRICS.md` — existing Phase-3 dated entry citing the same count (old baseline file; do not edit further, see D-18)
+- `docs/current/research/PERFORMANCE_METRICS.md` — existing Phase-3 dated entry citing the same count (existing file; do not edit further, new doc goes in `docs/improvement/` per D-18)
 
 ### zkp-backend self-contained building blocks for bench.js
 - `zkp-backend/lib/encoding.js` — `hashToField`/`CHUNK_COUNTS`, copied verbatim from `identityCommitment.js`
