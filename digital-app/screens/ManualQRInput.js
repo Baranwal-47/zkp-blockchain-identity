@@ -35,6 +35,7 @@ export default function ManualQRInput({ navigation }) {
         navigation.navigate('VerifyProof', {
           proof: proofData.proof,
           publicSignals: proofData.publicSignals,
+          sessionId: proofData.sessionId || null,
           revealedDetails: proofData.revealedDetails || null,
           privacySettings: proofData.privacySettings || null,
           generatedAt: proofData.generatedAt || null,
@@ -67,17 +68,18 @@ export default function ManualQRInput({ navigation }) {
         pi_c: ["0xqrst...", "0xuvwx..."] 
       },
       publicSignals: ["123456789"],
+      sessionId: "example-session-id",
       revealedDetails: {
         name: "John Doe",
         rollNo: "21BCS001",
-        branch: "Computer Science"
+        discipline: "CSE"
       },
       privacySettings: {
         name: true,
         rollNo: true,
-        branch: true,
+        discipline: true,
         dob: false,
-        phoneNo: false
+        email: false
       },
       generatedAt: new Date().toISOString(),
       proofType: "student-identity"

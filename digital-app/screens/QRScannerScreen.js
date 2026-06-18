@@ -33,6 +33,7 @@ export default function QRScannerScreen({ navigation }) {
         navigation.navigate('VerifyProof', {
           proof: proofData.proof,
           publicSignals: proofData.publicSignals,
+          sessionId: proofData.sessionId || null,
           revealedDetails: proofData.revealedDetails || null,
           privacySettings: proofData.privacySettings || null,
           generatedAt: proofData.generatedAt || null,

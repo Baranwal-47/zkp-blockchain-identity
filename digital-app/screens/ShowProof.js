@@ -14,18 +14,20 @@ import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 
 export default function ShowProof({ route, navigation }) {
-  const { proof, publicSignals, formData, verification } = route.params || {};
+  const { proof, publicSignals, formData, sessionId, verification } = route.params || {};
   const [showDetails, setShowDetails] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
 
   // Privacy control state - what details to include in QR code
   const [privacySettings, setPrivacySettings] = useState({
-    name: true,        // Usually safe to share
-    rollNo: true,      // Usually needed for verification  
-    dob: false,        // Keep private by default
-    phoneNo: false,    // Keep private by default
-    branch: true,      // Usually safe to share
+    name: true,             // Usually safe to share
+    rollNo: true,           // Usually needed for verification
+    dob: false,             // Keep private by default
+    programmeLevel: true,   // Usually safe to share
+    discipline: true,       // Usually safe to share
+    batch: true,            // Usually safe to share
+    email: false,           // Keep private by default
   });
   const [showPrivacyControls, setShowPrivacyControls] = useState(false);
 
@@ -79,16 +81,24 @@ export default function ShowProof({ route, navigation }) {
     if (privacySettings.dob && formData?.dob) {
       revealedDetails.dob = formData.dob;
     }
-    if (privacySettings.phoneNo && formData?.phoneNo) {
-      revealedDetails.phoneNo = formData.phoneNo;
+    if (privacySettings.programmeLevel && formData?.programmeLevel) {
+      revealedDetails.programmeLevel = formData.programmeLevel;
     }
-    if (privacySettings.branch && formData?.branch) {
-      revealedDetails.branch = formData.branch;
+    if (privacySettings.discipline && formData?.discipline) {
+      revealedDetails.discipline = formData.discipline;
+    }
+    if (privacySettings.batch && formData?.batch) {
+      revealedDetails.batch = formData.batch;
+    }
+    if (privacySettings.email && formData?.email) {
+      revealedDetails.email = formData.email;
     }
 
-    return JSON.stringify({ 
-      proof, 
+    return JSON.stringify({
+      proof,
       publicSignals,
+      // Needed by the verifier to call /verify-onchain (nonce session is tied to this proof)
+      sessionId,
       // Include only the details user consented to reveal
       revealedDetails: Object.keys(revealedDetails).length > 0 ? revealedDetails : null,
       // Include privacy preferences for verification context
@@ -264,22 +274,52 @@ export default function ShowProof({ route, navigation }) {
                     </View>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.privacyOption}
-                    onPress={() => togglePrivacySetting('branch')}
+                    onPress={() => togglePrivacySetting('programmeLevel')}
                   >
                     <Text style={styles.privacyCheckbox}>
-                      {privacySettings.branch ? '✅' : '⬜'}
+                      {privacySettings.programmeLevel ? '✅' : '⬜'}
                     </Text>
                     <View style={styles.privacyDetails}>
-                      <Text style={styles.privacyLabel}>Branch/Department</Text>
+                      <Text style={styles.privacyLabel}>Programme Level</Text>
                       <Text style={styles.privacyValue}>
-                        {privacySettings.branch ? formData.branch : 'Hidden'}
+                        {privacySettings.programmeLevel ? formData.programmeLevel : 'Hidden'}
                       </Text>
                     </View>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
+                    style={styles.privacyOption}
+                    onPress={() => togglePrivacySetting('discipline')}
+                  >
+                    <Text style={styles.privacyCheckbox}>
+                      {privacySettings.discipline ? '✅' : '⬜'}
+                    </Text>
+                    <View style={styles.privacyDetails}>
+                      <Text style={styles.privacyLabel}>Discipline</Text>
+                      <Text style={styles.privacyValue}>
+                        {privacySettings.discipline ? formData.discipline : 'Hidden'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.privacyOption}
+                    onPress={() => togglePrivacySetting('batch')}
+                  >
+                    <Text style={styles.privacyCheckbox}>
+                      {privacySettings.batch ? '✅' : '⬜'}
+                    </Text>
+                    <View style={styles.privacyDetails}>
+                      <Text style={styles.privacyLabel}>Batch</Text>
+                      <Text style={styles.privacyValue}>
+                        {privacySettings.batch ? formData.batch : 'Hidden'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     style={styles.privacyOption}
                     onPress={() => togglePrivacySetting('dob')}
                   >
@@ -294,17 +334,17 @@ export default function ShowProof({ route, navigation }) {
                     </View>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.privacyOption}
-                    onPress={() => togglePrivacySetting('phoneNo')}
+                    onPress={() => togglePrivacySetting('email')}
                   >
                     <Text style={styles.privacyCheckbox}>
-                      {privacySettings.phoneNo ? '✅' : '⬜'}
+                      {privacySettings.email ? '✅' : '⬜'}
                     </Text>
                     <View style={styles.privacyDetails}>
-                      <Text style={styles.privacyLabel}>Phone Number</Text>
+                      <Text style={styles.privacyLabel}>Email</Text>
                       <Text style={styles.privacyValue}>
-                        {privacySettings.phoneNo ? formData.phoneNo : 'Hidden (Recommended)'}
+                        {privacySettings.email ? formData.email : 'Hidden (Recommended)'}
                       </Text>
                     </View>
                   </TouchableOpacity>

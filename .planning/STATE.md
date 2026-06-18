@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-06-18T18:33:13.290Z"
+stopped_at: context exhaustion at 79% (2026-06-18)
+last_updated: "2026-06-18T22:56:37.144Z"
 last_activity: 2026-06-18
 progress:
   total_phases: 5
@@ -75,7 +75,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+None yet. (2026-06-19 session closed both v1.0-MILESTONE-AUDIT.md blockers: wrote 03-VERIFICATION.md for Phase 3, and fixed the mobile E2E proof flow — IdentityForm/LoadingScreen/ShowProof/VerifyProof/QRScannerScreen/ManualQRInput now use the 7-attribute schema and thread sessionId through nonce-gated /verify + /verify-onchain calls. Re-run the milestone audit to confirm 19/19 · 5/5 · 15/15.)
 
 ### Blockers/Concerns
 
@@ -96,6 +96,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T18:29:16.091Z
-Stopped at: Phase 5 context gathered
+Last session: 2026-06-18T22:56:37.140Z
+Stopped at: context exhaustion at 79% (2026-06-18)
 Resume file: None
