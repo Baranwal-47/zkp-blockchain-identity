@@ -70,7 +70,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `POST /session/nonce` issues a random field element (< BN128 order) with sessionId and 5-minute TTL, and verify-time enforcement rejects a proof whose nonce does not match, is expired, or has already been consumed, marking the nonce consumed on first successful use.
 **Plans**: 3 plans
 - [x] 04-01-PLAN.md — Field-set-consistent witness library: encoding (hashToField), predicates, witnessBuilder + pubHash-parity gate (BACK-01)
-- [ ] 04-02-PLAN.md — Rewrite /generate-proof to new 19-signal shape + in-memory nonce store + POST /session/nonce (BACK-01, REPL-03)
+- [x] 04-02-PLAN.md — Rewrite /generate-proof to new 19-signal shape + in-memory nonce store + POST /session/nonce (BACK-01, REPL-03)
 - [ ] 04-03-PLAN.md — Nonce-enforced /verify + /verify-onchain, confirm /credential-info, remove stale fallbacks, e2e lifecycle test (BACK-02, BACK-03, REPL-03)
 
 ### Phase 5: Benchmarking & Metrics
@@ -92,5 +92,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Freeze Spec & Field-Set Consistency | 4/4 | Complete   | 2026-06-16 |
 | 2. E1+E2 Circuit Build | 2/2 | Complete   | 2026-06-17 |
 | 3. Trusted Setup & Redeploy | 2/2 | Complete   | 2026-06-17 |
-| 4. ZKP Backend Integration & Nonce Enforcement | 1/3 | In Progress|  |
+| 4. ZKP Backend Integration & Nonce Enforcement | 2/3 | In Progress|  |
 | 5. Benchmarking & Metrics | 0/TBD | Not started | - |
