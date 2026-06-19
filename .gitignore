@@ -86,3 +86,7 @@ digital-app/android/local.properties
 zkp-backend/package-lock.json
 CLAUDE.md
 .planning/phases/01-freeze-spec-field-set-consistency/01-DISCUSSION-LOG.md
+
+# graphify
+.claude/
+graphify-out/
