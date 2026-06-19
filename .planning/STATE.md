@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 7 UI-SPEC approved
-last_updated: "2026-06-19T09:10:47.776Z"
+stopped_at: Phase 7 Plan 03 (mobile crypto foundation) code-complete; on-device RNG human-check pending
+last_updated: "2026-06-19T09:18:36Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 4
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-06-19)
 ## Current Position
 
 Phase: 07 (student-keypair-two-phase-enrollment) — EXECUTING
-Plan: 2 of 4
-Status: Ready to execute
+Plan: 3 of 4 (07-03 code-complete, human-check pending); 07-02 (claim endpoint) still not started
+Status: Blocked on human verification (on-device RNG smoke test for 07-03 Task 2)
 Last activity: 2026-06-19
 
 ## Performance Metrics
@@ -52,6 +52,7 @@ Last activity: 2026-06-19
 *Updated after each plan completion*
 | Phase 06 P02 | 18min | 3 tasks | 2 files |
 | Phase 07 P01 | 5min | 2 tasks | 5 files |
+| Phase 07 P03 | 12min | 2/3 tasks (Task 1 pre-approved checkpoint; Task 2 human-check pending) | 5 files |
 
 ## Accumulated Context
 
@@ -68,12 +69,15 @@ Recent decisions affecting current work:
 - [Phase ?]: issueCredentialOnChain(student, dek) takes the full student doc and caller-supplied DEK; DEK lifecycle owned by studentService.js
 - [Phase ?]: updateStudent fails loudly on missing DEK instead of silently regenerating, per D-04/D-05 (never rotate)
 - [Phase 07-01]: Fixed Rule-1 bug: eciesjs encrypt()/decrypt() return Uint8Array not Buffer; must wrap with Buffer.from() before .toString('base64') or returning, else base64 encoding silently corrupts
+- [Phase 07-03]: react-native-get-random-values pinned to ^1.11.0, not latest (2.0.0) — 2.0.0's peerDependency requires react-native>=0.81 but digital-app is on react-native@0.79.5 (Expo SDK 53); the entire 1.x line only requires >=0.56 and is fully compatible.
 
 ### Pending Todos
 
-- Verify `eciesjs` Node+RN compatibility (RN crypto polyfills are a common gotcha for secp256k1/ECIES libs) — do this as a research item in Phase 7's discuss/research step, not Phase 6 (pure backend Node, never touches RN).
+- **Phase 07-03 on-device human-check (blocking):** confirm on a real device/Expo Go/simulator that `digital-app`'s temporary RNG smoke-test probe (in `App.js`, marked `TEMPORARY (Phase 07-03 Task 2 RNG smoke test)`) logs key type/length with NO `crypto.getRandomValues must be defined` error. The Expo dev server was left running (`npx expo start --clear`, confirmed healthy at `http://localhost:8081`) for this check. After confirming, remove the temporary probe from `App.js` and record the device/simulator used in 07-03-SUMMARY.md.
+- Phase 07-02 (claim endpoint: POST /students/:id/pubkey, studentService.claimCredential) has not been started yet.
+- Phase 07-04 (ClaimCredentialScreen) depends on both 07-02 and 07-03 closing.
 
-Next: `/gsd:plan-phase 6`.
+Next: complete the 07-03 on-device human-check, then proceed to 07-02 (claim endpoint, no dependency on 07-03) and/or 07-04 once both 07-02 and 07-03 are fully closed.
 
 ### Blockers/Concerns
 
@@ -94,7 +98,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T09:06:22.051Z
-Stopped at: Phase 7 UI-SPEC approved
-Resume file: None
+Last session: 2026-06-19T09:18:36Z
+Stopped at: Phase 7 Plan 03 (mobile crypto foundation) — Tasks 2+3 code complete and committed; Task 2's on-device RNG human-check is the sole remaining blocker for this plan.
+Resume file: .planning/phases/07-student-keypair-two-phase-enrollment/07-03-SUMMARY.md
 </content>
