@@ -75,7 +75,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A student whose `enrollmentPhase` is still `"awaiting-keypair"` cannot complete this flow (no envelope exists yet to unwrap), demonstrating the two-phase gate from Phase 7 is enforced end-to-end.
 **Plans**: 5 plans
 - [x] 08-01-PLAN.md — Backend: GET /credential/:rollNo/blobs endpoint (ACCESS-01) + nonce TTL 5→15min (D-08) [Wave 1]
-- [ ] 08-02-PLAN.md — Mobile crypto utils: on-device unwrapDEK (eciesjs) + decryptCredentialBlob (@noble/ciphers) [Wave 1]
+- [x] 08-02-PLAN.md — Mobile crypto utils: on-device unwrapDEK (eciesjs) + decryptCredentialBlob (@noble/ciphers) [Wave 1]
 - [ ] 08-03-PLAN.md — Dashboard (3-button hub) + View Credentials (decrypt + live Blockchain Status, D-05) [Wave 2]
 - [ ] 08-04-PLAN.md — Generate Proof: selective-disclosure checklist + nonce + /generate-proof + result QR (D-06/07/10) [Wave 2]
 - [ ] 08-05-PLAN.md — Verify Proof two-hop QR (D-09) + App.js wiring/legacy deletion (D-04) + device checkpoint [Wave 3]
@@ -103,5 +103,5 @@ Phases execute in numeric order: 6 → 7 → 8 → 9
 |-------|----------------|--------|-----------|
 | 6. Encryption & Ciphertext Storage | 3/3 | Complete   | 2026-06-19 |
 | 7. Student Keypair & Two-Phase Enrollment | 3/4 | In Progress|  |
-| 8. Daily Access Flow | 1/5 | In Progress|  |
+| 8. Daily Access Flow | 2/5 | In Progress|  |
 | 9. Crypto-Shredding Erasure | 0/TBD | Not started | - |

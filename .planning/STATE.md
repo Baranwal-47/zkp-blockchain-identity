@@ -4,13 +4,13 @@ milestone: v2.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-06-19T18:13:35.245Z"
+last_updated: "2026-06-19T18:25:44.203Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 12
-  completed_plans: 8
+  completed_plans: 9
   percent: 50
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-19)
 ## Current Position
 
 Phase: 08 (daily-access-flow) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-06-19
 
@@ -55,6 +55,7 @@ Last activity: 2026-06-19
 | Phase 07 P03 | 12min | 2/3 tasks (Task 1 pre-approved checkpoint; Task 2 human-check pending) | 5 files |
 | Phase 07 P02 | 12min | 3 tasks | 4 files |
 | Phase 08 P01 | 9min | 3 tasks | 5 files |
+| Phase 08 P02 | 8min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase 08]: Proof freshness window raised 5 → 15 minutes to fit a real two-phone QR round trip (peer-to-peer verification, not just an automated company check).
 - [Phase 08]: Verify Proof is a two-hop QR handshake (challenge out from verifier via backend-issued `/session/nonce`, proof back from prover), both hops scan-or-manual; consent for attribute disclosure is folded into the existing checklist screen, not a separate screen. Verify Proof folds back into Phase 8 itself — no Phase 8.1.
 - [Phase ?]: Nonce TTL is the sole freshness mechanism (no embedded proof timestamp) — raising TTL_MS from 5 to 15 minutes (D-08) satisfies the two-phone QR round trip without touching single-use semantics
+- [Phase ?]: @noble/ciphers gcm appends the 16-byte auth tag to ciphertext on decrypt (unlike Node's separate setAuthTag) — combined = concat(ciphertext, authTag)
+- [Phase ?]: 08-02: kept the CLAUDE.md-mandated benchmark console.log in dek.js; ran an intent-faithful verify (benchmark-only logging allowed, no secret references) instead of the plan's blanket no-console.log regex
 
 ### Pending Todos
 
@@ -106,7 +109,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T18:13:35.234Z
+Last session: 2026-06-19T18:25:31.381Z
 Stopped at: Completed 08-01-PLAN.md
 Resume file: None
 </content>
