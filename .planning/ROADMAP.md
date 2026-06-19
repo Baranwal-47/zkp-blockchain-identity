@@ -28,9 +28,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Inspecting any newly-pinned IPFS object for a freshly issued student shows only ciphertext bytes — the plaintext credential JSON is never pinned, logged to a persistent store, or otherwise retrievable from IPFS.
   3. Re-running issuance for two different students yields two different DEKs and two different ciphertexts, even if their underlying credential attributes were identical (confirms DEK randomness, not deterministic encryption).
 **Plans**: 3 plans
-- [ ] 06-01-PLAN.md — AES-256-GCM crypto module (crypto/aesgcm.js) + Student schema (dek field, ipfsCID→ciphertextCID rename) [Wave 1]
+- [x] 06-01-PLAN.md — AES-256-GCM crypto module (crypto/aesgcm.js) + Student schema (dek field, ipfsCID→ciphertextCID rename) [Wave 1]
 - [ ] 06-02-PLAN.md — Encrypt-before-pin in issuance: buildCredentialJson + DEK generate/reuse across 3 call sites + sanitizeStudent dek exclusion [Wave 2]
-- [ ] 06-03-PLAN.md — ipfsCID→ciphertextCID rename in zkp-backend/server.js + digital-app/VerifyProof.js [Wave 1]
+- [x] 06-03-PLAN.md — ipfsCID→ciphertextCID rename in zkp-backend/server.js + digital-app/VerifyProof.js [Wave 1]
 
 ### Phase 7: Student Keypair & Two-Phase Enrollment
 **Goal**: Each student controls a private secp256k1 key that never leaves their device, and the act of claiming a credential transfers DEK custody from the admin backend (single-custody escrow) to that keypair via ECIES wrapping — closing the window during which anyone but the student can read the plaintext DEK.
@@ -72,7 +72,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. Encryption & Ciphertext Storage | 0/3 | Not started | - |
+| 6. Encryption & Ciphertext Storage | 2/3 | In Progress|  |
 | 7. Student Keypair & Two-Phase Enrollment | 0/TBD | Not started | - |
 | 8. Daily Access Flow | 0/TBD | Not started | - |
 | 9. Crypto-Shredding Erasure | 0/TBD | Not started | - |
