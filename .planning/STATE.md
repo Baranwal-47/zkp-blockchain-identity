@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-19)
 
 Phase: 08 (daily-access-flow) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Tasks 1-2 complete (commits 8990a28, 5cc28f8); Task 3 blocking human-verify checkpoint pending — on-device two-phone QR verification required (also batches deferred Phase 07-04 Task 3). See 08-05-SUMMARY.md "Task 3 — Pending Checkpoint" for exact steps.
 Last activity: 2026-06-19
 
 ## Performance Metrics
@@ -89,11 +89,11 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- **Deferred to end of next session (not blocking):** Phase 07-04 Task 3 — full on-device claim-flow human-verify checkpoint (enroll → login → auto-redirect → claim → active → Mongo state → already-active skip → error/retry). Batch this with Phase 8's new Verify Proof two-device QR checkpoint once that's built. See `07-04-SUMMARY.md` and `07-04-PLAN.md` lines 144-156 for exact steps.
+- **BLOCKING — current checkpoint:** Phase 08 Plan 05 Task 3 — on-device end-to-end verification (enroll→claim→dashboard→view→generate→two-hop-verify), batching the deferred Phase 07-04 Task 3 claim-flow checkpoint into the same device session. Requires a physical/emulator device and ideally a second phone for the two-hop QR handshake. See `08-05-SUMMARY.md` "Task 3 — Pending Checkpoint" (or `08-05-PLAN.md` Task 3) for exact steps and the resume signal.
 - **Non-blocking cleanup, anytime:** `.planning/ROADMAP.md`'s "Target End-to-End UX" section + Phase 9 note, `08-DISCUSSION-LOG.md`, and memory file `e3_target_ux.md` still describe the old (superseded) Proof-ID/durable-store model — `08-CONTEXT.md` is the corrected source of truth and is what `/gsd:plan-phase` will read.
 - Phase 07-03 on-device RNG check: PASSED (confirmed this session); temporary probe removed from `App.js`; `07-03-SUMMARY.md` updated to PASS.
 
-Next: run `/gsd:plan-phase 8` — `08-CONTEXT.md` is ready. Phase 07's remaining device checkpoint does not block this.
+Next: run the Phase 08 Plan 05 Task 3 device checkpoint above, then resume plan completion (STATE.md plan-advance, ROADMAP.md plan-progress, requirements mark-complete for ACCESS-02).
 
 ### Blockers/Concerns
 
