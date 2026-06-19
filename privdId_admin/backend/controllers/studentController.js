@@ -15,6 +15,7 @@ import {
   sendEmailsForStudents,
   updateStudent,
   revokeStudent,
+  claimCredential,
 } from "../services/studentService.js";
 import Student from "../models/Student.js";
 import Joi from "joi";
@@ -264,6 +265,34 @@ export const revokeStudentById = asyncHandler(async (req, res) => {
   res.json({
     status: "success",
     message: "Student credential revoked on blockchain.",
+    student: result.student,
+  });
+});
+
+// Phase 7 (ENROLL-02 / KEY-02): student-claim half of two-phase enrollment.
+// T-07-02: validates pubKeyHex looks like a compressed secp256k1 public key
+// (66 hex chars) BEFORE delegating to claimCredential, so malformed/oversized
+// input is rejected with 400 ahead of eciesjs.encrypt. AppErrors thrown by
+// claimCredential (404/403/409/500) are NOT caught here — asyncHandler
+// forwards them to the error middleware so the service's status codes
+// (e.g. 409 on repeat claim) surface unchanged.
+const COMPRESSED_SECP256K1_PUBKEY_HEX = /^[0-9a-fA-F]{66}$/;
+
+export const claimPubkey = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { pubKeyHex } = req.body;
+
+  if (!pubKeyHex || typeof pubKeyHex !== "string") {
+    throw new AppError("pubKeyHex is required.", 400);
+  }
+  if (!COMPRESSED_SECP256K1_PUBKEY_HEX.test(pubKeyHex)) {
+    throw new AppError("pubKeyHex must be a 66-character hex-encoded compressed secp256k1 public key.", 400);
+  }
+
+  const result = await claimCredential(id, pubKeyHex);
+
+  res.json({
+    status: "success",
     student: result.student,
   });
 });
