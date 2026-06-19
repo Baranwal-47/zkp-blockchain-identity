@@ -4,6 +4,22 @@
 
 This milestone adds E3 on top of the frozen E1+E2 circuit: credentials are no longer pinned to IPFS in plaintext. The admin backend generates a random DEK per student, AES-256-GCM encrypts the full credential JSON, and pins only ciphertext. A secp256k1 keypair is generated on-device at first login and never leaves the device. A two-phase enrollment ties these together: the admin enrolls and holds the DEK in escrow, then on first login the student's app submits its public key and the backend ECIES-wraps the DEK to it, pins the wrapped envelope, and wipes the plaintext DEK from memory — at which point only the student can ever unwrap it again. Daily proof generation becomes a fetch-unwrap-decrypt-send flow: the app pulls both CIDs, unwraps the DEK with the on-device private key, decrypts the credential locally, and forwards only the decrypted attributes to the existing (unmodified) ZKP backend over HTTPS — the DEK and private key never leave the device. Finally, crypto-shredding gives a real right-to-erasure story: destroying the DEK (or its envelope) makes the ciphertext permanently unrecoverable, with no separate plaintext copy anywhere to fall back on. E5 (Gnosis Safe governance) and E6 (real Shamir custody) remain deferred; the DEK during the enrollment window is held in backend memory as a documented interim gap.
 
+## Target End-to-End UX (north star for Phases 7-9)
+
+This is the complete student-facing workflow E3 is building toward. Phase 7 delivers the first screen below; Phases 8 and 9 must deliver the rest. Any phase planning for 8/9 should treat this as the UI/UX source of truth, not just the backend success criteria in the Phase Details below.
+
+**1. First login / setup (Phase 7 — in progress):** Student logs in with institute-issued username/password → sees "Welcome {name}, your credential account has been created" → taps "Setup Secure Credential Access" → app generates the on-device keypair and claims the credential. All DEK-generation/encryption/IPFS-pin/wrap internals stay hidden from the student.
+
+**2. Dashboard (Phase 8 — not yet planned):** Lands on a simple 3-button dashboard: credential status, institution, issued-credentials count, and exactly three actions — **View Credentials**, **Generate Proof**, **Verify Proof**. No more buttons than that.
+
+**3. View Credentials (Phase 8):** Shows the decrypted credential (name, roll no, program, status, "Blockchain Status: Verified"). Internally: fetch CID(s) → download ciphertext from IPFS → unwrap DEK with on-device private key → decrypt → display. All hidden.
+
+**4. Generate Proof (Phase 8 — the most important E3 UI feature):** Student checks which attributes to prove (Name / Enrollment Status / Degree Program / Graduation Year / Full Credential — selective disclosure), enters a verifier-supplied challenge nonce, taps Generate. Internally: decrypt credential → generate ZKP including the nonce. Result shown: a **Proof ID** (e.g. `P-123456`) and a **Verification URL** (`https://privdid/verify/P-123456`), with Copy Link / Download Proof actions.
+
+**5. Verify Proof (net-new scope, not yet owned by any phase):** Anyone can paste a Proof ID or verification URL and get a result: proof valid/invalid, issuer, attribute proven, boolean result, timestamp, on-chain verified status; invalid case shows a reason (e.g. "Nonce Mismatch"). Internally: fetch the stored proof by ID → re-verify the ZKP → check blockchain record → check revocation status.
+
+**Key architectural requirement this implies:** verifying *by Proof ID* must be a durable, repeatable lookup — not the existing single-use `/session/nonce` + `/verify` anti-replay pair, whose nonce is consumed at proof-*generation* time. There must be a persistent Proof-ID/result store (new) that can be re-queried indefinitely without re-consuming anything. This affects both Phase 8 (issuing the Proof ID) and Phase 9 (the revocation-status check on verify).
+
 ## Phases
 
 **Phase Numbering:**
@@ -59,6 +75,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A student whose `enrollmentPhase` is still `"awaiting-keypair"` cannot complete this flow (no envelope exists yet to unwrap), demonstrating the two-phase gate from Phase 7 is enforced end-to-end.
 **Plans**: TBD
 
+**UI scope still missing from the success criteria above** — see "Target End-to-End UX" section: Dashboard (3 buttons), View Credentials screen, Generate Proof screen (attribute checkboxes + nonce entry + Proof ID/Verification URL result). Must be added during `/gsd:plan-phase` for this phase, not assumed.
+
 ### Phase 9: Crypto-Shredding Erasure
 **Goal**: A custodian can permanently and verifiably revoke a student's ability to ever decrypt their stored credential again by destroying the DEK material, giving the system a real technical right-to-erasure mechanism rather than a policy promise.
 **Depends on**: Phase 7 (requires the envelope/DEK custody model to exist)
@@ -67,6 +85,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. Triggering erasure for a student destroys the only path to recovering their DEK (the envelope and/or any escrowed copy), with no backup plaintext DEK retained anywhere in the system.
   2. After erasure, attempting the Phase 8 daily-access flow for that student fails to recover a usable DEK — the ciphertext on IPFS remains physically present but is permanently unreadable.
   3. The erasure action is auditable (recorded against the student record, e.g. a revoked/erased status or timestamp) so it is distinguishable from a transient fetch failure.
+
+**Net-new scope likely belongs here** — see "Target End-to-End UX": the **Verify Proof** screen's "check revocation status" step needs this phase's erasure/revocation state to be queryable by the verify-by-Proof-ID lookup (Phase 8). Confirm during planning whether the persistent Proof-ID store itself is built here or in Phase 8.
 **Plans**: TBD
 
 ## Progress
