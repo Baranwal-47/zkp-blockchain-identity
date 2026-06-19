@@ -59,6 +59,14 @@ export async function revokeCredentialOnChain(rollNo) {
 }
 
 export function buildCredentialJson(student) {
+  // WR-03: guard against pinning a permanently-unverifiable credential —
+  // salts/merkleRoot must reflect a fully-computed 7-attribute commitment.
+  if (!Array.isArray(student.salts) || student.salts.length !== 7) {
+    throw new Error(`buildCredentialJson: expected 7 salts, got ${student.salts?.length}`);
+  }
+  if (!student.merkleRoot) {
+    throw new Error('buildCredentialJson: merkleRoot is missing');
+  }
   return {
     name: student.name,
     rollNo: student.rollNo,
