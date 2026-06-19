@@ -60,11 +60,11 @@ Source: extracted from `LoginScreen.js` / `ClaimCredentialScreen.js`. Declaring 
 | Display (screen title, e.g. "Securing your credential…", "Step 1 of 2") | 22px | 700 (bold) | 1.2 (line-height 26-28) |
 | Heading (card heading, attribute group label) | 18px | 700 (bold) | 1.2 |
 | Body (descriptions, attribute row labels, result values) | 15px | 400 (regular) | 1.5 (line-height 22) |
-| Label / meta (field labels, "Blockchain Status:", timestamps, hop indicator badge) | 13px | 600 (semibold) | 1.4 |
+| Label / meta (field labels, "Blockchain Status:", timestamps, hop indicator badge) | 13px | 700 (bold) | 1.4 |
 
 Notes:
 - `LoginScreen.js`'s 28px title is reserved for the Login screen only (first-impression hero text) — do not reuse 28px on Dashboard/View Credentials/Generate Proof/Verify Proof; use 22px Display as the largest size on these four screens to keep a calmer, task-focused hierarchy appropriate for repeat-use utility screens.
-- Exactly 2 weights project-wide: **400 (regular)** for body copy, **700 (bold)** for headings/buttons/CTAs. The existing codebase also uses 600 (`label`/`infoTitle` in `LoginScreen.js`) — treat 600 as the **Label/meta** sub-case of the bold family already in use; do not add a third distinct weight beyond 400/600/700 already established. (If checker enforces strictly 2, collapse 600→700 for new screens; existing screens are out of scope for retrofit.)
+- Exactly 2 weights project-wide: **400 (regular)** for body copy, **700 (bold)** for headings/labels/buttons/CTAs. The existing codebase's 600 (`label`/`infoTitle` in `LoginScreen.js`) is out of scope for retrofit on existing screens, but all four screens in this phase use 700 for every non-body role, including Label/meta — no third weight is introduced.
 
 ---
 
