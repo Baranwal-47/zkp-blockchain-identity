@@ -1,57 +1,39 @@
-# Requirements: PrivdID — Circuit Rebuild (E1 + E2)
+# Requirements: PrivdID — Enhancement Plan (E1–E6)
 
-**Defined:** 2026-06-16
-**Core Value:** A verifier can cryptographically confirm a student's selectively-disclosed identity attributes and predicates against an on-chain Merkle-root commitment, with replay-proof freshness.
+**Defined:** 2026-06-19
+**Core Value:** A student's credential is never stored in plaintext anywhere off-device; only the student can decrypt their own data to generate a proof.
 
-## v1 Requirements
+## v2.0 Requirements (E3 — Encrypted Holder-Controlled Storage)
 
-Scope = the circuit critical path (blueprint Phase 0 + Phase 1, plus the §1.4 field-set fix and §12.1 branding cleanup). Each maps to roadmap phases.
+Scope = blueprint §E3 (E3.1–E3.6). Each maps to roadmap phases.
 
-### Spec & Consistency
+### Storage
 
-- [ ] **SPEC-01**: The 7-attribute identity spec is frozen and documented — fixed leaf order (name, rollNo, dob-int, programmeLevel, discipline, batch-int, email), per-attribute types/encodings, and the final public-signal layout
-- [x] **SPEC-02**: Admin issuance hash uses the byte-for-byte identical attribute list, order, and encoding as the prover (resolves the §1.4 branch/programme mismatch)
-- [x] **SPEC-03**: The credential issuer string reads "PrivdID — IIITDM Jabalpur" (VIT references removed from issuance output)
+- [ ] **STORE-01**: Admin backend generates a random 32-byte DEK per student, AES-256-GCM encrypts the credential JSON (7 attrs + 7 salts + merkleRoot + metadata, §E3.2 shape), and pins the ciphertext to IPFS as `ciphertextCID`
+- [ ] **STORE-02**: No plaintext credential blob is ever pinned to IPFS post-encryption — only ciphertext and the DEK envelope are pinned
 
-### Circuit (E1)
+### Student Keypair
 
-- [x] **CIRC-01**: The circuit computes `leaf_i = Poseidon(2)(attr_i, salt_i)` for 7 attributes plus a zero-padding leaf, and outputs the depth-3 Merkle root as `pubHash`
-- [x] **CIRC-02**: Every committed attribute carries a mandatory random salt so low-entropy attributes (dob, level, discipline, batch) are not brute-forceable when hidden
-- [x] **CIRC-03**: Selective disclosure is bound in-circuit — each `revealMask_i` is boolean, `revealMask_i * (revealedValue_i - attr_i) === 0`, and hidden attributes never appear in the public signals
-- [x] **CIRC-04**: The circuit computes `isOver18` from `currentDateInt` vs `dobInt`, with `dobInt` bound to leaf attribute 2
-- [x] **CIRC-05**: The circuit computes `isPostgrad` as set-membership of `programmeLevel` over {M.Tech, M.Des, PhD}
+- [ ] **KEY-01**: The app generates a secp256k1 keypair on-device at first login; the private key is stored in `expo-secure-store` (Keystore/Keychain-backed) and never exported
+- [ ] **KEY-02**: The app sends only the public key to the backend via `POST /students/:id/pubkey`
 
-### Replay Protection (E2)
+### Two-Phase Enrollment
 
-- [x] **REPL-01**: `nonce` is a public input forced into the constraint system (e.g. `nonceSq <== nonce * nonce`) so the compiler cannot optimize it away
-- [x] **REPL-02**: A proof generated for nonce A is rejected when verified against nonce B
-- [ ] **REPL-03**: The backend issues nonces via `POST /session/nonce` (random field element < BN128 order, sessionId, 5-min TTL) and at verify-time enforces nonce match AND freshness AND one-time use (marks consumed)
+- [ ] **ENROLL-01**: Admin enrollment pins the ciphertext and holds the DEK server-side, marking the student record `enrollmentPhase: "awaiting-keypair"`
+- [ ] **ENROLL-02**: On first login (`ClaimCredentialScreen`), the backend ECIES-wraps the held DEK with the submitted pubkey, pins the envelope to IPFS as `dekEnvelopeCID`, wipes the plaintext DEK, and sets `enrollmentPhase: "active"`
 
-### Trusted Setup & Redeploy
+### Daily Access
 
-- [ ] **SETUP-01**: A fresh Groth16 Phase-2 setup is performed via a 3-contribution chain + final beacon; `zkey verify` passes and the constraint count is recorded
-- [ ] **SETUP-02**: `verification_key.json` and `IdentityVerifier.sol` are exported and the verifier is redeployed (Sepolia + local), with `VERIFIER_ADDRESS` updated in env
-- [ ] **SETUP-03**: Fresh `identity.wasm`, `identity_final.zkey`, and `verification_key.json` are copied into the ZKP backend and used by proof generation
+- [ ] **ACCESS-01**: `GET /credential/:rollNo/blobs` returns both `ciphertextCID` and `dekEnvelopeCID` for an active student
+- [ ] **ACCESS-02**: The app fetches both blobs, ECIES-unwraps the DEK with the on-device private key, AES-GCM decrypts the credential JSON, and sends only `{attrs, salts, nonce, currentDateInt}` to the existing ZKP backend over HTTPS to generate a proof — the DEK and private key never leave the device
 
-### ZKP Backend Integration
+### Erasure
 
-- [ ] **BACK-01**: `POST /generate-proof` accepts the new input shape (attrs, salts, reveal flags, nonce, currentDateInt) and returns `{proof, publicSignals}` in the frozen §3 order
-- [ ] **BACK-02**: `POST /verify` (off-chain `groth16.verify`) and `POST /verify-onchain` (verifier view call) both return true for a freshly generated proof
-- [ ] **BACK-03**: `POST /credential-info` treats `pubHash` as the Merkle root (decimal → bytes32 conversion unchanged) and resolves the credential from the registry
+- [ ] **ERASE-01**: Destroying a student's DEK (crypto-shredding) makes their ciphertext on IPFS permanently unreadable, satisfying the GDPR/DPDPA right-to-erasure story
 
-### Performance (research deliverable)
+## Deferred Requirements
 
-- [x] **PERF-01**: Every new crypto operation prints elapsed seconds, and a benchmark script reports mean ± σ over n≥19 runs
-- [x] **PERF-02**: Constraint count, proof-gen time, off-chain/on-chain verify time, nonce issue+check time, and QR payload size are recorded in PERFORMANCE_METRICS.md
-
-## v2 Requirements
-
-Deferred to later milestones (tracked, not in this roadmap).
-
-### Storage (E3)
-
-- **E3-01**: AES-256-GCM encrypted credential blob + ECIES-wrapped DEK envelope pinned to IPFS (no plaintext PII)
-- **E3-02**: On-device secp256k1 keypair in expo-secure-store; two-phase enrollment (ClaimCredentialScreen)
+Tracked, not in this roadmap.
 
 ### Governance (E5)
 
@@ -62,6 +44,7 @@ Deferred to later milestones (tracked, not in this roadmap).
 
 - **E6-01**: Shamir 2-of-3 split/reconstruct over the DEK; custodian share distribution
 - **E6-02**: Recovery flows (record modification, lost-key re-wrap)
+- **E6-03**: Replace this milestone's single-custody DEK-in-memory interim gap (ENROLL-01) with a real 2-of-3 Shamir split once E6 ships
 
 ### UI & Hardening
 
@@ -73,39 +56,14 @@ Deferred to later milestones (tracked, not in this roadmap).
 | Feature | Reason |
 |---------|--------|
 | E4 post-quantum | Explicitly excluded from the entire project |
-| Data migration of old flat-Poseidon(5) credentials | Prototype: wipe and re-seed test students instead of writing a migration |
-| On-device Groth16 proving | Too heavy for Expo; proof gen stays server-side (DEK/private key still never leave device) |
-| E3/E5/E6/UI/hardening (full) | Deferred to later milestones — keeps the circuit critical path unblocked |
+| Data migration of existing test students' plaintext-pinned credentials | Wipe and re-seed instead, consistent with v1.0's approach |
+| E5/E6/UI/hardening (full) | Deferred to later milestones — E3 is isolated enough to ship without them |
+| Real Shamir custody of the in-flight DEK during `awaiting-keypair` | Needs E6 infra that doesn't exist yet; accepted interim gap (see E6-03) |
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| SPEC-01 | Phase 1 | Pending |
-| SPEC-02 | Phase 1 | Complete |
-| SPEC-03 | Phase 1 | Complete |
-| CIRC-01 | Phase 2 | Complete |
-| CIRC-02 | Phase 2 | Complete |
-| CIRC-03 | Phase 2 | Complete |
-| CIRC-04 | Phase 2 | Complete |
-| CIRC-05 | Phase 2 | Complete |
-| REPL-01 | Phase 2 | Complete |
-| REPL-02 | Phase 2 | Complete |
-| REPL-03 | Phase 4 | Pending |
-| SETUP-01 | Phase 3 | Pending |
-| SETUP-02 | Phase 3 | Pending |
-| SETUP-03 | Phase 3 | Pending |
-| BACK-01 | Phase 4 | Pending |
-| BACK-02 | Phase 4 | Pending |
-| BACK-03 | Phase 4 | Pending |
-| PERF-01 | Phase 5 | Complete |
-| PERF-02 | Phase 5 | Complete |
-
-**Coverage:**
-- v1 requirements: 19 total
-- Mapped to phases: 19 ✓
-- Unmapped: 0
+(Filled by roadmapper after phase mapping.)
 
 ---
-*Requirements defined: 2026-06-16*
-*Last updated: 2026-06-16 after roadmap creation (traceability mapped)*
+*Requirements defined: 2026-06-19*
+*v1.0 requirements history: see git log / `.planning/archive/v1.0-phases/` for the completed E1+E2 circuit-rebuild requirements.*
