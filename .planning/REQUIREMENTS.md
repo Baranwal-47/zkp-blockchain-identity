@@ -62,7 +62,19 @@ Tracked, not in this roadmap.
 
 ## Traceability
 
-(Filled by roadmapper after phase mapping.)
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| STORE-01 | Phase 6 | Pending |
+| STORE-02 | Phase 6 | Pending |
+| KEY-01 | Phase 7 | Pending |
+| KEY-02 | Phase 7 | Pending |
+| ENROLL-01 | Phase 7 | Pending |
+| ENROLL-02 | Phase 7 | Pending |
+| ACCESS-01 | Phase 8 | Pending |
+| ACCESS-02 | Phase 8 | Pending |
+| ERASE-01 | Phase 9 | Pending |
+
+Coverage: 9/9 v2.0 requirements mapped. No orphans.
 
 ---
 *Requirements defined: 2026-06-19*
