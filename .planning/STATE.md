@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-06-19T17:03:23.428Z"
+stopped_at: Phase 07 cleanup done (Task 3 device checkpoint deferred); Phase 08 context ready for planning (2026-06-19)
+last_updated: "2026-06-19T17:27:24.347Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 4
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-19)
 
 **Core value:** A student's credential is never stored in plaintext anywhere off-device; only the student (via their on-device secp256k1 key) can decrypt their own data to generate a proof.
-**Current focus:** Phase 07 — student-keypair-two-phase-enrollment
+**Current focus:** Phase 08 — daily-access-flow (context ready, planning next)
 
 ## Current Position
 
-Phase: 07 (student-keypair-two-phase-enrollment) — EXECUTING
-Plan: 07-02 (claim endpoint) complete; 07-03 (mobile crypto foundation) code-complete with human-check pending; 07-04 (ClaimCredentialScreen) not started
-Status: Ready to execute (07-04, or resume 07-03 human-check)
+Phase: 07 (student-keypair-two-phase-enrollment) — CODE-COMPLETE, one deferred checkpoint
+Plan: 07-01/02/03 complete (07-03's on-device RNG check has since passed; temporary probe removed from App.js). 07-04 (ClaimCredentialScreen) Tasks 1+2 done and committed; Task 3 (full on-device claim-flow human-verify) is explicitly DEFERRED to the end of the next session per user instruction — batched together with Phase 8's new Verify Proof two-device QR checkpoint, not blocking.
+Status: Phase 07 cleanup done. Phase 08 context-gathering complete (`08-CONTEXT.md`, decisions D-04–D-11) — ready for `/gsd:plan-phase 8`.
 Last activity: 2026-06-19
 
 ## Performance Metrics
@@ -73,14 +73,17 @@ Recent decisions affecting current work:
 - [Phase 07-03]: react-native-get-random-values pinned to ^1.11.0, not latest (2.0.0) — 2.0.0's peerDependency requires react-native>=0.81 but digital-app is on react-native@0.79.5 (Expo SDK 53); the entire 1.x line only requires >=0.56 and is fully compatible.
 - [Phase 07-02]: claimCredential's atomic write uses Student.findOneAndUpdate({_id, enrollmentPhase:"awaiting-keypair"}, {$set:..., $unset:{dek:""}}, {new:true}) — the enrollmentPhase condition in the filter (not just an earlier pre-check) is what closes the TOCTOU window on concurrent/repeat claims; null result -> 409.
 - [Phase 07-02]: Pin-to-IPFS happens BEFORE the Mongo state-flip write (Pitfall 4 ordering) — a failed pin leaves the plaintext DEK and awaiting-keypair phase untouched and retryable; no DEK exposure risk on partial failure.
+- [Phase 08, reversed mid-session]: Verify Proof drops all persistent storage — no Proof-ID, no Verification URL, no database. User caught that a durable lookup-by-ID model contradicts the existing single-use/5-min-freshness nonce design. `/verify` is now a pure stateless check (crypto validity + on-chain revocation + freshness via an embedded generation timestamp). See `08-CONTEXT.md` D-08–D-11 (D-01–D-03 marked superseded, kept visible as a guardrail against re-proposing storage).
+- [Phase 08]: Proof freshness window raised 5 → 15 minutes to fit a real two-phone QR round trip (peer-to-peer verification, not just an automated company check).
+- [Phase 08]: Verify Proof is a two-hop QR handshake (challenge out from verifier via backend-issued `/session/nonce`, proof back from prover), both hops scan-or-manual; consent for attribute disclosure is folded into the existing checklist screen, not a separate screen. Verify Proof folds back into Phase 8 itself — no Phase 8.1.
 
 ### Pending Todos
 
-- **Phase 07-03 on-device human-check (blocking):** confirm on a real device/Expo Go/simulator that `digital-app`'s temporary RNG smoke-test probe (in `App.js`, marked `TEMPORARY (Phase 07-03 Task 2 RNG smoke test)`) logs key type/length with NO `crypto.getRandomValues must be defined` error. The Expo dev server was left running (`npx expo start --clear`, confirmed healthy at `http://localhost:8081`) for this check. After confirming, remove the temporary probe from `App.js` and record the device/simulator used in 07-03-SUMMARY.md.
-- Phase 07-02 (claim endpoint: POST /students/:id/pubkey, studentService.claimCredential) is now COMPLETE — see 07-02-SUMMARY.md.
-- Phase 07-04 (ClaimCredentialScreen) depends on both 07-02 (now closed) and 07-03 (human-check pending) closing.
+- **Deferred to end of next session (not blocking):** Phase 07-04 Task 3 — full on-device claim-flow human-verify checkpoint (enroll → login → auto-redirect → claim → active → Mongo state → already-active skip → error/retry). Batch this with Phase 8's new Verify Proof two-device QR checkpoint once that's built. See `07-04-SUMMARY.md` and `07-04-PLAN.md` lines 144-156 for exact steps.
+- **Non-blocking cleanup, anytime:** `.planning/ROADMAP.md`'s "Target End-to-End UX" section + Phase 9 note, `08-DISCUSSION-LOG.md`, and memory file `e3_target_ux.md` still describe the old (superseded) Proof-ID/durable-store model — `08-CONTEXT.md` is the corrected source of truth and is what `/gsd:plan-phase` will read.
+- Phase 07-03 on-device RNG check: PASSED (confirmed this session); temporary probe removed from `App.js`; `07-03-SUMMARY.md` updated to PASS.
 
-Next: complete the 07-03 on-device human-check, then proceed to 07-04 (ClaimCredentialScreen) once 07-03 is fully closed.
+Next: run `/gsd:plan-phase 8` — `08-CONTEXT.md` is ready. Phase 07's remaining device checkpoint does not block this.
 
 ### Blockers/Concerns
 
@@ -101,7 +104,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T17:03:23.419Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-daily-access-flow/08-CONTEXT.md
+Last session: 2026-06-19T17:27:24.347Z
+Stopped at: Phase 07 cleanup complete (Task 3 deferred to end-of-session); Phase 08 context ready, about to run /gsd:plan-phase 8
+Resume file: .planning/phases/07-student-keypair-two-phase-enrollment/.continue-here.md
 </content>

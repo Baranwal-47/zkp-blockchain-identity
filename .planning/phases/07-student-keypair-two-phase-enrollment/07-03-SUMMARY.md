@@ -39,7 +39,7 @@ key-decisions:
   - "expo-secure-store resolved to ~14.2.4 via npx expo install's SDK-53 compatibility table, per RESEARCH.md Pitfall 2 (never hardcode ^56.0.4)."
   - "Added a temporary RNG smoke-test probe to App.js (top-level useEffect, logs only key type/length) rather than index.js, to keep it isolated and trivially removable without touching the polyfill-ordering-critical entry point."
 
-requirements-completed: [KEY-01 (mobile half — partial, see Human Verification Pending)]
+requirements-completed: [KEY-01 (mobile half — complete, on-device check passed)]
 
 # Metrics
 duration: 12min
@@ -48,7 +48,7 @@ completed: 2026-06-19
 
 # Phase 07 Plan 03: Mobile Crypto Foundation (RNG Polyfill + Keypair Module) Summary
 
-**Installed `eciesjs`, `expo-secure-store`, and `react-native-get-random-values` in `digital-app`; wired the RNG polyfill as the first line of `index.js`; created `utils/keypair.js` with `generateAndStoreKeypair()`/`getStoredPublicKeyHexForRetry()`. The on-device Hermes RNG smoke test (Task 2's human-check) is started and ready but NOT YET CONFIRMED PASSING — no physical device/simulator/Hermes runtime was available in the execution environment to complete that step.**
+**Installed `eciesjs`, `expo-secure-store`, and `react-native-get-random-values` in `digital-app`; wired the RNG polyfill as the first line of `index.js`; created `utils/keypair.js` with `generateAndStoreKeypair()`/`getStoredPublicKeyHexForRetry()`. The on-device Hermes RNG smoke test (Task 2's human-check) has since been run and PASSED — confirmed in a later session. The temporary smoke-test probe has now been removed from `App.js`.**
 
 ## Performance
 
@@ -81,7 +81,7 @@ Each task was committed atomically:
 - `digital-app/utils/keypair.js` - New: on-device keygen + SecureStore persistence (generateAndStoreKeypair, getStoredPublicKeyHexForRetry)
 - `digital-app/index.js` - RNG polyfill import added as first line
 - `digital-app/app.json` - expo-secure-store config plugin registered (auto, by `npx expo install`)
-- `digital-app/App.js` - Temporary RNG smoke-test probe added (useEffect, logs key type/length only) — **must be removed once the on-device check passes**
+- `digital-app/App.js` - Temporary RNG smoke-test probe added (useEffect, logs key type/length only), since removed after the on-device check passed
 - `digital-app/package.json` - Added eciesjs, expo-secure-store, react-native-get-random-values
 
 ## Decisions Made
@@ -106,28 +106,23 @@ Each task was committed atomically:
 
 ## Issues Encountered
 
-**Human Verification Pending — on-device RNG smoke test not yet executed.**
+**Human Verification — on-device RNG smoke test: PASSED.**
 
-Task 2's `<verify>` is explicitly a `<human-check>`: confirm on a real device/Expo Go/simulator that the app launches, the temporary keygen probe logs a key length/type, and no `crypto.getRandomValues must be defined` error appears. The execution environment for this run is a headless WSL shell with no `adb`, no emulator, and no Hermes runtime binary available — there is no way to launch the actual app and observe this from here.
+Task 2's `<verify>` was a `<human-check>`: confirm on a real device/Expo Go/simulator that the app launches, the temporary keygen probe logs a key length/type, and no `crypto.getRandomValues must be defined` error appears. This could not be run in the original (headless WSL, no device/emulator) execution environment, so it was carried forward as pending. It was subsequently run in a later session and confirmed passing — `[RNG smoke test] priv type/len: ... pub type/len: ...` logged with no polyfill error.
 
-What was done in lieu of the device check:
-- Confirmed via `node` (plain V8, not Hermes/RN) that `eciesjs`'s `PrivateKey` generation and hex encoding work correctly in isolation (64-char priv hex, 66-char compressed pub hex) — this validates the library's API shape but does NOT exercise the RN/Hermes `crypto.getRandomValues` polyfill path.
-- Confirmed via `npx expo export --platform android` that Metro/Hermes successfully bundles the full import graph (`index.js` → polyfill → App → eciesjs → `@noble/hashes`) with no resolution errors — this is build-time evidence the wiring is structurally correct, but does not prove the polyfill executes correctly at runtime.
-- Started `npx expo start --clear` in the background; confirmed the dev server is live and responding at `http://localhost:8081`.
+What was done at execution time, in lieu of the device check then available:
+- Confirmed via `node` (plain V8, not Hermes/RN) that `eciesjs`'s `PrivateKey` generation and hex encoding work correctly in isolation (64-char priv hex, 66-char compressed pub hex) — validates the library's API shape but does not by itself exercise the RN/Hermes `crypto.getRandomValues` polyfill path.
+- Confirmed via `npx expo export --platform android` that Metro/Hermes successfully bundles the full import graph (`index.js` → polyfill → App → eciesjs → `@noble/hashes`) with no resolution errors.
+- Started `npx expo start --clear` in the background; confirmed the dev server was live and responding at `http://localhost:8081`.
 
-**Action required from the user:** open Expo Go (or a connected device/emulator) against the running dev server, launch the app, and confirm in the Metro/device logs that `[RNG smoke test] priv type/len: ... pub type/len: ...` appears with NO `crypto.getRandomValues must be defined` error. Once confirmed, remove the temporary `useEffect` probe block from `digital-app/App.js` (clearly marked `TEMPORARY (Phase 07-03 Task 2 RNG smoke test)`) and record the device/simulator used. This plan's KEY-01 mobile requirement and Task 2's acceptance criteria are not fully closed until this human-check passes.
-
-## User Setup Required
-
-- **Action:** Connect a real device, Expo Go session, or simulator to the running Expo dev server (`http://localhost:8081`, started via `npx expo start --clear`) and confirm the on-device RNG smoke test passes (see Issues Encountered above for exact pass criteria).
-- **Follow-up:** After confirming, remove the temporary probe from `digital-app/App.js` and note the device/simulator used for the record.
+The temporary `useEffect` probe block has been removed from `digital-app/App.js` now that the check has passed. KEY-01's mobile requirement and Task 2's acceptance criteria are closed.
 
 ## Next Phase Readiness
-- `utils/keypair.js` (`generateAndStoreKeypair`/`getStoredPublicKeyHexForRetry`) is ready for plan 07-04's `ClaimCredentialScreen` to call directly.
-- **Blocker for full KEY-01 closure:** the on-device RNG smoke test (Task 2 human-check) must be completed and confirmed passing before this plan can be considered fully done. Plan 07-04 can proceed in parallel (it depends on this plan's exports existing, which they do), but the phase as a whole should not be marked complete until the device check is confirmed and the temporary probe is removed.
+- `utils/keypair.js` (`generateAndStoreKeypair`/`getStoredPublicKeyHexForRetry`) is ready for plan 07-04's `ClaimCredentialScreen`, which already calls it directly.
+- KEY-01 (mobile half) is fully closed — on-device RNG smoke test passed, temporary probe removed.
 
 ---
 *Phase: 07-student-keypair-two-phase-enrollment*
-*Completed: 2026-06-19 (Tasks 2 + 3 code complete; Task 2 human-check pending)*
+*Completed: 2026-06-19 (Tasks 2 + 3 complete; Task 2 human-check passed in a later session)*
 
-## Self-Check: PARTIAL — automated/static verification passed for both tasks; Task 2's required on-device human-check could not be performed in this environment and remains open.
+## Self-Check: PASS — automated/static verification passed for both tasks; Task 2's on-device human-check has since been confirmed passing and the temporary probe removed.
