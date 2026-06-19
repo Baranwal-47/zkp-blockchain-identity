@@ -6,9 +6,11 @@
 <domain>
 ## Phase Boundary
 
-An actively-enrolled student's app fetches both CIDs (`GET /credential/:rollNo/blobs`), ECIES-unwraps the DEK on-device with the private key, AES-GCM-decrypts the credential JSON locally, and can either (a) display it, or (b) send only the decrypted `{attrs, salts, nonce, currentDateInt}` to the existing (unmodified) ZKP backend to generate a proof. This phase delivers the full student-facing UI through proof generation: **Dashboard** (3-button: View Credentials / Generate Proof / Verify Proof — the third button just navigates, no working verify-by-ID screen yet), **View Credentials** (on-device decrypt + display, with a real on-chain revocation check for "Blockchain Status"), and **Generate Proof** (attribute checkboxes for selective disclosure + manual nonce entry → returns a Proof ID + Verification URL, backed by a real persistent store created in this phase).
+An actively-enrolled student's app fetches both CIDs (`GET /credential/:rollNo/blobs`), ECIES-unwraps the DEK on-device with the private key, AES-GCM-decrypts the credential JSON locally, and can either (a) display it, or (b) send only the decrypted `{attrs, salts, nonce, currentDateInt}` to the existing (unmodified) ZKP backend to generate a proof. This phase delivers the full student-facing UI: **Dashboard** (3-button: View Credentials / Generate Proof / Verify Proof — all three fully working), **View Credentials** (on-device decrypt + display, with a real on-chain revocation check for "Blockchain Status"), **Generate Proof** (consent-gated attribute checkboxes for selective disclosure + nonce binding, proof self-expires after 15 minutes), and **Verify Proof** (a live two-hop QR challenge/response — no persistent storage of any kind).
 
-**Explicitly NOT in this phase:** the Verify Proof *lookup* screen (paste a Proof ID/URL and get a valid/invalid result) — that becomes its own phase (likely an inserted 8.1, decided during planning) because re-verifying a stored proof needs a separate re-check path from the existing single-use `/session/nonce` + `/verify` anti-replay pair (see Decisions). Phase 9 (crypto-shredding/erasure) is also untouched here.
+**Revision (2026-06-19, same-session):** the original plan to split Verify Proof into its own phase behind a persistent Proof-ID store has been dropped. Once the verify model moved to a live, stateless re-check (proof carries its own timestamp; `/verify` just checks crypto validity + freshness), there was no backend persistence left to justify a separate phase — Verify Proof folds back into Phase 8 as a UI/orchestration build on top of existing endpoints. See D-01 through D-03 (superseded) and D-08–D-11 (current).
+
+Phase 9 (crypto-shredding/erasure) is untouched by this phase.
 
 Requirements: ACCESS-01, ACCESS-02 (`.planning/REQUIREMENTS.md`).
 
@@ -17,10 +19,21 @@ Requirements: ACCESS-01, ACCESS-02 (`.planning/REQUIREMENTS.md`).
 <decisions>
 ## Implementation Decisions
 
-### Phase 8 vs Verify-by-ID split
-- **D-01:** Phase 8 covers Dashboard + View Credentials + Generate Proof (through Proof-ID issuance). The Verify-by-Proof-ID lookup screen and its public re-verification logic is a separate phase — do not build the lookup/verify UI here.
-- **D-02:** Despite the lookup screen being deferred, Phase 8 DOES build the real persistent Proof-ID store and records every generated proof against it (not a display-only placeholder ID). Rationale: avoids a gap where proofs generated before the verify-phase ships have no real backing record. The store's exact shape (new Mongo collection vs. zkp-backend-local store, etc.) is research's/planner's call.
-- **D-03 [architectural, carried into both this phase and the deferred verify phase]:** The Proof-ID lookup/re-verification path must NOT be a wrapper around the existing `/session/nonce` + `/verify` pair — that nonce is single-use/anti-replay and is consumed at proof-*generation* time (this phase). Re-verifying an already-generated proof later (the deferred phase's job) needs its own re-check path (cryptographic re-verify + registry/revocation lookup) that doesn't touch or depend on that nonce.
+### Phase 8 vs Verify-by-ID split — SUPERSEDED, see D-08+
+- **D-01 [superseded]:** ~~Phase 8 covers Dashboard + View Credentials + Generate Proof only; Verify-by-Proof-ID is a separate phase.~~ Verify Proof folds back into Phase 8 (see D-11).
+- **D-02 [superseded]:** ~~Build a real persistent Proof-ID store.~~ No persistent store of any kind. Dropped once verification became a live, stateless re-check.
+- **D-03 [superseded]:** ~~Proof-ID lookup must not wrap `/session/nonce`+`/verify`.~~ Moot — there is no Proof-ID lookup anymore.
+
+### Verify Proof — final model (no storage, live two-hop QR handshake)
+- **D-08:** Proof freshness window is **15 minutes** (raised from the initially-discussed 5, to give a real two-phone QR round trip enough slack) — confirm during research whether zkp-backend hardcodes 5 min anywhere else that also needs raising to 15 for consistency. The proof carries its own generation timestamp as a public signal (same pattern as the existing `currentDateInt`); `/verify` rejects if `now - generatedAt > 15min`. Pure stateless check — no DB, no expiry job. A proof simply stops verifying after 15 minutes.
+- **D-09:** Verify Proof is a peer-to-peer challenge/response with **two distinct QR hops**, not a single screen:
+  1. **Outgoing:** Verifier's app calls the existing `/session/nonce` to get a backend-tracked nonce (must come from the backend, not invented client-side, or anti-replay is meaningless), bundles it with the requested fields, displays as QR — "Step 1: Share this challenge."
+  2. **Returning:** Prover scans/enters that payload (consent: see D-10), generates the proof bound to that nonce, displays the resulting proof+publicSignals as a new QR — "Step 2: Share your proof back."
+  3. Verifier scans/enters that returning QR and runs `/verify` + `/verify-onchain` + revocation check.
+  - Both hops support **scan QR or manual text entry** in parallel (manual is the fallback, not exclusive — supersedes D-06's "manual only" for the verifier→prover hop; `QRScannerScreen.js` is now in scope, not deferred).
+  - UI must make the active hop unambiguous ("Step 1 of 2" / "Step 2 of 2").
+- **D-10:** Consent is folded directly into attribute selection, not a separate screen. Whenever Generate Proof's checklist step starts — self-initiated or via an incoming peer/verifier request (D-09 step 2) — requested fields show pre-checked but editable, and the existing "Generate Proof" action **is** the consent action. Nothing is auto-disclosed from a scanned request without the prover seeing/confirming the checklist first.
+- **D-11:** Verify Proof needs no new backend persistence, so it folds back into Phase 8 alongside Dashboard / View Credentials / Generate Proof — there is no Phase 8.1.
 
 ### Legacy screens
 - **D-04:** Delete and replace now, not alongside. `digital-app/screens/HomeScreen.js`, `StudentProfileScreen.js` (currently broken: old 5-attribute shape + DDMMYYYY date bug), `IdentityForm.js`, and the legacy `ShowProof.js` (787 lines) are removed as part of this phase's plan, replaced by Dashboard / View Credentials / Generate Proof. No transitional dual-screen state.
@@ -33,8 +46,8 @@ Requirements: ACCESS-01, ACCESS-02 (`.planning/REQUIREMENTS.md`).
 - **D-07 [carried forward from existing architecture, not re-decided]:** The attribute checkboxes (Name / Enrollment Status / Degree Program / Graduation Year / Full Credential) must map to the frozen E1 depth-3 Merkle circuit's real per-attribute selective disclosure (revealing only the chosen leaves), not app-layer-only filtering of a single full-coverage hash — that was the OLD flat-Poseidon(5) circuit's limitation (see `ARCHITECTURE.md` "Key Architectural Decision #2", now stale/superseded by the frozen E1 circuit per CLAUDE.md). Research must confirm the exact `/generate-proof` request shape for partial disclosure against the current circuit/zkp-backend before planning locks in the screen's payload.
 
 ### Claude's Discretion
-- Exact shape of the new Proof-ID persistence (collection name, fields, which service owns it — admin backend vs zkp-backend) — pure implementation call for research/planner, informed by D-02/D-03.
-- Dashboard/View Credentials/Generate Proof visual styling — follow the existing card/button visual language established in `LoginScreen.js` / `ClaimCredentialScreen.js` (white rounded cards, `#3b82f6` primary, `#f8fafc` background) per Phase 7's established pattern, unless this clashes with anything decided in a future `/gsd:ui-phase` pass.
+- Exact QR payload encoding for both D-09 hops (JSON shape, size limits) — implementation call for research/planner.
+- Dashboard/View Credentials/Generate Proof/Verify Proof visual styling — follow the existing card/button visual language established in `LoginScreen.js` / `ClaimCredentialScreen.js` (white rounded cards, `#3b82f6` primary, `#f8fafc` background) per Phase 7's established pattern, unless this clashes with anything decided in a future `/gsd:ui-phase` pass.
 
 </decisions>
 
@@ -89,9 +102,9 @@ The user provided a complete screen-by-screen sketch (copy, button labels, field
 <deferred>
 ## Deferred Ideas
 
-- **Verify Proof lookup screen + public re-verification** — explicit split per D-01; becomes its own phase (likely inserted as 8.1) once Phase 8 ships the Proof-ID store it depends on.
-- **QR-scan entry for the verifier's challenge nonce** — sketch only described manual entry (D-06); scanning is a nice-to-have noted for a future pass, not blocking.
-- Phase 9 (crypto-shredding erasure) — untouched; the Verify Proof phase's "check revocation status" step will depend on Phase 9's erasure/revocation state once that ships.
+- Phase 9 (crypto-shredding erasure) — untouched; Verify Proof's revocation check (D-09 step 3) calls the same live on-chain check as D-05, independent of Phase 9's timing.
+
+(Verify Proof lookup screen and QR-scan-for-nonce, previously deferred here, are now in-scope per D-08–D-11 above.)
 
 ### Reviewed Todos (not folded)
 None — no pending todos matched this phase.

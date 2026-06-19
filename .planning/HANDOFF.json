@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-19T16:45:49.000Z",
+  "timestamp": "2026-06-19T17:27:24.347Z",
   "phase": "07",
   "phase_name": "student-keypair-two-phase-enrollment",
   "phase_dir": ".planning/phases/07-student-keypair-two-phase-enrollment",
@@ -13,22 +13,24 @@
     {"id": 2, "name": "Register ClaimCredentialScreen in App.js and add D-01 routing to LoginScreen", "status": "done", "commit": "fce0964"}
   ],
   "remaining_tasks": [
-    {"id": 3, "name": "End-to-end claim flow verification on device (blocking human-verify checkpoint)", "status": "not_started"}
+    {"id": 3, "name": "End-to-end claim flow verification on device (blocking human-verify checkpoint) — user has explicitly deferred this to the very end of the next work session, do not let it block Phase 8 planning/execution", "status": "deferred"}
   ],
   "blockers": [
-    {"description": "07-04 Task 3 is a blocking human-verify checkpoint (full admin-enroll -> login -> claim -> active flow on-device) — not yet run.", "type": "human_action", "workaround": "none — must be run on device/Expo Go against the running backend"},
-    {"description": "TEMPORARY RNG smoke-test probe still present in digital-app/App.js (line ~65, marked 'TEMPORARY (Phase 07-03 Task 2 RNG smoke test)'); per session memory the on-device check already passed, but the probe was never removed and 07-03-SUMMARY.md still records it as PARTIAL/pending.", "type": "technical", "workaround": "delete the probe block from App.js and update 07-03-SUMMARY.md to reflect the pass, then commit"},
-    {"description": "07-04-SUMMARY.md does not exist yet — plan 07-04 cannot be marked complete until Task 3 passes and the summary is written.", "type": "technical", "workaround": "write summary after Task 3 checkpoint approval"}
+    {"description": "07-04 Task 3 is a human-verify device checkpoint — not yet run. User explicitly said: leave all human verification until the very end. Do not treat this as blocking /gsd:plan-phase 8 or subsequent execution.", "type": "human_action", "workaround": "proceed with Phase 8 planning/execution now; circle back to run this checkpoint (and the Phase 8 equivalent) at the end of the next session"},
+    {"description": "TEMPORARY RNG smoke-test probe still present in digital-app/App.js (line ~65). Smoke test already passed (memory obs #375) but probe was never removed; 07-03-SUMMARY.md still says PARTIAL.", "type": "technical", "workaround": "delete probe block, flip 07-03-SUMMARY.md self-check to PASS, write 07-04-SUMMARY.md — pure mechanical cleanup, no device needed"}
   ],
   "human_actions_pending": [
-    {"action": "Run the 07-04 Task 3 end-to-end device checkpoint (see plan file for exact steps: enroll -> login -> auto-redirect to ClaimCredentialScreen -> claim -> StudentProfile; verify Mongo record dek wiped/envelope set/active; verify already-active student skips claim screen; verify error/retry path).", "context": "Blocking gate before 07-04/phase 07 can be marked complete.", "blocking": true},
-    {"action": "Remove the TEMPORARY RNG smoke-test probe from digital-app/App.js and record the device/simulator used in 07-03-SUMMARY.md.", "context": "Smoke test reportedly passed already (per session memory obs #375) but cleanup never happened.", "blocking": false}
+    {"action": "Run the 07-04 Task 3 end-to-end device checkpoint AND the new Phase 8 Verify Proof two-phone QR checkpoint together at the end of the work session.", "context": "User explicitly batched all human/device verification to happen last, not gating each phase individually.", "blocking": false}
   ],
   "decisions": [
-    {"decision": "Conversation pivoted away from closing out Phase 07 mechanics to diagnosing scope for the next chunk of work: a student-portal rebuild covering a new Dashboard, on-device 'View Credentials' decrypt flow, a redesigned 'Generate Proof' screen with attribute checkboxes, and a redesigned 'Verify Proof' screen using a persistent Proof-ID lookup instead of nav-param passing.", "rationale": "User wants this scoped as its own GSD phase (likely Phase 08, 'daily access' per the v2.0 roadmap) via /gsd:discuss-phase or /gsd:plan-phase in a fresh context, rather than living only in conversation memory.", "phase": "08 (not yet created)"},
-    {"decision": "Recommended running /gsd:pause-work to checkpoint the Phase 07 diagnosis before starting fresh on the next-phase discussion.", "rationale": "Avoid losing the diagnosis to context exhaustion; previous session already hit 81% context and left STATE.md mid-edit.", "phase": "07"}
+    {"decision": "Verify Proof drops the persistent Proof-ID store entirely. No database, no Proof-ID, no Verification URL.", "rationale": "User caught that persistent storage contradicts the existing single-use/5-min nonce anti-replay model. /verify is stateless crypto+on-chain check; proofs just stop verifying after their freshness window, no cleanup needed.", "phase": "08"},
+    {"decision": "Proof freshness window raised from 5 to 15 minutes.", "rationale": "A live two-phone QR round trip (issue challenge -> scan -> consent -> generate -> scan -> verify) needs more slack than the original company-automated 5-min nonce window.", "phase": "08"},
+    {"decision": "Verify Proof is a two-hop QR handshake: outgoing challenge QR (nonce from /session/nonce + requested fields) from verifier to prover, returning proof QR from prover to verifier. Both hops support scan-or-manual-entry.", "rationale": "Matches user's peer-to-peer 'student verifies another student' scenario; nonce must be backend-issued (not invented client-side) or anti-replay is meaningless.", "phase": "08"},
+    {"decision": "Consent is folded into the existing attribute-checklist screen, not a separate screen. Requested fields show pre-checked but editable; tapping 'Generate Proof' is the consent action.", "rationale": "User: consent should exist 'whenever the prover is starting to select their attributes' — avoid a redundant extra confirmation screen.", "phase": "08"},
+    {"decision": "Verify Proof folds back into Phase 8 — no separate Phase 8.1.", "rationale": "The only reason to split it off (needing a new persistent backend store) no longer applies once storage was dropped; it's now just a UI/orchestration build on existing endpoints.", "phase": "08"},
+    {"decision": "08-CONTEXT.md D-01/D-02/D-03 marked [superseded] in place (not deleted) and replaced with D-08-D-11 capturing the above.", "rationale": "Preserve the reasoning trail for why the original persistent-store plan was rejected, so it isn't silently re-proposed later.", "phase": "08"}
   ],
-  "uncommitted_files": [".planning/STATE.md"],
-  "next_action": "Run /gsd:discuss-phase (or /gsd:plan-phase) for the next phase covering the student-portal rebuild (Dashboard, View Credentials, redesigned Generate/Verify Proof). Separately, whenever picking Phase 07 back up: run the 07-04 Task 3 device checkpoint, then clean up the App.js RNG probe and write 07-04-SUMMARY.md.",
-  "context_notes": "Phase 07 (claim flow) is code-complete (Tasks 1+2 of plan 07-04 committed) — only the human-verify checkpoint and cleanup remain, and those are mechanical, not architectural. The substantive open thread is the NEXT phase: see '## Next-Phase Scoping Notes' in the .continue-here.md for the full diagnosis, including the real architectural snag (current nonce in zkp-backend's /verify is single-use/anti-replay, but the target 'Verify Proof by stable Proof-ID, checkable repeatedly by anyone' workflow needs verification-by-ID to re-check cryptographically + hit the registry/revocation state WITHOUT re-consuming that nonce — the nonce's job ends at proof generation, not at every later lookup)."
+  "uncommitted_files": [".planning/phases/08-daily-access-flow/08-CONTEXT.md"],
+  "next_action": "Phase 7 mechanical cleanup first (no device needed): remove TEMPORARY RNG probe from digital-app/App.js, flip 07-03-SUMMARY.md to PASS, write 07-04-SUMMARY.md noting Task 3 deferred to end-of-session human verification, update STATE.md. Then run /gsd:plan-phase 8 (08-CONTEXT.md is ready/correct). Defer all human/device verification (Phase 7 Task 3 + Phase 8's new two-phone QR checkpoint) to the very end, per explicit user instruction.",
+  "context_notes": "Stale docs not yet reconciled to the final no-storage/two-hop-QR model: .planning/ROADMAP.md ('Target End-to-End UX' section + Phase 9 note), 08-DISCUSSION-LOG.md, and memory file e3_target_ux.md. None of these block planning since 08-CONTEXT.md (the authoritative input to /gsd:plan-phase) is already correct — but they should be swept for consistency at some point so a future session doesn't get confused reading ROADMAP.md's stale Proof-ID description."
 }
