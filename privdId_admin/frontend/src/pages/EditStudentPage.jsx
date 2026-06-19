@@ -46,7 +46,11 @@ export default function EditStudentPage() {
 
     try {
       const response = await api.put(`/students/${id}`, formData);
-      toast.success(response.data.message || "Student updated successfully");
+      if (response.data.status === "warning") {
+        toast.error(response.data.anchorWarning || response.data.message, { icon: "⚠️" });
+      } else {
+        toast.success(response.data.message || "Student updated successfully");
+      }
       navigate("/");
     } catch (error) {
       toast.error(getApiErrorMessage(error));
