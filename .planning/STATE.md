@@ -4,13 +4,13 @@ milestone: v2.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-06-19T18:34:54.612Z"
+last_updated: "2026-06-19T18:40:03.587Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 50
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-19)
 ## Current Position
 
 Phase: 08 (daily-access-flow) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-06-19
 
@@ -57,6 +57,7 @@ Last activity: 2026-06-19
 | Phase 08 P01 | 9min | 3 tasks | 5 files |
 | Phase 08 P02 | 8min | 2 tasks | 3 files |
 | Phase 08 P03 | 14min | 2 tasks | 2 files |
+| Phase 08 P04 | 12min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 08-02: kept the CLAUDE.md-mandated benchmark console.log in dek.js; ran an intent-faithful verify (benchmark-only logging allowed, no secret references) instead of the plan's blanket no-console.log regex
 - [Phase 08]: Dashboard institution+issued-count summary uses a hardcoded single-tenant institution constant and per-student ciphertextCID-derived count, not a new aggregate backend endpoint
 - [Phase 08]: IPFS gateway base (gateway.pinata.cloud/ipfs/) matched from zkp-backend server.js since environment.js exports no gateway base
+- [Phase ?]: Phase 08-04: GenerateProofScreen REVEAL_KEY_MAP resolved as map-a (Name->name, Degree Program->programmeLevel, Graduation Year->batch, Full Credential->all 7; Enrollment Status is not a circuit reveal key, satisfied out-of-band by /credential-info)
 
 ### Pending Todos
 
@@ -112,7 +114,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T18:34:54.599Z
+Last session: 2026-06-19T18:39:58.556Z
 Stopped at: Completed 08-03-PLAN.md
 Resume file: None
 </content>
