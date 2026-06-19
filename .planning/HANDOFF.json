@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-06-19T16:45:49.000Z",
+  "phase": "07",
+  "phase_name": "student-keypair-two-phase-enrollment",
+  "phase_dir": ".planning/phases/07-student-keypair-two-phase-enrollment",
+  "plan": 4,
+  "task": 3,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Create ClaimCredentialScreen.js (auto-triggered claim with loading/error states)", "status": "done", "commit": "cea4204"},
+    {"id": 2, "name": "Register ClaimCredentialScreen in App.js and add D-01 routing to LoginScreen", "status": "done", "commit": "fce0964"}
+  ],
+  "remaining_tasks": [
+    {"id": 3, "name": "End-to-end claim flow verification on device (blocking human-verify checkpoint)", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "07-04 Task 3 is a blocking human-verify checkpoint (full admin-enroll -> login -> claim -> active flow on-device) — not yet run.", "type": "human_action", "workaround": "none — must be run on device/Expo Go against the running backend"},
+    {"description": "TEMPORARY RNG smoke-test probe still present in digital-app/App.js (line ~65, marked 'TEMPORARY (Phase 07-03 Task 2 RNG smoke test)'); per session memory the on-device check already passed, but the probe was never removed and 07-03-SUMMARY.md still records it as PARTIAL/pending.", "type": "technical", "workaround": "delete the probe block from App.js and update 07-03-SUMMARY.md to reflect the pass, then commit"},
+    {"description": "07-04-SUMMARY.md does not exist yet — plan 07-04 cannot be marked complete until Task 3 passes and the summary is written.", "type": "technical", "workaround": "write summary after Task 3 checkpoint approval"}
+  ],
+  "human_actions_pending": [
+    {"action": "Run the 07-04 Task 3 end-to-end device checkpoint (see plan file for exact steps: enroll -> login -> auto-redirect to ClaimCredentialScreen -> claim -> StudentProfile; verify Mongo record dek wiped/envelope set/active; verify already-active student skips claim screen; verify error/retry path).", "context": "Blocking gate before 07-04/phase 07 can be marked complete.", "blocking": true},
+    {"action": "Remove the TEMPORARY RNG smoke-test probe from digital-app/App.js and record the device/simulator used in 07-03-SUMMARY.md.", "context": "Smoke test reportedly passed already (per session memory obs #375) but cleanup never happened.", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "Conversation pivoted away from closing out Phase 07 mechanics to diagnosing scope for the next chunk of work: a student-portal rebuild covering a new Dashboard, on-device 'View Credentials' decrypt flow, a redesigned 'Generate Proof' screen with attribute checkboxes, and a redesigned 'Verify Proof' screen using a persistent Proof-ID lookup instead of nav-param passing.", "rationale": "User wants this scoped as its own GSD phase (likely Phase 08, 'daily access' per the v2.0 roadmap) via /gsd:discuss-phase or /gsd:plan-phase in a fresh context, rather than living only in conversation memory.", "phase": "08 (not yet created)"},
+    {"decision": "Recommended running /gsd:pause-work to checkpoint the Phase 07 diagnosis before starting fresh on the next-phase discussion.", "rationale": "Avoid losing the diagnosis to context exhaustion; previous session already hit 81% context and left STATE.md mid-edit.", "phase": "07"}
+  ],
+  "uncommitted_files": [".planning/STATE.md"],
+  "next_action": "Run /gsd:discuss-phase (or /gsd:plan-phase) for the next phase covering the student-portal rebuild (Dashboard, View Credentials, redesigned Generate/Verify Proof). Separately, whenever picking Phase 07 back up: run the 07-04 Task 3 device checkpoint, then clean up the App.js RNG probe and write 07-04-SUMMARY.md.",
+  "context_notes": "Phase 07 (claim flow) is code-complete (Tasks 1+2 of plan 07-04 committed) — only the human-verify checkpoint and cleanup remain, and those are mechanical, not architectural. The substantive open thread is the NEXT phase: see '## Next-Phase Scoping Notes' in the .continue-here.md for the full diagnosis, including the real architectural snag (current nonce in zkp-backend's /verify is single-use/anti-replay, but the target 'Verify Proof by stable Proof-ID, checkable repeatedly by anyone' workflow needs verification-by-ID to re-check cryptographically + hit the registry/revocation state WITHOUT re-consuming that nonce — the nonce's job ends at proof generation, not at every later lookup)."
+}
