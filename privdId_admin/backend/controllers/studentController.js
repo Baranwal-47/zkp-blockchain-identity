@@ -244,6 +244,27 @@ export const getStudentById = asyncHandler(async (req, res) => {
   res.json({ status: "success", student: sanitizeStudent(student) });
 });
 
+// Phase 8 (ACCESS-01): daily-access lookup by rollNo — returns ONLY the two
+// IPFS CIDs (ciphertextCID + dekEnvelopeCID) needed for on-device decryption,
+// never the full sanitized student object. Gated on enrollmentPhase==="active"
+// so a student who hasn't claimed their keypair yet gets a 403, not stale/null CIDs.
+export const getCredentialBlobs = asyncHandler(async (req, res) => {
+  const { rollNo } = req.params;
+  const student = await Student.findOne({ rollNo });
+  if (!student) throw new AppError("Student not found.", 404);
+  if (student.enrollmentPhase !== "active") {
+    throw new AppError("Student has not completed enrollment.", 403);
+  }
+  if (!student.ciphertextCID || !student.dekEnvelopeCID) {
+    throw new AppError("Credential blobs are not available for this student.", 404);
+  }
+  res.json({
+    status: "success",
+    ciphertextCID: student.ciphertextCID,
+    dekEnvelopeCID: student.dekEnvelopeCID,
+  });
+});
+
 export const updateStudentById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const result = await updateStudent(id, req.body);
