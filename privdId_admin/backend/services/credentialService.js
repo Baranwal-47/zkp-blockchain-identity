@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { encryptCredential } from '../crypto/aesgcm.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,12 +15,12 @@ const registryArtifact = JSON.parse(
   )
 );
 
-async function pinToIPFS(credential) {
+async function pinToIPFS(credential, pinName) {
   const response = await axios.post(
     'https://api.pinata.cloud/pinning/pinJSONToIPFS',
     {
       pinataContent: credential,
-      pinataMetadata: { name: `privid-credential-${credential.rollNo}` },
+      pinataMetadata: { name: `privid-ciphertext-${pinName}` },
     },
     {
       headers: {
@@ -57,18 +58,28 @@ export async function revokeCredentialOnChain(rollNo) {
   return { txHash: tx.hash, blockNumber: receipt.blockNumber };
 }
 
-export async function issueCredentialOnChain(student) {
-  const credential = {
+export function buildCredentialJson(student) {
+  return {
+    name: student.name,
     rollNo: student.rollNo,
+    dobInt: student.dobInt,
+    programmeLevel: student.programmeLevel,
+    discipline: student.discipline,
+    batch: student.batch,
     email: student.email,
+    salts: student.salts,
     merkleRoot: student.merkleRoot,
     issuedAt: new Date().toISOString(),
     issuer: 'PrivdID — IIITDM Jabalpur',
     type: 'StudentIdentityCredential',
     version: '2.0',
   };
+}
 
-  const cid = await pinToIPFS(credential);
+export async function issueCredentialOnChain(student, dek) {
+  const credentialJson = buildCredentialJson(student);
+  const encryptedBlob = await encryptCredential(credentialJson, dek);
+  const cid = await pinToIPFS(encryptedBlob, student.rollNo);
   const { txHash, blockNumber } = await anchorOnChain(student.rollNo, cid, student.merkleRoot);
 
   console.log(`[credential] Anchored ${student.rollNo} → IPFS: ${cid} | Tx: ${txHash}`);
