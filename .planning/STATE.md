@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-06-19T18:25:44.203Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-06-19T18:34:54.612Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 50
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-19)
 ## Current Position
 
 Phase: 08 (daily-access-flow) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-06-19
 
@@ -56,6 +56,7 @@ Last activity: 2026-06-19
 | Phase 07 P02 | 12min | 3 tasks | 4 files |
 | Phase 08 P01 | 9min | 3 tasks | 5 files |
 | Phase 08 P02 | 8min | 2 tasks | 3 files |
+| Phase 08 P03 | 14min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Nonce TTL is the sole freshness mechanism (no embedded proof timestamp) — raising TTL_MS from 5 to 15 minutes (D-08) satisfies the two-phone QR round trip without touching single-use semantics
 - [Phase ?]: @noble/ciphers gcm appends the 16-byte auth tag to ciphertext on decrypt (unlike Node's separate setAuthTag) — combined = concat(ciphertext, authTag)
 - [Phase ?]: 08-02: kept the CLAUDE.md-mandated benchmark console.log in dek.js; ran an intent-faithful verify (benchmark-only logging allowed, no secret references) instead of the plan's blanket no-console.log regex
+- [Phase 08]: Dashboard institution+issued-count summary uses a hardcoded single-tenant institution constant and per-student ciphertextCID-derived count, not a new aggregate backend endpoint
+- [Phase 08]: IPFS gateway base (gateway.pinata.cloud/ipfs/) matched from zkp-backend server.js since environment.js exports no gateway base
 
 ### Pending Todos
 
@@ -109,7 +112,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T18:25:31.381Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-06-19T18:34:54.599Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None
 </content>
