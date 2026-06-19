@@ -213,19 +213,19 @@ app.post('/credential-info', async (req, res) => {
 
   try {
     const pubHashBytes32 = ethers.zeroPadValue(ethers.toBeHex(BigInt(pubHash)), 32);
-    const [rollNo, ipfsCID, issuedAt, exists, revoked] = await registryContract.getCredentialByHash(pubHashBytes32);
+    const [rollNo, ciphertextCID, issuedAt, exists, revoked] = await registryContract.getCredentialByHash(pubHashBytes32);
 
-    if (!exists || !ipfsCID) {
+    if (!exists || !ciphertextCID) {
       return res.json({ found: false, message: 'Credential not found in registry' });
     }
 
     res.json({
       found: true,
       rollNo,
-      ipfsCID,
+      ciphertextCID,
       issuedAtMs: Number(issuedAt) * 1000,
       revoked,
-      ipfsUrl: `https://gateway.pinata.cloud/ipfs/${ipfsCID}`,
+      ipfsUrl: `https://gateway.pinata.cloud/ipfs/${ciphertextCID}`,
       etherscanUrl: `https://sepolia.etherscan.io/address/${registryAddress}`,
     });
   } catch (err) {

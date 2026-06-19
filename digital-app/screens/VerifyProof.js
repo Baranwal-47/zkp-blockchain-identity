@@ -227,7 +227,7 @@ export default function VerifyProof({ route, navigation }) {
                   <>
                     <Text style={styles.registryRow}>
                       <Text style={styles.registryLabel}>IPFS CID:  </Text>
-                      <Text style={styles.registryValue}>{result.registry.ipfsCID?.slice(0, 20)}...</Text>
+                      <Text style={styles.registryValue}>{result.registry.ciphertextCID?.slice(0, 20)}...</Text>
                     </Text>
                     <Text style={styles.registryRow}>
                       <Text style={styles.registryLabel}>Issued:  </Text>
