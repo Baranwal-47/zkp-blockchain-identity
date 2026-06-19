@@ -58,6 +58,9 @@ export function sanitizeStudent(student) {
     // NOTE (D-02): the per-student plaintext encryption key is intentionally
     // excluded from this allowlist — it must never leave the backend via any
     // API response. Do NOT "helpfully" add it back to this object.
+    enrollmentPhase: student.enrollmentPhase ?? "awaiting-keypair",
+    pubKey: student.pubKey ?? null,
+    dekEnvelopeCID: student.dekEnvelopeCID ?? null,
     onChainTxHash: student.onChainTxHash ?? null,
     onChainBlock: student.onChainBlock ?? null,
     revoked: student.revoked ?? false,

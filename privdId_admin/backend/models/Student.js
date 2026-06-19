@@ -61,6 +61,19 @@ const studentSchema = new mongoose.Schema(
       default: null,
       select: false, // never returned unless explicitly .select('+dek')'d — D-02 hard requirement
     },
+    pubKey: {
+      type: String,
+      default: null, // intentionally public per KEY-02 — NOT select:false
+    },
+    dekEnvelopeCID: {
+      type: String,
+      default: null, // mirrors ciphertextCID — a CID pointer, safe to return
+    },
+    enrollmentPhase: {
+      type: String,
+      enum: ["awaiting-keypair", "active", "revoked"],
+      default: "awaiting-keypair", // ENROLL-01: every new student lands here automatically
+    },
     onChainTxHash: {
       type: String,
       default: null,
