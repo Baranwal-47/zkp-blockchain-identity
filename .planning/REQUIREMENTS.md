@@ -9,8 +9,8 @@ Scope = blueprint §E3 (E3.1–E3.6). Each maps to roadmap phases.
 
 ### Storage
 
-- [ ] **STORE-01**: Admin backend generates a random 32-byte DEK per student, AES-256-GCM encrypts the credential JSON (7 attrs + 7 salts + merkleRoot + metadata, §E3.2 shape), and pins the ciphertext to IPFS as `ciphertextCID`
-- [ ] **STORE-02**: No plaintext credential blob is ever pinned to IPFS post-encryption — only ciphertext and the DEK envelope are pinned
+- [x] **STORE-01**: Admin backend generates a random 32-byte DEK per student, AES-256-GCM encrypts the credential JSON (7 attrs + 7 salts + merkleRoot + metadata, §E3.2 shape), and pins the ciphertext to IPFS as `ciphertextCID`
+- [x] **STORE-02**: No plaintext credential blob is ever pinned to IPFS post-encryption — only ciphertext and the DEK envelope are pinned
 
 ### Student Keypair
 
@@ -64,8 +64,8 @@ Tracked, not in this roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STORE-01 | Phase 6 | Pending |
-| STORE-02 | Phase 6 | Pending |
+| STORE-01 | Phase 6 | Complete |
+| STORE-02 | Phase 6 | Complete |
 | KEY-01 | Phase 7 | Pending |
 | KEY-02 | Phase 7 | Pending |
 | ENROLL-01 | Phase 7 | Pending |

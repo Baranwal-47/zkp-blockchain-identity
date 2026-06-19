@@ -12,7 +12,7 @@ This milestone adds E3 on top of the frozen E1+E2 circuit: credentials are no lo
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 6: Encryption & Ciphertext Storage** - Admin backend encrypts every credential with a per-student AES-256-GCM DEK and pins only ciphertext to IPFS — no plaintext blob exists post-encryption
+- [x] **Phase 6: Encryption & Ciphertext Storage** - Admin backend encrypts every credential with a per-student AES-256-GCM DEK and pins only ciphertext to IPFS — no plaintext blob exists post-encryption (completed 2026-06-19)
 - [ ] **Phase 7: Student Keypair & Two-Phase Enrollment** - Students get an on-device secp256k1 keypair at first login, and claiming a credential ECIES-wraps the escrowed DEK to that keypair, ending single-custody of the DEK
 - [ ] **Phase 8: Daily Access Flow** - An active student's app fetches both CIDs, unwraps the DEK on-device, decrypts the credential locally, and generates a proof via the existing ZKP backend without the DEK or private key ever leaving the device
 - [ ] **Phase 9: Crypto-Shredding Erasure** - Destroying a student's DEK/envelope makes their ciphertext permanently unreadable, satisfying the GDPR/DPDPA right-to-erasure story
@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Re-running issuance for two different students yields two different DEKs and two different ciphertexts, even if their underlying credential attributes were identical (confirms DEK randomness, not deterministic encryption).
 **Plans**: 3 plans
 - [x] 06-01-PLAN.md — AES-256-GCM crypto module (crypto/aesgcm.js) + Student schema (dek field, ipfsCID→ciphertextCID rename) [Wave 1]
-- [ ] 06-02-PLAN.md — Encrypt-before-pin in issuance: buildCredentialJson + DEK generate/reuse across 3 call sites + sanitizeStudent dek exclusion [Wave 2]
+- [x] 06-02-PLAN.md — Encrypt-before-pin in issuance: buildCredentialJson + DEK generate/reuse across 3 call sites + sanitizeStudent dek exclusion [Wave 2]
 - [x] 06-03-PLAN.md — ipfsCID→ciphertextCID rename in zkp-backend/server.js + digital-app/VerifyProof.js [Wave 1]
 
 ### Phase 7: Student Keypair & Two-Phase Enrollment
@@ -72,7 +72,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. Encryption & Ciphertext Storage | 2/3 | In Progress|  |
+| 6. Encryption & Ciphertext Storage | 3/3 | Complete   | 2026-06-19 |
 | 7. Student Keypair & Two-Phase Enrollment | 0/TBD | Not started | - |
 | 8. Daily Access Flow | 0/TBD | Not started | - |
 | 9. Crypto-Shredding Erasure | 0/TBD | Not started | - |
