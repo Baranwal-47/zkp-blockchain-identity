@@ -52,7 +52,11 @@ const studentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    ipfsCID: {
+    ciphertextCID: {
+      type: String,
+      default: null,
+    },
+    dek: {
       type: String,
       default: null,
     },
