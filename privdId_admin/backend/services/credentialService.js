@@ -32,6 +32,15 @@ async function pinToIPFS(credential, pinName) {
   return response.data.IpfsHash;
 }
 
+// Phase 7 (ENROLL-02): pins the ECIES-wrapped DEK envelope produced by
+// crypto/ecies.js::wrapDEK to IPFS, reusing the existing pinToIPFS Pinata
+// call rather than duplicating the axios POST. pinName follows the same
+// `privid-ciphertext-${pinName}` Pinata metadata naming convention as the
+// credential ciphertext pin (caller passes the student's rollNo).
+export async function pinEnvelopeToIPFS(envelopeBase64, pinName) {
+  return pinToIPFS({ dekEnvelope: envelopeBase64 }, pinName);
+}
+
 async function anchorOnChain(rollNo, cid, merkleRoot) {
   const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
   const wallet = new ethers.Wallet(`0x${process.env.PRIVATE_KEY}`, provider);
