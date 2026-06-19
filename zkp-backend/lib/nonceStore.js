@@ -4,7 +4,7 @@
  *
  * Backs `POST /session/nonce` (issue) and the verify-time enforcement path
  * (validateAndConsume): a sessionId-keyed Map holding {nonce, issuedAt,
- * expiresAt, used}. TTL = 5 minutes, one-time-use enforced via `used`.
+ * expiresAt, used}. TTL = 15 minutes (D-08), one-time-use enforced via `used`.
  *
  * Nonce generation mirrors identityCommitment.js::generateSalt() /
  * zkp-backend/lib/encoding.js::generateSalt() — crypto.randomBytes(31) =
@@ -27,7 +27,7 @@ const crypto = require("crypto");
 const BN128_FIELD_ORDER =
   21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
-const TTL_MS = 5 * 60 * 1000; // 5 minutes, in milliseconds (Date.now() unit — Pitfall 4)
+const TTL_MS = 15 * 60 * 1000; // 15 minutes (D-08), in milliseconds (Date.now() unit — Pitfall 4)
 
 // sessionId -> { nonce, issuedAt, expiresAt, used }
 const store = new Map();
