@@ -195,22 +195,40 @@ export async function insertBulkStudents(preparedStudents) {
   const insertedStudents = await Student.insertMany(studentsToInsert, { ordered: true });
 
   // Anchor each credential on IPFS + Sepolia — failures are logged but don't abort
+  // the batch (same non-blocking semantics as createStudent, T-06-09). WR-02/WR-04:
+  // track per-row anchor outcome so the caller can report "issued X/Y, Z pending"
+  // instead of the batch silently appearing fully successful; build the response
+  // from the loop's own results rather than re-querying the DB.
+  let anchored = 0;
+  let pending = 0;
   for (const student of insertedStudents) {
     try {
       const dek = generateDEK();
       const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
       await Student.updateOne(
         { _id: student._id },
-        { ciphertextCID: cid, dek: dek.toString('base64'), onChainTxHash: txHash, onChainBlock: blockNumber }
+        { ciphertextCID: cid, dek: dek.toString('base64'), onChainTxHash: txHash, onChainBlock: blockNumber, anchorPending: false, lastAnchorError: null }
       );
+      student.ciphertextCID = cid;
+      student.onChainTxHash = txHash;
+      student.onChainBlock = blockNumber;
+      student.anchorPending = false;
+      anchored += 1;
     } catch (err) {
       console.error('[credential] On-chain anchoring failed for', student.rollNo, ':', err.message);
+      await Student.updateOne(
+        { _id: student._id },
+        { anchorPending: true, lastAnchorError: err.message }
+      );
+      student.anchorPending = true;
+      student.lastAnchorError = err.message;
+      pending += 1;
     }
   }
 
-  const finalStudents = await Student.find({ _id: { $in: insertedStudents.map((s) => s._id) } });
   return {
-    insertedStudents: finalStudents.map(sanitizeStudent),
+    insertedStudents: insertedStudents.map(sanitizeStudent),
+    anchorSummary: { total: insertedStudents.length, anchored, pending },
   };
 }
 

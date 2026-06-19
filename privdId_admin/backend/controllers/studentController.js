@@ -153,9 +153,10 @@ export const uploadStudents = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     status: "success",
-    message: "Students uploaded successfully.",
+    message: `Students uploaded: ${result.anchorSummary.anchored}/${result.anchorSummary.total} anchored, ${result.anchorSummary.pending} pending retry.`,
     count: result.insertedStudents.length,
     students: result.insertedStudents,
+    anchorSummary: result.anchorSummary,
   });
 });
 
@@ -205,9 +206,10 @@ export const bulkAddStudents = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     status: "success",
-    message: `${result.insertedStudents.length} student(s) added successfully.`,
+    message: `${result.anchorSummary.anchored}/${result.anchorSummary.total} student(s) anchored successfully, ${result.anchorSummary.pending} pending retry.`,
     count: result.insertedStudents.length,
     students: result.insertedStudents,
+    anchorSummary: result.anchorSummary,
   });
 });
 
