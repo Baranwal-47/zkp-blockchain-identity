@@ -19,14 +19,14 @@ Each student gets an on-device secp256k1 keypair (generated at first login, priv
 - **D-03:** On any claim failure (keygen or POST), show an error with a "Try again" button on the same screen. No partial state to clean up since nothing server-side changes until the POST succeeds. Do not log the student out or force re-login on failure.
 
 ### eciesjs RN compatibility
-- **D-04:** Treat as unverified going into research. The next step (`gsd-phase-researcher`) must do a concrete RN smoke test — import `eciesjs` in the Expo app, generate a secp256k1 keypair, ECIES-encrypt/decrypt a buffer on-device — before the plan locks in the library.
-- **D-05:** If `eciesjs` fails the RN smoke test, research must surface a working alternative (e.g. `@noble/secp256k1` + a manual ECIES implementation, or `react-native-quick-crypto`) for the planner to use instead. Do not let this surface for the first time during execution.
+- **D-04 [informational]:** Treat as unverified going into research. The next step (`gsd-phase-researcher`) must do a concrete RN smoke test — import `eciesjs` in the Expo app, generate a secp256k1 keypair, ECIES-encrypt/decrypt a buffer on-device — before the plan locks in the library. Resolved by 07-RESEARCH.md (eciesjs ^0.5.0 confirmed usable with `react-native-get-random-values` polyfill); the residual sufficiency question is carried forward as 07-03 Task 2's blocking on-device smoke test, not a separate plan item.
+- **D-05 [informational]:** If `eciesjs` fails the RN smoke test, research must surface a working alternative (e.g. `@noble/secp256k1` + a manual ECIES implementation, or `react-native-quick-crypto`) for the planner to use instead. Do not let this surface for the first time during execution. Moot — D-04's smoke test passed at research time, so no fallback library was needed.
 
 ### Pubkey endpoint guard
 - **D-06:** `POST /students/:id/pubkey` rejects (409/400) if the student's `enrollmentPhase` is not `"awaiting-keypair"` — i.e. one-time claim. Already-`active` students get an error response; the DEK/envelope is untouched. Prevents a stray or replayed request from re-wrapping the DEK to a different pubkey and orphaning the original envelope.
 
 ### Already-active-on-new-device edge case
-- **D-07:** Explicitly out of scope for this phase/milestone — no real students are enrolled yet, the database can be freely wiped/reseeded, and no-key-recovery-yet (E6) is a known deferred gap. Do not build any handling for "active student, missing local key" beyond what naturally falls out of the guard in D-06 (the claim attempt will just get rejected since they're already active — that's an acceptable user-facing error for now).
+- **D-07 [informational]:** Explicitly out of scope for this phase/milestone — no real students are enrolled yet, the database can be freely wiped/reseeded, and no-key-recovery-yet (E6) is a known deferred gap. Do not build any handling for "active student, missing local key" beyond what naturally falls out of the guard in D-06 (the claim attempt will just get rejected since they're already active — that's an acceptable user-facing error for now). A decision to NOT build something — satisfied by 07-02's absence of any such handling, not by a citation.
 
 ### Claude's Discretion
 - Whether `enrollmentPhase` and `pubKey` are denormalized onto the same `Student` document or handled via a sub-object — pure schema-shape call. Blueprint §E3.6 implies flat fields (`pubKey`, `dekEnvelopeCID`, `enrollmentPhase` directly on Student).
