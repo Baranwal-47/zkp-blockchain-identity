@@ -30,7 +30,7 @@ export default function ClaimCredentialScreen({ route, navigation }) {
         throw new Error(data.message || 'Claim failed');
       }
 
-      navigation.navigate('StudentProfile', { student: data.student });
+      navigation.navigate('DashboardScreen', { student: data.student });
     } catch (error) {
       setErrorMessage(
         error.message ||

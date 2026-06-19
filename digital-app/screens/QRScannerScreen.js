@@ -27,18 +27,15 @@ export default function QRScannerScreen({ navigation }) {
     Vibration.vibrate(100);
 
     try {
-      const proofData = JSON.parse(data);
-      
-      if (proofData.proof && proofData.publicSignals) {
-        navigation.navigate('VerifyProof', {
-          proof: proofData.proof,
-          publicSignals: proofData.publicSignals,
-          sessionId: proofData.sessionId || null,
-          revealedDetails: proofData.revealedDetails || null,
-          privacySettings: proofData.privacySettings || null,
-          generatedAt: proofData.generatedAt || null,
-          proofType: proofData.proofType || null,
-        });
+      const payload = JSON.parse(data);
+
+      // Two-hop QR shapes (D-09): a proof-response {proof, publicSignals, sessionId}
+      // or a challenge {nonce, sessionId, requestedFields}. Route into the screen
+      // that owns whichever hop this payload belongs to.
+      if (payload.proof && payload.publicSignals) {
+        navigation.navigate('VerifyProofScreen', { scannedProofPayload: payload });
+      } else if (payload.nonce && payload.sessionId) {
+        navigation.navigate('VerifyProofScreen', { scannedChallengePayload: payload });
       } else {
         Alert.alert(
           'Invalid QR Code',

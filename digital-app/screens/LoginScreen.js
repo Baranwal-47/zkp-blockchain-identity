@@ -47,7 +47,7 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      navigation.navigate('StudentProfile', { student: data.student });
+      navigation.navigate('DashboardScreen', { student: data.student });
     } catch (error) {
       Alert.alert('Login Failed', error.message || 'Invalid credentials. Please try again.');
     } finally {

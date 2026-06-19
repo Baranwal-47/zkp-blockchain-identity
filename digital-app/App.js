@@ -2,14 +2,12 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
-import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import ClaimCredentialScreen from './screens/ClaimCredentialScreen';
-import StudentProfileScreen from './screens/StudentProfileScreen';
-import IdentityForm from './screens/IdentityForm';
-import LoadingScreen from './screens/LoadingScreen';
-import ShowProof from './screens/ShowProof';
-import VerifyProof from './screens/VerifyProof';
+import DashboardScreen from './screens/DashboardScreen';
+import ViewCredentialsScreen from './screens/ViewCredentialsScreen';
+import GenerateProofScreen from './screens/GenerateProofScreen';
+import VerifyProofScreen from './screens/VerifyProofScreen';
 import ErrorScreen from './screens/ErrorScreen';
 import QRScannerScreen from './screens/QRScannerScreen';
 import ManualQRInput from './screens/ManualQRInput';
@@ -64,14 +62,7 @@ const adminHeaderStyle = {
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={defaultHeaderStyle}>
-        {/* ── Home ── */}
-        <Stack.Screen
-          name="HomeScreen"
-          component={HomeScreen}
-          options={{ headerShown: false }}
-        />
-
+      <Stack.Navigator initialRouteName="LoginScreen" screenOptions={defaultHeaderStyle}>
         {/* ── Student Login Flow ── */}
         <Stack.Screen
           name="LoginScreen"
@@ -83,44 +74,30 @@ export default function App() {
           component={ClaimCredentialScreen}
           options={{ title: 'Claim Your Credential', headerLeft: null, gestureEnabled: false }}
         />
-        <Stack.Screen
-          name="StudentProfile"
-          component={StudentProfileScreen}
-          options={{ title: 'Your Identity' }}
-        />
 
-        {/* ── Manual Identity Flow (original) ── */}
+        {/* ── Daily Access Flow (Phase 8) ── */}
         <Stack.Screen
-          name="IdentityForm"
-          component={IdentityForm}
-          options={{
-            title: 'Digital Identification System',
-            headerLeft: null,
-            headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
-            headerTitleAlign: 'left',
-          }}
-        />
-
-        {/* ── Shared Proof Screens ── */}
-        <Stack.Screen
-          name="LoadingScreen"
-          component={LoadingScreen}
-          options={{
-            title: 'Generating Proof',
-            headerLeft: null,
-            gestureEnabled: false,
-          }}
+          name="DashboardScreen"
+          component={DashboardScreen}
+          options={{ title: 'Dashboard', headerLeft: null }}
         />
         <Stack.Screen
-          name="ShowProof"
-          component={ShowProof}
-          options={{ title: 'Your Proof', headerLeft: null }}
+          name="ViewCredentialsScreen"
+          component={ViewCredentialsScreen}
+          options={{ title: 'Your Credentials' }}
         />
         <Stack.Screen
-          name="VerifyProof"
-          component={VerifyProof}
+          name="GenerateProofScreen"
+          component={GenerateProofScreen}
+          options={{ title: 'Generate Proof' }}
+        />
+        <Stack.Screen
+          name="VerifyProofScreen"
+          component={VerifyProofScreen}
           options={{ title: 'Verify Proof' }}
         />
+
+        {/* ── Shared Utility Screens ── */}
         <Stack.Screen
           name="ErrorScreen"
           component={ErrorScreen}

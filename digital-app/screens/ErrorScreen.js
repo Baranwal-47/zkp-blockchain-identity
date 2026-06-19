@@ -5,17 +5,13 @@ export default function ErrorScreen({ navigation, route }) {
   const { error, canRetry, formData } = route.params || {};
 
   const handleRetry = () => {
-    if (formData) {
-      navigation.navigate('LoadingScreen', { form: formData });
-    } else {
-      navigation.navigate('IdentityForm');
-    }
+    navigation.navigate('DashboardScreen');
   };
 
   const handleStartOver = () => {
     navigation.reset({
       index: 0,
-      routes: [{ name: 'IdentityForm' }],
+      routes: [{ name: 'DashboardScreen' }],
     });
   };
 

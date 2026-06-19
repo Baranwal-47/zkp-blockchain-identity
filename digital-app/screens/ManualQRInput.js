@@ -16,7 +16,7 @@ export default function ManualQRInput({ navigation }) {
   const handleGoToDashboard = () => {
     navigation.reset({
       index: 0,
-      routes: [{ name: 'HomeScreen' }],
+      routes: [{ name: 'DashboardScreen' }],
     });
   };
 
@@ -32,14 +32,8 @@ export default function ManualQRInput({ navigation }) {
       const proofData = JSON.parse(qrData);
       
       if (proofData.proof && proofData.publicSignals) {
-        navigation.navigate('VerifyProof', {
-          proof: proofData.proof,
-          publicSignals: proofData.publicSignals,
-          sessionId: proofData.sessionId || null,
-          revealedDetails: proofData.revealedDetails || null,
-          privacySettings: proofData.privacySettings || null,
-          generatedAt: proofData.generatedAt || null,
-          proofType: proofData.proofType || null,
+        navigation.navigate('VerifyProofScreen', {
+          scannedProofPayload: proofData,
         });
       } else {
         Alert.alert(

@@ -1,3 +1,10 @@
+// RETIRED (Phase 08 Plan 05): this screen is no longer registered in App.js
+// and nothing navigates to it. Its sole role — animated proof-generation
+// progress after the old manual IdentityForm/ShowProof flow — is fully
+// absorbed by GenerateProofScreen.js's own inline loading state (Plan 08-04).
+// Left in place (not deleted) since this plan's files_modified lists it for
+// edit, not removal; safe to delete in a future cleanup pass.
+
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { BACKEND_URL } from '../environment';
