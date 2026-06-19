@@ -4,6 +4,7 @@ import { hashPoseidonFields } from "../utils/poseidonHash.js"; // kept for legac
 import { generateTemporaryPassword } from "../utils/password.js";
 import { sendCredentialsEmail } from "./emailService.js";
 import { issueCredentialOnChain, revokeCredentialOnChain } from "./credentialService.js";
+import { generateDEK } from "../crypto/aesgcm.js";
 import { hashToField, generateSalts, computeMerkleRoot, CHUNK_COUNTS } from "../utils/identityCommitment.js";
 import { PROGRAMME_LEVEL, DISCIPLINE } from "../constants/enumCodes.js";
 
@@ -53,7 +54,7 @@ export function sanitizeStudent(student) {
     emailSent: student.emailSent,
     emailSentAt: student.emailSentAt,
     createdAt: student.createdAt,
-    ipfsCID: student.ipfsCID ?? null,
+    ipfsCID: student.ciphertextCID ?? null,
     onChainTxHash: student.onChainTxHash ?? null,
     onChainBlock: student.onChainBlock ?? null,
     revoked: student.revoked ?? false,
@@ -147,12 +148,10 @@ export async function createStudent(studentPayload) {
 
   // Anchor credential on IPFS + Sepolia — non-blocking, student is saved regardless
   try {
-    const { cid, txHash, blockNumber } = await issueCredentialOnChain({
-      rollNo: student.rollNo,
-      email: student.email,
-      merkleRoot: student.merkleRoot,
-    });
-    student.ipfsCID = cid;
+    const dek = generateDEK();
+    const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
+    student.dek = dek.toString('base64');
+    student.ciphertextCID = cid;
     student.onChainTxHash = txHash;
     student.onChainBlock = blockNumber;
     await student.save();
@@ -187,14 +186,11 @@ export async function insertBulkStudents(preparedStudents) {
   // Anchor each credential on IPFS + Sepolia — failures are logged but don't abort
   for (const student of insertedStudents) {
     try {
-      const { cid, txHash, blockNumber } = await issueCredentialOnChain({
-        rollNo: student.rollNo,
-        email: student.email,
-        merkleRoot: student.merkleRoot,
-      });
+      const dek = generateDEK();
+      const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
       await Student.updateOne(
         { _id: student._id },
-        { ipfsCID: cid, onChainTxHash: txHash, onChainBlock: blockNumber }
+        { ciphertextCID: cid, dek: dek.toString('base64'), onChainTxHash: txHash, onChainBlock: blockNumber }
       );
     } catch (err) {
       console.error('[credential] On-chain anchoring failed for', student.rollNo, ':', err.message);
@@ -269,16 +265,19 @@ export async function updateStudent(id, payload) {
   await student.save();
 
   // Re-issue credential — new IPFS pin + overwrites on-chain CID for this rollNo
+  // DEK is REUSED, never rotated (D-04/D-05) — rotating would silently invalidate
+  // the Phase 7 ECIES envelope wrapped around the original DEK.
   try {
-    const { cid, txHash, blockNumber } = await issueCredentialOnChain({
-      rollNo: student.rollNo,
-      email: student.email,
-      merkleRoot: student.merkleRoot,
-    });
-    student.ipfsCID = cid;
-    student.onChainTxHash = txHash;
-    student.onChainBlock = blockNumber;
-    await student.save();
+    if (!student.dek) {
+      console.error('[credential] updateStudent: missing DEK for', student.rollNo, '— cannot re-issue without rotating');
+    } else {
+      const dek = Buffer.from(student.dek, 'base64');
+      const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
+      student.ciphertextCID = cid;
+      student.onChainTxHash = txHash;
+      student.onChainBlock = blockNumber;
+      await student.save();
+    }
   } catch (err) {
     console.error("[credential] Re-anchoring failed for", student.rollNo, ":", err.message);
   }
