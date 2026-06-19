@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 8 UI-SPEC approved
-last_updated: "2026-06-19T17:42:19.729Z"
+status: executing
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-06-19T18:13:35.245Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 12
+  completed_plans: 8
   percent: 50
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-19)
 
 **Core value:** A student's credential is never stored in plaintext anywhere off-device; only the student (via their on-device secp256k1 key) can decrypt their own data to generate a proof.
-**Current focus:** Phase 08 — daily-access-flow (context ready, planning next)
+**Current focus:** Phase 08 — daily-access-flow
 
 ## Current Position
 
-Phase: 07 (student-keypair-two-phase-enrollment) — CODE-COMPLETE, one deferred checkpoint
-Plan: 07-01/02/03 complete (07-03's on-device RNG check has since passed; temporary probe removed from App.js). 07-04 (ClaimCredentialScreen) Tasks 1+2 done and committed; Task 3 (full on-device claim-flow human-verify) is explicitly DEFERRED to the end of the next session per user instruction — batched together with Phase 8's new Verify Proof two-device QR checkpoint, not blocking.
-Status: Phase 07 cleanup done. Phase 08 context-gathering complete (`08-CONTEXT.md`, decisions D-04–D-11) — ready for `/gsd:plan-phase 8`.
+Phase: 08 (daily-access-flow) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-06-19
 
 ## Performance Metrics
@@ -54,6 +54,7 @@ Last activity: 2026-06-19
 | Phase 07 P01 | 5min | 2 tasks | 5 files |
 | Phase 07 P03 | 12min | 2/3 tasks (Task 1 pre-approved checkpoint; Task 2 human-check pending) | 5 files |
 | Phase 07 P02 | 12min | 3 tasks | 4 files |
+| Phase 08 P01 | 9min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,7 @@ Recent decisions affecting current work:
 - [Phase 08, reversed mid-session]: Verify Proof drops all persistent storage — no Proof-ID, no Verification URL, no database. User caught that a durable lookup-by-ID model contradicts the existing single-use/5-min-freshness nonce design. `/verify` is now a pure stateless check (crypto validity + on-chain revocation + freshness via an embedded generation timestamp). See `08-CONTEXT.md` D-08–D-11 (D-01–D-03 marked superseded, kept visible as a guardrail against re-proposing storage).
 - [Phase 08]: Proof freshness window raised 5 → 15 minutes to fit a real two-phone QR round trip (peer-to-peer verification, not just an automated company check).
 - [Phase 08]: Verify Proof is a two-hop QR handshake (challenge out from verifier via backend-issued `/session/nonce`, proof back from prover), both hops scan-or-manual; consent for attribute disclosure is folded into the existing checklist screen, not a separate screen. Verify Proof folds back into Phase 8 itself — no Phase 8.1.
+- [Phase ?]: Nonce TTL is the sole freshness mechanism (no embedded proof timestamp) — raising TTL_MS from 5 to 15 minutes (D-08) satisfies the two-phone QR round trip without touching single-use semantics
 
 ### Pending Todos
 
@@ -104,7 +106,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T17:42:19.718Z
-Stopped at: Phase 8 UI-SPEC approved
-Resume file: .planning/phases/08-daily-access-flow/08-UI-SPEC.md
+Last session: 2026-06-19T18:13:35.234Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None
 </content>

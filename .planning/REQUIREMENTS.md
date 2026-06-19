@@ -24,7 +24,7 @@ Scope = blueprint §E3 (E3.1–E3.6). Each maps to roadmap phases.
 
 ### Daily Access
 
-- [ ] **ACCESS-01**: `GET /credential/:rollNo/blobs` returns both `ciphertextCID` and `dekEnvelopeCID` for an active student
+- [x] **ACCESS-01**: `GET /credential/:rollNo/blobs` returns both `ciphertextCID` and `dekEnvelopeCID` for an active student
 - [ ] **ACCESS-02**: The app fetches both blobs, ECIES-unwraps the DEK with the on-device private key, AES-GCM decrypts the credential JSON, and sends only `{attrs, salts, nonce, currentDateInt}` to the existing ZKP backend over HTTPS to generate a proof — the DEK and private key never leave the device
 
 ### Erasure
@@ -70,7 +70,7 @@ Tracked, not in this roadmap.
 | KEY-02 | Phase 7 | Complete |
 | ENROLL-01 | Phase 7 | Complete |
 | ENROLL-02 | Phase 7 | Complete |
-| ACCESS-01 | Phase 8 | Pending |
+| ACCESS-01 | Phase 8 | Complete |
 | ACCESS-02 | Phase 8 | Pending |
 | ERASE-01 | Phase 9 | Pending |
 
