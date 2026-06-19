@@ -42,6 +42,11 @@ export default function LoginScreen({ navigation }) {
         throw new Error(data.message || 'Login failed');
       }
 
+      if (data.student.enrollmentPhase === 'awaiting-keypair') {
+        navigation.navigate('ClaimCredentialScreen', { student: data.student });
+        return;
+      }
+
       navigation.navigate('StudentProfile', { student: data.student });
     } catch (error) {
       Alert.alert('Login Failed', error.message || 'Invalid credentials. Please try again.');

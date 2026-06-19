@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
+import ClaimCredentialScreen from './screens/ClaimCredentialScreen';
 import StudentProfileScreen from './screens/StudentProfileScreen';
 import IdentityForm from './screens/IdentityForm';
 import LoadingScreen from './screens/LoadingScreen';
@@ -97,6 +98,11 @@ export default function App() {
           name="LoginScreen"
           component={LoginScreen}
           options={{ title: 'Student Login' }}
+        />
+        <Stack.Screen
+          name="ClaimCredentialScreen"
+          component={ClaimCredentialScreen}
+          options={{ title: 'Claim Your Credential', headerLeft: null, gestureEnabled: false }}
         />
         <Stack.Screen
           name="StudentProfile"
