@@ -96,6 +96,18 @@ export async function encryptCredential(plaintextObj, dek) {
  * @returns {object} — the original JSON-deserialized plaintext object
  */
 export function decryptCredential(blob, dek) {
+  if (!Buffer.isBuffer(dek) || dek.length !== KEY_LENGTH) {
+    throw new Error(`decryptCredential: expected a ${KEY_LENGTH}-byte Buffer dek`);
+  }
+  if (
+    !blob ||
+    typeof blob.iv !== "string" ||
+    typeof blob.authTag !== "string" ||
+    typeof blob.ciphertext !== "string"
+  ) {
+    throw new Error("decryptCredential: blob must have iv, authTag, ciphertext base64 strings");
+  }
+
   const iv = Buffer.from(blob.iv, "base64");
   const authTag = Buffer.from(blob.authTag, "base64");
   const ciphertext = Buffer.from(blob.ciphertext, "base64");
