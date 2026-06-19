@@ -22,11 +22,11 @@ describe("nonceStore", function () {
     assert.strictEqual(typeof expiresAt, "number");
   });
 
-  it("expiresAt is issuedAt + 5 minutes (300000 ms)", function () {
+  it("expiresAt is issuedAt + 15 minutes (900000 ms)", function () {
     const before = Date.now();
     const { sessionId, expiresAt } = issueNonce();
     const entry = _store.get(sessionId);
-    assert.strictEqual(expiresAt, entry.issuedAt + 300000);
+    assert.strictEqual(expiresAt, entry.issuedAt + 900000);
     assert.ok(entry.issuedAt >= before);
   });
 

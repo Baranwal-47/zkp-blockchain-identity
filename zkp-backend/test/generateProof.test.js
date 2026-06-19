@@ -118,7 +118,7 @@ describe("POST /generate-proof", function () {
 });
 
 describe("POST /session/nonce", function () {
-  it("returns a nonce, sessionId, and an expiresAt ~5 minutes in the future", async function () {
+  it("returns a nonce, sessionId, and an expiresAt ~15 minutes in the future", async function () {
     const before = Date.now();
     const res = await request(app).post("/session/nonce").send({});
     const after = Date.now();
@@ -129,7 +129,7 @@ describe("POST /session/nonce", function () {
     assert.strictEqual(typeof res.body.expiresAt, "number");
 
     const delta = res.body.expiresAt - before;
-    assert.ok(delta > 0 && delta <= 305000, `expected expiresAt-now in (0, 305000], got ${delta}`);
+    assert.ok(delta > 0 && delta <= 905000, `expected expiresAt-now in (0, 905000], got ${delta}`);
     assert.ok(res.body.expiresAt >= after, "expiresAt should be in the future relative to request end");
   });
 });
