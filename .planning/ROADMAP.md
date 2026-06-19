@@ -44,7 +44,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. After claiming, no plaintext DEK for that student exists anywhere in the backend process or persistent storage — only the wrapped envelope (decryptable solely by the student's private key) remains.
 **Plans**: 4 plans
 - [x] 07-01-PLAN.md — Backend crypto/schema foundation: crypto/ecies.js (wrapDEK/unwrapDEK) + Student pubKey/dekEnvelopeCID/enrollmentPhase fields + awaiting-keypair default (ENROLL-01) [Wave 1]
-- [ ] 07-02-PLAN.md — Claim endpoint: POST /students/:id/pubkey wraps the held DEK, pins dekEnvelopeCID, wipes the plaintext dek, flips to active (ENROLL-02, KEY-02 backend) [Wave 2]
+- [x] 07-02-PLAN.md — Claim endpoint: POST /students/:id/pubkey wraps the held DEK, pins dekEnvelopeCID, wipes the plaintext dek, flips to active (ENROLL-02, KEY-02 backend) [Wave 2]
 - [~] 07-03-PLAN.md — Mobile crypto foundation: RNG polyfill + deps install + on-device smoke test + utils/keypair.js keygen/storage (KEY-01) [Wave 1] — code complete; on-device RNG human-check still pending (no device/emulator in execution environment)
 - [ ] 07-04-PLAN.md — ClaimCredentialScreen + nav registration + LoginScreen D-01 auto-redirect (KEY-02 client) [Wave 2]
 
@@ -77,6 +77,6 @@ Phases execute in numeric order: 6 → 7 → 8 → 9
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 6. Encryption & Ciphertext Storage | 3/3 | Complete   | 2026-06-19 |
-| 7. Student Keypair & Two-Phase Enrollment | 1/4 (+1 pending human-check) | In Progress|  |
+| 7. Student Keypair & Two-Phase Enrollment | 3/4 | In Progress|  |
 | 8. Daily Access Flow | 0/TBD | Not started | - |
 | 9. Crypto-Shredding Erasure | 0/TBD | Not started | - |

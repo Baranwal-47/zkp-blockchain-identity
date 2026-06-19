@@ -15,12 +15,12 @@ Scope = blueprint §E3 (E3.1–E3.6). Each maps to roadmap phases.
 ### Student Keypair
 
 - [ ] **KEY-01**: The app generates a secp256k1 keypair on-device at first login; the private key is stored in `expo-secure-store` (Keystore/Keychain-backed) and never exported
-- [ ] **KEY-02**: The app sends only the public key to the backend via `POST /students/:id/pubkey`
+- [x] **KEY-02**: The app sends only the public key to the backend via `POST /students/:id/pubkey`
 
 ### Two-Phase Enrollment
 
 - [x] **ENROLL-01**: Admin enrollment pins the ciphertext and holds the DEK server-side, marking the student record `enrollmentPhase: "awaiting-keypair"`
-- [ ] **ENROLL-02**: On first login (`ClaimCredentialScreen`), the backend ECIES-wraps the held DEK with the submitted pubkey, pins the envelope to IPFS as `dekEnvelopeCID`, wipes the plaintext DEK, and sets `enrollmentPhase: "active"`
+- [x] **ENROLL-02**: On first login (`ClaimCredentialScreen`), the backend ECIES-wraps the held DEK with the submitted pubkey, pins the envelope to IPFS as `dekEnvelopeCID`, wipes the plaintext DEK, and sets `enrollmentPhase: "active"`
 
 ### Daily Access
 
@@ -67,9 +67,9 @@ Tracked, not in this roadmap.
 | STORE-01 | Phase 6 | Complete |
 | STORE-02 | Phase 6 | Complete |
 | KEY-01 | Phase 7 | Pending |
-| KEY-02 | Phase 7 | Pending |
+| KEY-02 | Phase 7 | Complete |
 | ENROLL-01 | Phase 7 | Complete |
-| ENROLL-02 | Phase 7 | Pending |
+| ENROLL-02 | Phase 7 | Complete |
 | ACCESS-01 | Phase 8 | Pending |
 | ACCESS-02 | Phase 8 | Pending |
 | ERASE-01 | Phase 9 | Pending |

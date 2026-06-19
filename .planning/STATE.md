@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 7 Plan 03 (mobile crypto foundation) code-complete; on-device RNG human-check pending
-last_updated: "2026-06-19T09:18:36Z"
+stopped_at: "Completed Phase 7 Plan 02 (claim endpoint: POST /students/:id/pubkey). Phase 7 Plan 03's on-device RNG human-check remains the sole open blocker in this phase; Plan 04 (ClaimCredentialScreen) not yet started."
+last_updated: "2026-06-19T09:31:55.583Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 6
   percent: 25
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-06-19)
 ## Current Position
 
 Phase: 07 (student-keypair-two-phase-enrollment) — EXECUTING
-Plan: 3 of 4 (07-03 code-complete, human-check pending); 07-02 (claim endpoint) still not started
-Status: Blocked on human verification (on-device RNG smoke test for 07-03 Task 2)
+Plan: 07-02 (claim endpoint) complete; 07-03 (mobile crypto foundation) code-complete with human-check pending; 07-04 (ClaimCredentialScreen) not started
+Status: Ready to execute (07-04, or resume 07-03 human-check)
 Last activity: 2026-06-19
 
 ## Performance Metrics
@@ -53,6 +53,7 @@ Last activity: 2026-06-19
 | Phase 06 P02 | 18min | 3 tasks | 2 files |
 | Phase 07 P01 | 5min | 2 tasks | 5 files |
 | Phase 07 P03 | 12min | 2/3 tasks (Task 1 pre-approved checkpoint; Task 2 human-check pending) | 5 files |
+| Phase 07 P02 | 12min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -70,14 +71,16 @@ Recent decisions affecting current work:
 - [Phase ?]: updateStudent fails loudly on missing DEK instead of silently regenerating, per D-04/D-05 (never rotate)
 - [Phase 07-01]: Fixed Rule-1 bug: eciesjs encrypt()/decrypt() return Uint8Array not Buffer; must wrap with Buffer.from() before .toString('base64') or returning, else base64 encoding silently corrupts
 - [Phase 07-03]: react-native-get-random-values pinned to ^1.11.0, not latest (2.0.0) — 2.0.0's peerDependency requires react-native>=0.81 but digital-app is on react-native@0.79.5 (Expo SDK 53); the entire 1.x line only requires >=0.56 and is fully compatible.
+- [Phase 07-02]: claimCredential's atomic write uses Student.findOneAndUpdate({_id, enrollmentPhase:"awaiting-keypair"}, {$set:..., $unset:{dek:""}}, {new:true}) — the enrollmentPhase condition in the filter (not just an earlier pre-check) is what closes the TOCTOU window on concurrent/repeat claims; null result -> 409.
+- [Phase 07-02]: Pin-to-IPFS happens BEFORE the Mongo state-flip write (Pitfall 4 ordering) — a failed pin leaves the plaintext DEK and awaiting-keypair phase untouched and retryable; no DEK exposure risk on partial failure.
 
 ### Pending Todos
 
 - **Phase 07-03 on-device human-check (blocking):** confirm on a real device/Expo Go/simulator that `digital-app`'s temporary RNG smoke-test probe (in `App.js`, marked `TEMPORARY (Phase 07-03 Task 2 RNG smoke test)`) logs key type/length with NO `crypto.getRandomValues must be defined` error. The Expo dev server was left running (`npx expo start --clear`, confirmed healthy at `http://localhost:8081`) for this check. After confirming, remove the temporary probe from `App.js` and record the device/simulator used in 07-03-SUMMARY.md.
-- Phase 07-02 (claim endpoint: POST /students/:id/pubkey, studentService.claimCredential) has not been started yet.
-- Phase 07-04 (ClaimCredentialScreen) depends on both 07-02 and 07-03 closing.
+- Phase 07-02 (claim endpoint: POST /students/:id/pubkey, studentService.claimCredential) is now COMPLETE — see 07-02-SUMMARY.md.
+- Phase 07-04 (ClaimCredentialScreen) depends on both 07-02 (now closed) and 07-03 (human-check pending) closing.
 
-Next: complete the 07-03 on-device human-check, then proceed to 07-02 (claim endpoint, no dependency on 07-03) and/or 07-04 once both 07-02 and 07-03 are fully closed.
+Next: complete the 07-03 on-device human-check, then proceed to 07-04 (ClaimCredentialScreen) once 07-03 is fully closed.
 
 ### Blockers/Concerns
 
@@ -98,7 +101,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T09:18:36Z
-Stopped at: Phase 7 Plan 03 (mobile crypto foundation) — Tasks 2+3 code complete and committed; Task 2's on-device RNG human-check is the sole remaining blocker for this plan.
-Resume file: .planning/phases/07-student-keypair-two-phase-enrollment/07-03-SUMMARY.md
+Last session: 2026-06-19T09:27:44Z
+Stopped at: Completed Phase 7 Plan 02 (claim endpoint: POST /students/:id/pubkey). Phase 7 Plan 03's on-device RNG human-check remains the sole open blocker in this phase; Plan 04 (ClaimCredentialScreen) not yet started.
+Resume file: .planning/phases/07-student-keypair-two-phase-enrollment/07-02-SUMMARY.md
 </content>
