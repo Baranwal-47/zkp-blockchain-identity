@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
@@ -61,6 +61,27 @@ const adminHeaderStyle = {
 };
 
 export default function App() {
+  // TEMPORARY (Phase 07-03 Task 2 RNG smoke test): proves react-native-get-random-values
+  // is wired before any eciesjs/ethers import. Logs ONLY key length/type, never the key
+  // itself. Remove this effect once the on-device smoke test has passed.
+  useEffect(() => {
+    import('eciesjs')
+      .then(({ PrivateKey }) => {
+        const probe = new PrivateKey();
+        console.log(
+          '[RNG smoke test] priv type/len:',
+          typeof probe.toHex(),
+          probe.toHex().length,
+          '| pub type/len:',
+          typeof probe.publicKey.toHex(),
+          probe.publicKey.toHex().length
+        );
+      })
+      .catch((err) => {
+        console.error('[RNG smoke test] FAILED:', err.message);
+      });
+  }, []);
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={defaultHeaderStyle}>

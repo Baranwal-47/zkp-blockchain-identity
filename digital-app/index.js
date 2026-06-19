@@ -1,3 +1,5 @@
+import 'react-native-get-random-values'; // MUST stay first: polyfills crypto.getRandomValues before any eciesjs/ethers import
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';
