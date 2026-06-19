@@ -1,23 +1,26 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-19T17:27:24.347Z",
-  "phase": "07",
-  "phase_name": "student-keypair-two-phase-enrollment",
-  "phase_dir": ".planning/phases/07-student-keypair-two-phase-enrollment",
-  "plan": 4,
-  "task": 3,
-  "total_tasks": 3,
+  "timestamp": "2026-06-19T17:32:00.641Z",
+  "phase": "08",
+  "phase_name": "daily-access-flow",
+  "phase_dir": ".planning/phases/08-daily-access-flow",
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Create ClaimCredentialScreen.js (auto-triggered claim with loading/error states)", "status": "done", "commit": "cea4204"},
-    {"id": 2, "name": "Register ClaimCredentialScreen in App.js and add D-01 routing to LoginScreen", "status": "done", "commit": "fce0964"}
+    {"id": "07-04-T1", "name": "Create ClaimCredentialScreen.js", "status": "done", "commit": "cea4204"},
+    {"id": "07-04-T2", "name": "Register ClaimCredentialScreen in App.js + D-01 routing in LoginScreen", "status": "done", "commit": "fce0964"},
+    {"id": "07-cleanup", "name": "Remove TEMPORARY RNG probe, flip 07-03-SUMMARY.md to PASS, write 07-04-SUMMARY.md, update STATE.md", "status": "done", "commit": "7c7964c"},
+    {"id": "08-context", "name": "Reconcile 08-CONTEXT.md verify-proof decisions (no storage, two-hop QR, 15min expiry, consent-in-checklist)", "status": "done", "commit": "b64e6d1"}
   ],
   "remaining_tasks": [
-    {"id": 3, "name": "End-to-end claim flow verification on device (blocking human-verify checkpoint) — user has explicitly deferred this to the very end of the next work session, do not let it block Phase 8 planning/execution", "status": "deferred"}
+    {"id": "07-04-T3", "name": "End-to-end claim flow verification on device (human-verify checkpoint)", "status": "deferred"},
+    {"id": "08-plan", "name": "Run /gsd:plan-phase 8 (08-CONTEXT.md is ready)", "status": "not_started"},
+    {"id": "08-docs-sweep", "name": "Reconcile ROADMAP.md / 08-DISCUSSION-LOG.md / e3_target_ux.md memory to match 08-CONTEXT.md's final verify-proof model", "status": "not_started"}
   ],
   "blockers": [
-    {"description": "07-04 Task 3 is a human-verify device checkpoint — not yet run. User explicitly said: leave all human verification until the very end. Do not treat this as blocking /gsd:plan-phase 8 or subsequent execution.", "type": "human_action", "workaround": "proceed with Phase 8 planning/execution now; circle back to run this checkpoint (and the Phase 8 equivalent) at the end of the next session"},
-    {"description": "TEMPORARY RNG smoke-test probe still present in digital-app/App.js (line ~65). Smoke test already passed (memory obs #375) but probe was never removed; 07-03-SUMMARY.md still says PARTIAL.", "type": "technical", "workaround": "delete probe block, flip 07-03-SUMMARY.md self-check to PASS, write 07-04-SUMMARY.md — pure mechanical cleanup, no device needed"}
+    {"description": "07-04 Task 3 is a human-verify device checkpoint — not yet run. User explicitly said: leave all human/device verification until the very end, batched with Phase 8's new two-device QR checkpoint once built.", "type": "human_action", "workaround": "does not block /gsd:plan-phase 8 or execution"}
   ],
   "human_actions_pending": [
     {"action": "Run the 07-04 Task 3 end-to-end device checkpoint AND the new Phase 8 Verify Proof two-phone QR checkpoint together at the end of the work session.", "context": "User explicitly batched all human/device verification to happen last, not gating each phase individually.", "blocking": false}
@@ -28,9 +31,9 @@
     {"decision": "Verify Proof is a two-hop QR handshake: outgoing challenge QR (nonce from /session/nonce + requested fields) from verifier to prover, returning proof QR from prover to verifier. Both hops support scan-or-manual-entry.", "rationale": "Matches user's peer-to-peer 'student verifies another student' scenario; nonce must be backend-issued (not invented client-side) or anti-replay is meaningless.", "phase": "08"},
     {"decision": "Consent is folded into the existing attribute-checklist screen, not a separate screen. Requested fields show pre-checked but editable; tapping 'Generate Proof' is the consent action.", "rationale": "User: consent should exist 'whenever the prover is starting to select their attributes' — avoid a redundant extra confirmation screen.", "phase": "08"},
     {"decision": "Verify Proof folds back into Phase 8 — no separate Phase 8.1.", "rationale": "The only reason to split it off (needing a new persistent backend store) no longer applies once storage was dropped; it's now just a UI/orchestration build on existing endpoints.", "phase": "08"},
-    {"decision": "08-CONTEXT.md D-01/D-02/D-03 marked [superseded] in place (not deleted) and replaced with D-08-D-11 capturing the above.", "rationale": "Preserve the reasoning trail for why the original persistent-store plan was rejected, so it isn't silently re-proposed later.", "phase": "08"}
+    {"decision": "Phase 07 closed out mechanically: RNG probe removed, 07-03-SUMMARY.md flipped to PASS, 07-04-SUMMARY.md written, STATE.md updated. Task 3 (device checkpoint) explicitly deferred, not skipped.", "rationale": "User instruction: batch all remaining human/device verification to the end of the next session rather than gating phase closure now.", "phase": "07"}
   ],
-  "uncommitted_files": [".planning/phases/08-daily-access-flow/08-CONTEXT.md"],
-  "next_action": "Phase 7 mechanical cleanup first (no device needed): remove TEMPORARY RNG probe from digital-app/App.js, flip 07-03-SUMMARY.md to PASS, write 07-04-SUMMARY.md noting Task 3 deferred to end-of-session human verification, update STATE.md. Then run /gsd:plan-phase 8 (08-CONTEXT.md is ready/correct). Defer all human/device verification (Phase 7 Task 3 + Phase 8's new two-phone QR checkpoint) to the very end, per explicit user instruction.",
-  "context_notes": "Stale docs not yet reconciled to the final no-storage/two-hop-QR model: .planning/ROADMAP.md ('Target End-to-End UX' section + Phase 9 note), 08-DISCUSSION-LOG.md, and memory file e3_target_ux.md. None of these block planning since 08-CONTEXT.md (the authoritative input to /gsd:plan-phase) is already correct — but they should be swept for consistency at some point so a future session doesn't get confused reading ROADMAP.md's stale Proof-ID description."
+  "uncommitted_files": [],
+  "next_action": "Run /gsd:plan-phase 8 in a fresh session — 08-CONTEXT.md (D-04 through D-11) is the ready, correct input. Defer all human/device verification (Phase 07 Task 3 + Phase 8's new two-phone QR checkpoint) to the very end, per explicit user instruction. Non-blocking cleanup whenever convenient: sweep ROADMAP.md's stale 'Target End-to-End UX' section + Phase 9 note, 08-DISCUSSION-LOG.md, and memory file e3_target_ux.md to match the final no-storage/two-hop-QR model.",
+  "context_notes": "This pause is purely a context-budget precaution — Phase 07 is fully closed out (mechanically) and Phase 08's context is fully decided and committed. There is no open decision or unresolved thread; the only reason to pause rather than continue straight into /gsd:plan-phase 8 is that planning spawns research/pattern-mapper/planner agents and benefits from a full context budget. Resume by reading 08-CONTEXT.md and running /gsd:plan-phase 8 directly."
 }
