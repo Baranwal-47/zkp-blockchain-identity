@@ -54,7 +54,10 @@ export function sanitizeStudent(student) {
     emailSent: student.emailSent,
     emailSentAt: student.emailSentAt,
     createdAt: student.createdAt,
-    ipfsCID: student.ciphertextCID ?? null,
+    ciphertextCID: student.ciphertextCID ?? null,
+    // NOTE (D-02): the per-student plaintext encryption key is intentionally
+    // excluded from this allowlist — it must never leave the backend via any
+    // API response. Do NOT "helpfully" add it back to this object.
     onChainTxHash: student.onChainTxHash ?? null,
     onChainBlock: student.onChainBlock ?? null,
     revoked: student.revoked ?? false,
