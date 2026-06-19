@@ -4,13 +4,13 @@ milestone: v2.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 7 UI-SPEC approved
-last_updated: "2026-06-19T08:57:01.738Z"
-last_activity: 2026-06-19 -- Phase 07 planning complete
+last_updated: "2026-06-19T09:10:47.776Z"
+last_activity: 2026-06-19
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 7
-  completed_plans: 3
+  completed_plans: 4
   percent: 25
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-19)
 
 **Core value:** A student's credential is never stored in plaintext anywhere off-device; only the student (via their on-device secp256k1 key) can decrypt their own data to generate a proof.
-**Current focus:** Phase 06 — encryption-ciphertext-storage
+**Current focus:** Phase 07 — student-keypair-two-phase-enrollment
 
 ## Current Position
 
-Phase: 06 (encryption-ciphertext-storage) — SHIPPED
-Plan: 3 of 3
+Phase: 07 (student-keypair-two-phase-enrollment) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-06-19 -- Phase 07 planning complete
+Last activity: 2026-06-19
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Last activity: 2026-06-19 -- Phase 07 planning complete
 
 *Updated after each plan completion*
 | Phase 06 P02 | 18min | 3 tasks | 2 files |
+| Phase 07 P01 | 5min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,7 @@ Recent decisions affecting current work:
 - [Roadmap]: KEY-01/02 and ENROLL-01/02 merged into one phase (7) rather than split — the keypair has no standalone deliverable value until it's used to claim/wrap a DEK; splitting them would create an unverifiable partial phase.
 - [Phase ?]: issueCredentialOnChain(student, dek) takes the full student doc and caller-supplied DEK; DEK lifecycle owned by studentService.js
 - [Phase ?]: updateStudent fails loudly on missing DEK instead of silently regenerating, per D-04/D-05 (never rotate)
+- [Phase 07-01]: Fixed Rule-1 bug: eciesjs encrypt()/decrypt() return Uint8Array not Buffer; must wrap with Buffer.from() before .toString('base64') or returning, else base64 encoding silently corrupts
 
 ### Pending Todos
 
@@ -92,7 +94,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T05:50:34.461Z
+Last session: 2026-06-19T09:06:22.051Z
 Stopped at: Phase 7 UI-SPEC approved
-Resume file: .planning/phases/07-student-keypair-two-phase-enrollment/07-UI-SPEC.md
+Resume file: None
 </content>

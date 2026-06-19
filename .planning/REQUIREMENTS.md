@@ -19,7 +19,7 @@ Scope = blueprint §E3 (E3.1–E3.6). Each maps to roadmap phases.
 
 ### Two-Phase Enrollment
 
-- [ ] **ENROLL-01**: Admin enrollment pins the ciphertext and holds the DEK server-side, marking the student record `enrollmentPhase: "awaiting-keypair"`
+- [x] **ENROLL-01**: Admin enrollment pins the ciphertext and holds the DEK server-side, marking the student record `enrollmentPhase: "awaiting-keypair"`
 - [ ] **ENROLL-02**: On first login (`ClaimCredentialScreen`), the backend ECIES-wraps the held DEK with the submitted pubkey, pins the envelope to IPFS as `dekEnvelopeCID`, wipes the plaintext DEK, and sets `enrollmentPhase: "active"`
 
 ### Daily Access
@@ -68,7 +68,7 @@ Tracked, not in this roadmap.
 | STORE-02 | Phase 6 | Complete |
 | KEY-01 | Phase 7 | Pending |
 | KEY-02 | Phase 7 | Pending |
-| ENROLL-01 | Phase 7 | Pending |
+| ENROLL-01 | Phase 7 | Complete |
 | ENROLL-02 | Phase 7 | Pending |
 | ACCESS-01 | Phase 8 | Pending |
 | ACCESS-02 | Phase 8 | Pending |
