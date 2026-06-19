@@ -150,6 +150,9 @@ export async function createStudent(studentPayload) {
   });
 
   // Anchor credential on IPFS + Sepolia — non-blocking, student is saved regardless
+  // (T-06-09 accepted risk: a Pinata/RPC failure here must NOT block student.save()).
+  // On failure, anchorPending/lastAnchorError are persisted so operators can find and
+  // retry affected students instead of the failure being a silent, unrecoverable no-op.
   try {
     const dek = generateDEK();
     const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
@@ -157,9 +160,14 @@ export async function createStudent(studentPayload) {
     student.ciphertextCID = cid;
     student.onChainTxHash = txHash;
     student.onChainBlock = blockNumber;
+    student.anchorPending = false;
+    student.lastAnchorError = null;
     await student.save();
   } catch (err) {
     console.error('[credential] On-chain anchoring failed for', student.rollNo, ':', err.message);
+    student.anchorPending = true;
+    student.lastAnchorError = err.message;
+    await student.save();
   }
 
   return {
@@ -207,7 +215,9 @@ export async function insertBulkStudents(preparedStudents) {
 }
 
 export async function updateStudent(id, payload) {
-  const student = await Student.findById(id);
+  // dek has select: false (WR-01/D-02) — must be explicitly selected here because
+  // the re-issuance path below reuses (never rotates) the existing DEK.
+  const student = await Student.findById(id).select('+dek');
   if (!student) throw new AppError("Student not found.", 404);
   if (student.revoked) throw new AppError("Cannot update a revoked credential.", 400);
 
@@ -270,8 +280,14 @@ export async function updateStudent(id, payload) {
   // Re-issue credential — new IPFS pin + overwrites on-chain CID for this rollNo
   // DEK is REUSED, never rotated (D-04/D-05) — rotating would silently invalidate
   // the Phase 7 ECIES envelope wrapped around the original DEK.
+  // CR-02: surface the no-op/failure to the caller via anchorWarning instead of a
+  // silent 200 — on-chain merkleRoot has already been updated above (unconditional
+  // student.save()), so a skipped/failed re-issuance here means the pinned
+  // ciphertext/CID is now stale relative to the on-chain root.
+  let anchorWarning = null;
   try {
     if (!student.dek) {
+      anchorWarning = 'Credential metadata updated, but re-issuance skipped: no DEK on file.';
       console.error('[credential] updateStudent: missing DEK for', student.rollNo, '— cannot re-issue without rotating');
     } else {
       const dek = Buffer.from(student.dek, 'base64');
@@ -282,10 +298,11 @@ export async function updateStudent(id, payload) {
       await student.save();
     }
   } catch (err) {
+    anchorWarning = 'Re-anchoring failed: ' + err.message;
     console.error("[credential] Re-anchoring failed for", student.rollNo, ":", err.message);
   }
 
-  return { student: sanitizeStudent(student) };
+  return { student: sanitizeStudent(student), anchorWarning };
 }
 
 export async function revokeStudent(id) {
