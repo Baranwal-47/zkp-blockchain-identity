@@ -3,8 +3,9 @@ import Student from "../models/Student.js";
 import { hashPoseidonFields } from "../utils/poseidonHash.js"; // kept for legacy callers; NOT called from new commitment path
 import { generateTemporaryPassword } from "../utils/password.js";
 import { sendCredentialsEmail } from "./emailService.js";
-import { issueCredentialOnChain, revokeCredentialOnChain } from "./credentialService.js";
+import { issueCredentialOnChain, revokeCredentialOnChain, pinEnvelopeToIPFS } from "./credentialService.js";
 import { generateDEK } from "../crypto/aesgcm.js";
+import { wrapDEK } from "../crypto/ecies.js";
 import { hashToField, generateSalts, computeMerkleRoot, CHUNK_COUNTS } from "../utils/identityCommitment.js";
 import { PROGRAMME_LEVEL, DISCIPLINE } from "../constants/enumCodes.js";
 
@@ -344,6 +345,61 @@ export async function revokeStudent(id) {
   await student.save();
 
   return { student: sanitizeStudent(student) };
+}
+
+// Phase 7 (ENROLL-02 / KEY-02): student-claim half of two-phase enrollment.
+// On a valid claim against an "awaiting-keypair" student, ECIES-wraps the
+// escrowed DEK to the submitted pubkey, pins the envelope to IPFS, then in a
+// single atomic write wipes the plaintext dek, stores dekEnvelopeCID, and
+// flips enrollmentPhase to "active". D-06: a student may claim only once —
+// the enrollmentPhase filter inside findOneAndUpdate closes the TOCTOU
+// window between the pre-check and the write (07-RESEARCH.md Pitfall 4 /
+// Known Threat Patterns). Pin happens BEFORE the Mongo write (cheap to
+// retry, no DEK exposure if the pin fails) so a partial failure never
+// leaves the student stuck mid-claim with the plaintext DEK already wiped.
+export async function claimCredential(id, pubKeyHex) {
+  // dek has select: false (D-02) — must be explicitly selected to wrap it.
+  const student = await Student.findById(id).select("+dek");
+  if (!student) throw new AppError("Student not found.", 404);
+  if (student.revoked) throw new AppError("Cannot claim a revoked credential.", 403);
+
+  // D-06 one-time-claim guard (pre-check; the atomic write below re-checks
+  // this same condition in its filter to close the TOCTOU window).
+  if (student.enrollmentPhase !== "awaiting-keypair") {
+    throw new AppError("This credential has already been claimed.", 409);
+  }
+
+  // Fail loudly on a missing DEK — never regenerate (Phase 6 decision).
+  if (!student.dek) {
+    throw new AppError("No DEK is on file for this student; cannot complete claim.", 500);
+  }
+
+  const dekBuffer = Buffer.from(student.dek, "base64");
+  const envelopeBase64 = await wrapDEK(pubKeyHex, dekBuffer);
+
+  // Pin FIRST — idempotent-safe to abandon/retry, and the plaintext dek is
+  // still intact in Mongo if this step fails (Pitfall 4 ordering).
+  const dekEnvelopeCID = await pinEnvelopeToIPFS(envelopeBase64, student.rollNo);
+
+  // Single atomic write: filter re-checks enrollmentPhase (closes TOCTOU),
+  // and the $set/$unset together wipe the plaintext dek, store the
+  // envelope CID, store the pubkey, and flip the phase in one operation.
+  const updated = await Student.findOneAndUpdate(
+    { _id: id, enrollmentPhase: "awaiting-keypair" },
+    {
+      $set: { pubKey: pubKeyHex, dekEnvelopeCID, enrollmentPhase: "active" },
+      $unset: { dek: "" },
+    },
+    { new: true }
+  );
+
+  if (!updated) {
+    // Another request already flipped the phase between our pre-check and
+    // this write — the envelope we just pinned is simply abandoned/orphaned.
+    throw new AppError("This credential has already been claimed.", 409);
+  }
+
+  return { student: sanitizeStudent(updated) };
 }
 
 export async function sendEmailsForStudents(studentIds) {
