@@ -153,9 +153,10 @@ export const uploadStudents = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     status: "success",
-    message: "Students uploaded successfully.",
+    message: `Students uploaded: ${result.anchorSummary.anchored}/${result.anchorSummary.total} anchored, ${result.anchorSummary.pending} pending retry.`,
     count: result.insertedStudents.length,
     students: result.insertedStudents,
+    anchorSummary: result.anchorSummary,
   });
 });
 
@@ -205,9 +206,10 @@ export const bulkAddStudents = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     status: "success",
-    message: `${result.insertedStudents.length} student(s) added successfully.`,
+    message: `${result.anchorSummary.anchored}/${result.anchorSummary.total} student(s) anchored successfully, ${result.anchorSummary.pending} pending retry.`,
     count: result.insertedStudents.length,
     students: result.insertedStudents,
+    anchorSummary: result.anchorSummary,
   });
 });
 
@@ -244,10 +246,15 @@ export const getStudentById = asyncHandler(async (req, res) => {
 export const updateStudentById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const result = await updateStudent(id, req.body);
+  // CR-02: surface anchorWarning so the admin UI can detect on-chain/off-chain
+  // divergence (merkleRoot updated but ciphertext re-issuance skipped/failed).
   res.json({
-    status: "success",
-    message: "Student updated and credential re-issued on IPFS and blockchain.",
+    status: result.anchorWarning ? "warning" : "success",
+    message: result.anchorWarning
+      ? "Student metadata updated, but credential re-issuance did not complete."
+      : "Student updated and credential re-issued on IPFS and blockchain.",
     student: result.student,
+    anchorWarning: result.anchorWarning ?? null,
   });
 });
 

@@ -1,77 +1,84 @@
-# PrivdID — Circuit Rebuild (E1 + E2)
+# PrivdID — Enhancement Plan (E1–E6)
 
 ## What This Is
 
-PrivdID is a privacy-preserving student identity verification system for IIITDM Jabalpur, built on ZK-SNARKs, IPFS, and Ethereum. A working prototype exists across 5 services (mobile app, admin web, admin backend, ZKP backend, ZK/chain). **This milestone rebuilds the cryptographic core**: replacing the current flat `Poseidon(5)` circuit with an E1 depth-3 Merkle tree of per-attribute salted commitments plus E2 verifier-nonce replay protection, then redeploying the verifier and wiring the new artifacts through the ZKP backend. This is the critical path of a larger enhancement plan (E1–E6) and a research deliverable for the authors' thesis.
+PrivdID is a privacy-preserving student identity verification system for IIITDM Jabalpur, built on ZK-SNARKs, IPFS, and Ethereum. The v1.0 milestone rebuilt the cryptographic core: the current circuit is an E1 depth-3 Merkle tree of per-attribute salted commitments with E2 verifier-nonce replay protection, deployed and benchmarked end-to-end. **This milestone (v2.0) adds E3**: encrypted, holder-controlled IPFS storage — credentials are AES-256-GCM encrypted, the DEK is ECIES-wrapped to an on-device student keypair, and the student becomes the sole party who can decrypt their own credential for daily proof generation.
 
 ## Core Value
 
-A verifier can cryptographically confirm a student's **selectively-disclosed** identity attributes and predicates (e.g. "over 18", "is postgrad") against an on-chain Merkle-root commitment, with **replay-proof freshness** — hidden attributes never leak, and a captured proof QR cannot be reused. If everything else fails, this circuit + verify loop must work end-to-end.
+A student's credential is never stored in plaintext anywhere off-device. Only the student (via their on-device secp256k1 key) can decrypt their own data to generate a proof; admin/custodians can pin/manage ciphertext but cannot read it. If everything else fails, this encrypt → wrap → claim → decrypt loop must work end-to-end without ever leaking the DEK or private key off-device.
+
+## Current Milestone: v2.0 E3 — Encrypted Holder-Controlled Storage
+
+**Goal:** Credentials on IPFS are AES-256-GCM encrypted with the DEK ECIES-wrapped to an on-device student keypair, so only the student can decrypt their own data.
+
+**Target features:**
+- AES-256-GCM credential encryption + ECIES DEK wrapping
+- On-device secp256k1 student keypair (SecureStore)
+- Two-phase enrollment (admin holds DEK → student claims → backend wraps + wipes)
+- Normal daily access flow (unwrap → decrypt → server-side proof gen)
+- Crypto-shredding erasure
 
 ## Requirements
 
 ### Validated
 
-<!-- Inferred from existing codebase (see .planning/codebase/). These ship today. -->
+<!-- Shipped in v1.0 (completed 2026-06-18). -->
 
-- ✓ Mobile app: student login, server-side proof generation, QR share, 3-phase verify, embedded admin screens — existing
-- ✓ Admin backend (Express 5 + MongoDB, ESM): student CRUD, Poseidon hash, Pinata pin, on-chain issuance/revocation writes — existing
-- ✓ ZKP backend (snarkjs + ethers v6): `/generate-proof`, `/verify`, `/verify-onchain`, `/credential-info` — existing
-- ✓ Smart contracts: `CredentialRegistry.sol` (admin-gated issue/revoke/lookup) + snarkjs `IdentityVerifier.sol`, deployable to Sepolia/local — existing
-- ✓ ZK toolchain: Circom 2.1.6 + hardhat-circom build of flat `Poseidon(5)` `identity.circom` — existing
+- ✓ Mobile app: student login, server-side proof generation, QR share, 3-phase verify, embedded admin screens
+- ✓ Admin backend (Express 5 + MongoDB, ESM): student CRUD, Poseidon hash, Pinata pin, on-chain issuance/revocation writes
+- ✓ ZKP backend (snarkjs + ethers v6): `/generate-proof`, `/verify`, `/verify-onchain`, `/credential-info`
+- ✓ Smart contracts: `CredentialRegistry.sol` (admin-gated issue/revoke/lookup) + `IdentityVerifier.sol`, deployed to Sepolia + local
+- ✓ ZK toolchain: Circom 2.1.6 — E1 depth-3 Merkle circuit (salted leaves, selective disclosure, isOver18/isPostgrad predicates) + E2 verifier-nonce binding, frozen and trusted-setup complete
+- ✓ ZKP backend: new 19-signal proof shape; nonce lifecycle (issue → match → 5-min freshness → one-time use)
+- ✓ Benchmarked: constraint count, proof-gen, off-/on-chain verify, nonce ops, QR payload size (mean ± σ, n≥19) — `docs/improvement/PERFORMANCE_METRICS_E1E2.md`
 
 ### Active
 
-<!-- This milestone: the E1+E2 circuit critical path. -->
+<!-- v2.0 milestone: E3 encrypted holder-controlled IPFS storage. -->
 
-- [ ] Freeze the 7-attribute identity spec (name, rollNo, dob-int, programmeLevel, discipline, batch-int, email) with fixed leaf order, encodings, and public-signal layout
-- [ ] Resolve the §1.4 field-set inconsistency: admin issuance hash must be byte-for-byte identical to the prover's input (list, order, encoding)
-- [ ] E1: rebuild `identity.circom` as depth-3 Merkle tree of `Poseidon(2)(attr_i, salt_i)` salted leaves → `merkleRoot` = `pubHash`
-- [ ] E1: selective-disclosure binding in-circuit (`revealMask` boolean per attr; revealed value bound to its leaf; hidden attrs never in public signals)
-- [ ] E1: predicates in-circuit — `isOver18` (age from dob-int vs session date) and `isPostgrad` (programmeLevel set membership)
-- [ ] E2: verifier nonce as a bound public input (replay protection); proof for nonce A rejected against nonce B
-- [ ] Fresh Groth16 trusted setup (3-contribution chain + beacon), export + redeploy `IdentityVerifier.sol`, wire new wasm/zkey/vkey into ZKP backend
-- [ ] ZKP backend: new `/generate-proof` input shape; E2 nonce endpoints (`/session/nonce` + verify-time enforcement: match + 5-min freshness + one-time use)
-- [ ] Re-measure: constraint count, proof-gen, off-chain/on-chain verify, nonce ops, QR payload size (mean ± σ, n≥19)
+- [ ] AES-256-GCM credential encryption: admin backend generates a random 32-byte DEK, encrypts the credential JSON (7 attrs + 7 salts + merkleRoot + metadata), pins ciphertext → `ciphertextCID`
+- [ ] ECIES DEK wrapping (`eciesjs`) to an on-device secp256k1 student keypair → `dekEnvelopeCID`; only the student's private key can unwrap it
+- [ ] Student keypair generated on-device at first login, private key in `expo-secure-store`, never exported; public key sent to backend
+- [ ] Two-phase enrollment: admin enrolls + holds DEK (`enrollmentPhase: awaiting-keypair`) → student claims via `ClaimCredentialScreen` on first login → backend wraps DEK with student pubkey, wipes plaintext DEK, sets `enrollmentPhase: active`
+- [ ] Normal daily access: app fetches both CIDs, ECIES-unwraps DEK on-device, AES-GCM decrypts, sends plaintext `{attrs, salts, nonce, currentDateInt}` to ZKP backend over HTTPS for proof gen — DEK and private key never leave the device
+- [ ] Crypto-shredding erasure: destroying the DEK makes the ciphertext permanently unreadable (GDPR/DPDPA right-to-erasure story)
+- [ ] Backend additions: `crypto/aesgcm.js`, `crypto/ecies.js`, `credentialService.js` pins ciphertext + envelope instead of plaintext; `POST /students/:id/pubkey`, `GET /credential/:rollNo/blobs`
+- [ ] MongoDB schema: `ciphertextCID`, `dekEnvelopeCID`, `enrollmentPhase` fields added to student record
 
 ### Out of Scope
 
-- E3 encrypted holder-controlled IPFS storage (AES-GCM + ECIES + on-device keypair) — deferred to next milestone
 - E5 Gnosis Safe 2-of-3 governance + registry admin transfer — deferred
-- E6 Shamir 2-of-3 key recovery — deferred
+- E6 Shamir 2-of-3 key recovery — deferred. Consequence: the DEK held in memory during `awaiting-keypair` has no real 2-of-3 custodial split this milestone — single-custody in admin backend memory until the student claims, accepted as a deliberate interim gap until E6 ships
 - E4 post-quantum — explicitly out of scope for the entire project
 - UI redesign / theme token system (§9) — deferred
-- Auth/bcrypt/session-JWT/rate-limit hardening (§12.3–5) — deferred, EXCEPT nonce-endpoint rate limiting which pairs with E2
-- Data migration of old flat-`Poseidon(5)` credentials — for the prototype, wipe and re-seed test students instead
+- Auth/bcrypt/session-JWT/rate-limit hardening (§12.3–5) — deferred
+- Data migration of existing test students' plaintext-pinned credentials — wipe and re-seed instead, consistent with v1.0's approach
 
 ## Context
 
-- **Single source of truth:** `docs/CLAUDE_CODE_BLUEPRINT.md` (the full engineering plan). This milestone implements Phase 0 + Phase 1 of that blueprint (§3, §4, E2, plus §1.4/§12.2 field-set fix and §12.1 branding cleanup as it touches issuance).
-- **Codebase map:** `.planning/codebase/` (STACK, ARCHITECTURE, STRUCTURE, INTEGRATIONS, CONVENTIONS, TESTING, CONCERNS).
-- **Highest-risk inconsistency:** the current circuit's 5th signal is `branch` while admin issuance hashes `programme`; the rebuild eliminates this by writing both issuance hash and prover against the frozen 7-attribute §3 spec verbatim.
-- **Trusted-setup discipline:** Phase 1 (Powers of Tau / `.ptau`) is circuit-independent — download, don't regenerate. Phase 2 (`.zkey`) is circuit-specific — run the contribution+beacon ceremony ONCE, only after the circuit is frozen. Any later circuit edit invalidates the `.zkey` and forces redeploy.
-- **WSL tooling:** repo is on a `\\wsl.localhost\...` path; run circom/hardhat/snarkjs from a real WSL shell with relative paths.
-- **Existing build artifacts** (`zkp-backend/identity.wasm`, `identity_final.zkey`, `verification_key.json`) are all regenerated in this milestone. `pot12_final.ptau` is not in the repo and must be downloaded (or a larger ptau if constraints exceed 4096).
+- **Single source of truth:** `docs/CLAUDE_CODE_BLUEPRINT.md` (the full engineering plan). This milestone implements §E3 (E3.1–E3.6).
+- **Codebase map:** `.planning/codebase/` (STACK, ARCHITECTURE, STRUCTURE, INTEGRATIONS, CONVENTIONS, TESTING, CONCERNS) — predates E3, will need an `update` pass after this milestone.
+- **Encrypted credential JSON shape (§E3.2):** the plaintext that gets AES-GCM'd must contain all 7 attrs + 7 salts (same order as the frozen §3 leaf indices) + merkleRoot + issuedAt/issuer/type/version. Enrollment status is NOT in this object — stays on-chain.
+- **Proof generation stays server-side** (decided in v1.0, reaffirmed): on-device Groth16 in Expo is heavy. After on-device decryption, the app sends only the decrypted `{attrs, salts, nonce, currentDateInt}` to the ZKP backend over HTTPS — DEK and private key never leave the device.
+- **WSL tooling:** repo is on a `\\wsl.localhost\...` path; run any circom/hardhat/snarkjs from a real WSL shell with relative paths (not relevant to most of E3, which is backend/mobile JS).
 
 ## Constraints
 
-- **Tech stack**: Circom 2.1.6, snarkjs (Groth16), circomlib (poseidon/comparators/bitify), Solidity 0.8.28, hardhat-circom, ethers v6, Express, MongoDB. Do not introduce a different proving system.
-- **Crypto correctness**: field-set consistency between issuance and prover is non-negotiable — any mismatch causes silent on-chain verification failure.
-- **Design-once**: the circuit must be frozen before the trusted setup; rework forces a full new setup + redeploy. E1 and E2 are built together, never split.
-- **Timeline**: hard deadline, weeks out (exact date TBD) — favor coarse phases and demonstrable §4.5 acceptance over polish.
-- **Performance**: every new crypto op prints elapsed seconds; benchmarks report mean ± σ over n≥19 runs (research deliverable).
-- **Network**: Sepolia testnet (and local Hardhat for dev). Treat freshly deployed addresses recorded in `.env` as canonical; ignore stale README/docs addresses.
+- **Tech stack additions**: `eciesjs` (ECIES over secp256k1, Node + RN compatible), Node's built-in `crypto` (AES-256-GCM, `randomBytes`), `expo-secure-store` (Android Keystore / iOS Keychain backed). Do not introduce a different encryption scheme.
+- **Crypto correctness**: nothing in the encrypted credential JSON is ever pinned in plaintext; the DEK and student private key never leave the device/backend boundary they're supposed to stay within.
+- **No real E6 this milestone**: E3.3 step 4 calls for "Shamir split on the DEK (E6) → distribute shares" while the DEK awaits the student's keypair — since E6 is deferred, hold the DEK in memory/short-lived secure store on the admin backend instead of real Shamir shares (documented gap, see Out of Scope).
+- **Timeline**: same hard deadline pressure as v1.0 — favor coarse phases and demonstrable end-to-end acceptance over polish.
+- **Network**: Sepolia testnet (and local Hardhat for dev) — unaffected by E3, which is off-chain storage/crypto only.
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| This milestone = circuit critical path only (Phase 0 + Phase 1) | Circuit is the design-once critical path; deadline is tight; E3/E5/E6 can't block it | — Pending |
-| 7 committed attributes, depth-3 Merkle, 1 reserved leaf | Per-attribute salted leaves enable hiding even when rollNo is revealed; reserved leaf leaves room for future attrs | — Pending |
-| Split `programme` → `programmeLevel` + `discipline`; drop `phone` for `email` | Enables `isPostgrad` predicate + "is CSE"; email is the verifiable contact handle; fixes the §1.4 branch/programme bug at the root | — Pending |
-| Enrollment status is on-chain only (not a committed attribute) | "Active" = proof verifies AND not-revoked; lifecycle can change without re-issuing the credential | — Pending |
-| Proof generation stays server-side | On-device Groth16 in Expo is heavy; DEK/private key still never leave device (relevant next milestone) | — Pending |
-| E5/E6 mechanism realism (sim vs real) decided per-phase later | Those phases are deferred; keep them mechanism-agnostic until provisioning status is known | — Pending |
+| This milestone = E3 only; E5/E6/UI remain deferred | E3 (storage privacy) is the most isolated of the remaining enhancements — doesn't require Gnosis Safe or Shamir infra to deliver real value | — Pending |
+| DEK held in backend memory (not real Shamir) during awaiting-keypair | E6 is deferred; a real 2-of-3 split needs E6's custodian infra which doesn't exist yet | — Pending |
+| Proof generation stays server-side | On-device Groth16 in Expo is heavy; DEK/private key still never leave device | — Pending |
+| Milestone versioned v2.0, not v1.1 | First milestone after v1.0 circuit rebuild shipped; E3 introduces a new architecture layer (storage/encryption), not a patch | — Pending |
 
 ## Evolution
 
@@ -91,4 +98,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-16 after initialization*
+*Last updated: 2026-06-19 — milestone v2.0 (E3) started*

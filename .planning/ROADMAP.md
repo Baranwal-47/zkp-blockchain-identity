@@ -1,98 +1,78 @@
-# Roadmap: PrivdID — Circuit Rebuild (E1 + E2)
+# Roadmap: PrivdID — v2.0 E3 Encrypted Holder-Controlled Storage
 
 ## Overview
 
-This milestone rebuilds the cryptographic core of PrivdID along a strict design-once critical path. We first freeze the 7-attribute identity spec on paper and resolve the §1.4 field-set inconsistency between admin issuance and the prover. We then build the E1 (depth-3 Merkle of salted per-attribute leaves, selective disclosure, age/postgrad predicates) and E2 (verifier-nonce binding) circuit together as one frozen artifact. Only once the circuit is final do we run the Groth16 Phase-2 trusted-setup ceremony, export and redeploy the verifier, and copy fresh artifacts into the ZKP backend. We then wire the new proof input/output shape and nonce session enforcement through the backend, and finally instrument and benchmark every new crypto operation as a research deliverable. The endpoint: a verifier can confirm selectively-disclosed attributes and predicates against an on-chain Merkle root, with replay-proof freshness, end to end.
+This milestone adds E3 on top of the frozen E1+E2 circuit: credentials are no longer pinned to IPFS in plaintext. The admin backend generates a random DEK per student, AES-256-GCM encrypts the full credential JSON, and pins only ciphertext. A secp256k1 keypair is generated on-device at first login and never leaves the device. A two-phase enrollment ties these together: the admin enrolls and holds the DEK in escrow, then on first login the student's app submits its public key and the backend ECIES-wraps the DEK to it, pins the wrapped envelope, and wipes the plaintext DEK from memory — at which point only the student can ever unwrap it again. Daily proof generation becomes a fetch-unwrap-decrypt-send flow: the app pulls both CIDs, unwraps the DEK with the on-device private key, decrypts the credential locally, and forwards only the decrypted attributes to the existing (unmodified) ZKP backend over HTTPS — the DEK and private key never leave the device. Finally, crypto-shredding gives a real right-to-erasure story: destroying the DEK (or its envelope) makes the ciphertext permanently unrecoverable, with no separate plaintext copy anywhere to fall back on. E5 (Gnosis Safe governance) and E6 (real Shamir custody) remain deferred; the DEK during the enrollment window is held in backend memory as a documented interim gap.
 
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+- Integer phases (6, 7, 8, 9): Planned milestone work, continuing from v1.0's Phase 5
+- Decimal phases (6.1, 6.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Freeze Spec & Field-Set Consistency** - Lock the 7-attribute spec and make admin issuance byte-for-byte identical to the prover input (completed 2026-06-16)
-- [x] **Phase 2: E1+E2 Circuit Build** - Build and freeze the depth-3 Merkle circuit with salted leaves, disclosure binding, predicates, and nonce binding (completed 2026-06-17)
-- [x] **Phase 3: Trusted Setup & Redeploy** - Run the Groth16 Phase-2 ceremony, export and redeploy IdentityVerifier.sol, ship fresh artifacts to the ZKP backend (completed 2026-06-17)
-- [x] **Phase 4: ZKP Backend Integration & Nonce Enforcement** - Wire the new proof input/output shape and the session-nonce challenge + freshness + one-time-use enforcement (completed 2026-06-18)
-- [x] **Phase 5: Benchmarking & Metrics** - Instrument every new crypto op and report mean ± σ over n≥19 runs (completed 2026-06-18)
+- [x] **Phase 6: Encryption & Ciphertext Storage** - Admin backend encrypts every credential with a per-student AES-256-GCM DEK and pins only ciphertext to IPFS — no plaintext blob exists post-encryption (completed 2026-06-19)
+- [ ] **Phase 7: Student Keypair & Two-Phase Enrollment** - Students get an on-device secp256k1 keypair at first login, and claiming a credential ECIES-wraps the escrowed DEK to that keypair, ending single-custody of the DEK
+- [ ] **Phase 8: Daily Access Flow** - An active student's app fetches both CIDs, unwraps the DEK on-device, decrypts the credential locally, and generates a proof via the existing ZKP backend without the DEK or private key ever leaving the device
+- [ ] **Phase 9: Crypto-Shredding Erasure** - Destroying a student's DEK/envelope makes their ciphertext permanently unreadable, satisfying the GDPR/DPDPA right-to-erasure story
 
 ## Phase Details
 
-### Phase 1: Freeze Spec & Field-Set Consistency
-**Goal**: The 7-attribute identity spec is frozen and the admin issuance hash is byte-for-byte identical to what the prover will consume, eliminating the §1.4 branch/programme mismatch at the root before any circuit code exists.
-**Depends on**: Nothing (first phase)
-**Requirements**: SPEC-01, SPEC-02, SPEC-03
+### Phase 6: Encryption & Ciphertext Storage
+**Goal**: Every credential issued by the admin backend is AES-256-GCM encrypted under a random per-student DEK before it ever touches IPFS; plaintext credential blobs are eliminated from the storage layer entirely.
+**Depends on**: Nothing (first phase of v2.0; builds on v1.0's frozen issuance commitment)
+**Requirements**: STORE-01, STORE-02
 **Success Criteria** (what must be TRUE):
-  1. The frozen spec documents all 7 leaf attributes in fixed order (name, rollNo, dob-int, programmeLevel, discipline, batch-int, email) with per-attribute type/encoding and the final public-signal layout, with leaf 7 reserved as zero padding.
-  2. The admin issuance hash and the prover consume an identical attribute list, order, and encoding — `programme` is split into `programmeLevel`+`discipline`, `phone` is dropped for `email`, and integer attrs (dob `YYYYMMDD`, batch year) are encoded as integers.
-  3. Re-seeding a test student and recomputing the commitment yields the same root from both the admin issuance path and the prover-side leaf computation.
-  4. The credential issuer string reads "PrivdID — IIITDM Jabalpur" with no VIT references in issuance output.
-**Plans**: 4 plans
-- [x] 01-01-PLAN.md — Frozen IDENTITY_SPEC.md spec doc + canonical enumCodes.js (SPEC-01)
-- [x] 01-02-PLAN.md — Shared identityCommitment.js module: hash-to-field, salts, salted Merkle root (SPEC-01/02)
-- [x] 01-03-PLAN.md — Admin issuance refactor: schema, validator, both recompute sites, branding (SPEC-02/03)
-- [x] 01-04-PLAN.md — Wipe-and-reseed script + root-equality acceptance gate (SPEC-02)
-
-### Phase 2: E1+E2 Circuit Build
-**Goal**: A single frozen `identity.circom` computes the depth-3 Merkle root from salted per-attribute leaves, binds selective disclosure, evaluates the age and postgrad predicates, and binds the verifier nonce — built together so the circuit can be frozen exactly once.
-**Depends on**: Phase 1
-**Requirements**: CIRC-01, CIRC-02, CIRC-03, CIRC-04, CIRC-05, REPL-01, REPL-02
-**Success Criteria** (what must be TRUE):
-  1. The circuit computes `leaf_i = Poseidon(2)(attr_i, salt_i)` for 7 attributes plus a zero-padding leaf and outputs the depth-3 Merkle root as `pubHash` (public signal [0]), with every committed attribute carrying a mandatory random salt.
-  2. Selective disclosure is bound in-circuit: each `revealMask_i` is boolean, `revealMask_i * (revealedValue_i - attr_i) === 0`, and a hidden attribute never appears in `publicSignals`.
-  3. `isOver18` is computed from `currentDateInt` vs `dobInt` (with `dobInt` bound to leaf attr 2): an over-18 DOB yields `isOver18=1` and an under-18 DOB yields `0`; `isPostgrad` is set-membership of `programmeLevel` over {M.Tech, M.Des, PhD}.
-  4. `nonce` is a public input forced into the constraint system (`nonceSq <== nonce * nonce`) so the compiler cannot optimize it away, and a witness/proof generated for nonce A fails verification against nonce B.
-**Plans**: 2 plans
-- [x] 02-01-PLAN.md — Rewrite identity.circom (Merkle + disclosure + predicates + nonce) and compile/count constraints (CIRC-01..05, REPL-01)
-- [x] 02-02-PLAN.md — Witness-level parity gate (section 9 vectors) + nonce-rejection test + freeze sign-off (REPL-02)
-
-### Phase 3: Trusted Setup & Redeploy
-**Goal**: A fresh Groth16 Phase-2 setup is performed against the frozen circuit, the Solidity verifier is exported and redeployed, and the new wasm/zkey/vkey are live in the ZKP backend — run once, only after the circuit is final.
-**Depends on**: Phase 2
-**Requirements**: SETUP-01, SETUP-02, SETUP-03
-**Success Criteria** (what must be TRUE):
-  1. A fresh Phase-2 setup runs as a 3-contribution chain plus final beacon, `snarkjs zkey verify` passes, and the circuit constraint count is recorded.
-  2. `verification_key.json` and `IdentityVerifier.sol` are exported from `identity_final.zkey`, and the verifier is redeployed (Sepolia + local) with `VERIFIER_ADDRESS` updated in env.
-  3. Fresh `identity.wasm`, `identity_final.zkey`, and `verification_key.json` are copied into the ZKP backend, and proof generation uses these new artifacts (not the stale flat-Poseidon(5) ones).
-**Plans**: 2 plans
-- [x] 03-01-PLAN.md — Download pot14, run the 3-contribution + beacon ceremony, `zkey verify` (SETUP-01), export verifier + vkey, compile + local deploy (SETUP-02 local)
-- [x] 03-02-PLAN.md — Deploy verifier to Sepolia (checkpoint: real secrets/gas), update VERIFIER_ADDRESS, copy 3 artifacts into zkp-backend, smoke-verify wiring (SETUP-02 Sepolia + SETUP-03)
-
-### Phase 4: ZKP Backend Integration & Nonce Enforcement
-**Goal**: The ZKP backend accepts the new proof input shape, returns publicSignals in the frozen §3 order, verifies proofs both off-chain and on-chain, and enforces the full session-nonce lifecycle (issue → match → freshness → one-time use).
-**Depends on**: Phase 3
-**Requirements**: BACK-01, BACK-02, BACK-03, REPL-03
-**Success Criteria** (what must be TRUE):
-  1. `POST /generate-proof` accepts the new input shape (attrs, salts, reveal flags, nonce, currentDateInt) and returns `{proof, publicSignals}` with publicSignals in the frozen §3 order.
-  2. For a freshly generated proof, `POST /verify` (off-chain `groth16.verify`) and `POST /verify-onchain` (verifier view call) both return true, and `POST /credential-info` treats `pubHash` as the Merkle root and resolves the credential from the registry.
-  3. `POST /session/nonce` issues a random field element (< BN128 order) with sessionId and 5-minute TTL, and verify-time enforcement rejects a proof whose nonce does not match, is expired, or has already been consumed, marking the nonce consumed on first successful use.
+  1. Issuing a credential generates a random 32-byte DEK, AES-256-GCM-encrypts the §E3.2 credential JSON (7 attrs + 7 salts + merkleRoot + issuedAt/issuer/type/version), and pins the resulting ciphertext to IPFS, returning a `ciphertextCID`.
+  2. Inspecting any newly-pinned IPFS object for a freshly issued student shows only ciphertext bytes — the plaintext credential JSON is never pinned, logged to a persistent store, or otherwise retrievable from IPFS.
+  3. Re-running issuance for two different students yields two different DEKs and two different ciphertexts, even if their underlying credential attributes were identical (confirms DEK randomness, not deterministic encryption).
 **Plans**: 3 plans
-- [x] 04-01-PLAN.md — Field-set-consistent witness library: encoding (hashToField), predicates, witnessBuilder + pubHash-parity gate (BACK-01)
-- [x] 04-02-PLAN.md — Rewrite /generate-proof to new 19-signal shape + in-memory nonce store + POST /session/nonce (BACK-01, REPL-03)
-- [x] 04-03-PLAN.md — Nonce-enforced /verify + /verify-onchain, confirm /credential-info, remove stale fallbacks, e2e lifecycle test (BACK-02, BACK-03, REPL-03)
+- [x] 06-01-PLAN.md — AES-256-GCM crypto module (crypto/aesgcm.js) + Student schema (dek field, ipfsCID→ciphertextCID rename) [Wave 1]
+- [x] 06-02-PLAN.md — Encrypt-before-pin in issuance: buildCredentialJson + DEK generate/reuse across 3 call sites + sanitizeStudent dek exclusion [Wave 2]
+- [x] 06-03-PLAN.md — ipfsCID→ciphertextCID rename in zkp-backend/server.js + digital-app/VerifyProof.js [Wave 1]
 
-### Phase 5: Benchmarking & Metrics
-**Goal**: Every new cryptographic operation is instrumented to print elapsed seconds and a benchmark script produces statistically rigorous timings, recorded as a research deliverable.
-**Depends on**: Phase 4
-**Requirements**: PERF-01, PERF-02
+### Phase 7: Student Keypair & Two-Phase Enrollment
+**Goal**: Each student controls a private secp256k1 key that never leaves their device, and the act of claiming a credential transfers DEK custody from the admin backend (single-custody escrow) to that keypair via ECIES wrapping — closing the window during which anyone but the student can read the plaintext DEK.
+**Depends on**: Phase 6
+**Requirements**: KEY-01, KEY-02, ENROLL-01, ENROLL-02
 **Success Criteria** (what must be TRUE):
-  1. Every new crypto operation prints elapsed seconds via the shared timing helper, and `bench.js` reports mean ± σ over n≥19 runs (dropping a warm-up run).
-  2. `docs/improvement/PERFORMANCE_METRICS_E1E2.md` records constraint count, proof-gen time, off-chain and on-chain verify time, nonce issue+check time, and QR payload size for the new E1+E2 circuit (plus free side-effect numbers: proof size, public-signal count, end-to-end latency).
-**Plans**: 2 plans
-- [x] 05-01-PLAN.md — Shared timed() helper (CommonJS + ESM) + migrate 5 call sites + add nonce-issue/check timing (PERF-01)
-- [x] 05-02-PLAN.md — bench.js (N=20/n=19 mean±σ over 6 ops + QR size) + PERFORMANCE_METRICS_E1E2.md deliverable (PERF-01, PERF-02)
+  1. On first login, the app generates a secp256k1 keypair on-device, stores the private key in `expo-secure-store` (Keystore/Keychain-backed), and never transmits, logs, or exports it off-device.
+  2. The app sends only the derived public key to the backend via `POST /students/:id/pubkey`; the backend never receives or stores a private key for any student.
+  3. A newly enrolled student's record shows `enrollmentPhase: "awaiting-keypair"` immediately after admin enrollment, with the DEK held server-side and the ciphertext already pinned from Phase 6.
+  4. Completing `ClaimCredentialScreen` on first login causes the backend to ECIES-wrap the held DEK with the submitted pubkey, pin the wrapped envelope to IPFS as `dekEnvelopeCID`, wipe the plaintext DEK from backend memory, and flip the record to `enrollmentPhase: "active"`.
+  5. After claiming, no plaintext DEK for that student exists anywhere in the backend process or persistent storage — only the wrapped envelope (decryptable solely by the student's private key) remains.
+**Plans**: TBD
+
+### Phase 8: Daily Access Flow
+**Goal**: An actively-enrolled student can generate a fresh ZK proof on demand by having their app transparently fetch, unwrap, and decrypt their own credential on-device, with the existing ZKP backend untouched and the DEK/private key never crossing the device boundary.
+**Depends on**: Phase 7
+**Requirements**: ACCESS-01, ACCESS-02
+**Success Criteria** (what must be TRUE):
+  1. `GET /credential/:rollNo/blobs` returns both `ciphertextCID` and `dekEnvelopeCID` for any student whose `enrollmentPhase` is `"active"`.
+  2. The app fetches both blobs, ECIES-unwraps the DEK using the on-device private key, and AES-GCM-decrypts the credential JSON locally — all without any network call exposing the DEK or private key.
+  3. The app sends only the decrypted `{attrs, salts, nonce, currentDateInt}` to the existing ZKP backend over HTTPS, and a valid Groth16 proof is returned and verifies successfully (off-chain and on-chain), confirming the new storage layer is fully compatible with the v1.0 circuit/backend.
+  4. A student whose `enrollmentPhase` is still `"awaiting-keypair"` cannot complete this flow (no envelope exists yet to unwrap), demonstrating the two-phase gate from Phase 7 is enforced end-to-end.
+**Plans**: TBD
+
+### Phase 9: Crypto-Shredding Erasure
+**Goal**: A custodian can permanently and verifiably revoke a student's ability to ever decrypt their stored credential again by destroying the DEK material, giving the system a real technical right-to-erasure mechanism rather than a policy promise.
+**Depends on**: Phase 7 (requires the envelope/DEK custody model to exist)
+**Requirements**: ERASE-01
+**Success Criteria** (what must be TRUE):
+  1. Triggering erasure for a student destroys the only path to recovering their DEK (the envelope and/or any escrowed copy), with no backup plaintext DEK retained anywhere in the system.
+  2. After erasure, attempting the Phase 8 daily-access flow for that student fails to recover a usable DEK — the ciphertext on IPFS remains physically present but is permanently unreadable.
+  3. The erasure action is auditable (recorded against the student record, e.g. a revoked/erased status or timestamp) so it is distinguishable from a transient fetch failure.
+**Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 6 → 7 → 8 → 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Freeze Spec & Field-Set Consistency | 4/4 | Complete   | 2026-06-16 |
-| 2. E1+E2 Circuit Build | 2/2 | Complete   | 2026-06-17 |
-| 3. Trusted Setup & Redeploy | 2/2 | Complete   | 2026-06-17 |
-| 4. ZKP Backend Integration & Nonce Enforcement | 3/3 | Complete   | 2026-06-18 |
-| 5. Benchmarking & Metrics | 2/2 | Complete   | 2026-06-18 |
+| 6. Encryption & Ciphertext Storage | 3/3 | Complete   | 2026-06-19 |
+| 7. Student Keypair & Two-Phase Enrollment | 0/TBD | Not started | - |
+| 8. Daily Access Flow | 0/TBD | Not started | - |
+| 9. Crypto-Shredding Erasure | 0/TBD | Not started | - |

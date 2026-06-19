@@ -52,9 +52,14 @@ const studentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    ipfsCID: {
+    ciphertextCID: {
       type: String,
       default: null,
+    },
+    dek: {
+      type: String,
+      default: null,
+      select: false, // never returned unless explicitly .select('+dek')'d — D-02 hard requirement
     },
     onChainTxHash: {
       type: String,
@@ -62,6 +67,14 @@ const studentSchema = new mongoose.Schema(
     },
     onChainBlock: {
       type: Number,
+      default: null,
+    },
+    anchorPending: {
+      type: Boolean,
+      default: false,
+    },
+    lastAnchorError: {
+      type: String,
       default: null,
     },
     revoked: {
