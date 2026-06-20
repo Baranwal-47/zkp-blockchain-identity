@@ -51,19 +51,6 @@ const sendEmailSchema = Joi.object({
   studentIds: Joi.array().items(Joi.string().trim().required()).min(1).required(),
 });
 
-const bulkStudentsSchema = Joi.array()
-  .items(
-    Joi.object({
-      name: Joi.string().trim().min(2).max(120).required(),
-      email: Joi.string().trim().email().required(),
-      rollNo: Joi.string().trim().min(1).max(50).required(),
-      programme: Joi.string().trim().min(2).max(120).required(),
-      contactNo: Joi.string().trim().min(5).max(20).required(),
-    })
-  )
-  .min(1)
-  .required();
-
 export const uploadMiddleware = upload.single("file");
 
 export const getStudents = asyncHandler(async (_req, res) => {
@@ -155,59 +142,6 @@ export const uploadStudents = asyncHandler(async (req, res) => {
   res.status(201).json({
     status: "success",
     message: `Students uploaded: ${result.anchorSummary.anchored}/${result.anchorSummary.total} anchored, ${result.anchorSummary.pending} pending retry.`,
-    count: result.insertedStudents.length,
-    students: result.insertedStudents,
-    anchorSummary: result.anchorSummary,
-  });
-});
-
-export const bulkAddStudents = asyncHandler(async (req, res) => {
-  const { error, value: rows } = bulkStudentsSchema.validate(req.body, {
-    abortEarly: false,
-    stripUnknown: true,
-  });
-
-  if (error) {
-    throw new AppError("Validation failed", 400, error.details);
-  }
-
-  const normalizedRows = rows.map(normalizeStudentInput);
-
-  // Check for duplicates within the submitted list
-  const seenEmails = new Set();
-  const seenRollNos = new Set();
-  const internalDuplicates = [];
-
-  normalizedRows.forEach((row) => {
-    if (seenEmails.has(row.email) || seenRollNos.has(row.rollNo)) {
-      internalDuplicates.push({ email: row.email, rollNo: row.rollNo });
-    } else {
-      seenEmails.add(row.email);
-      seenRollNos.add(row.rollNo);
-    }
-  });
-
-  if (internalDuplicates.length) {
-    throw new AppError("Duplicate email or roll number found in submitted list.", 409, internalDuplicates);
-  }
-
-  // Check against existing DB records
-  const databaseMatches = await Student.find({
-    $or: normalizedRows.flatMap((row) => [{ email: row.email }, { rollNo: row.rollNo }]),
-  }).select("email rollNo");
-
-  if (databaseMatches.length) {
-    throw new AppError("Some students already exist in the database.", 409, {
-      duplicates: databaseMatches,
-    });
-  }
-
-  const preparedStudents = await buildBulkStudents(normalizedRows);
-  const result = await insertBulkStudents(preparedStudents);
-
-  res.status(201).json({
-    status: "success",
-    message: `${result.anchorSummary.anchored}/${result.anchorSummary.total} student(s) anchored successfully, ${result.anchorSummary.pending} pending retry.`,
     count: result.insertedStudents.length,
     students: result.insertedStudents,
     anchorSummary: result.anchorSummary,

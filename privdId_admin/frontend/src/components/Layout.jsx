@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 const navigation = [
   { to: "/", label: "Dashboard" },
@@ -7,6 +7,13 @@ const navigation = [
 ];
 
 export default function Layout() {
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    localStorage.removeItem("adminToken");
+    navigate("/login", { replace: true });
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden text-slate-100">
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -30,6 +37,9 @@ export default function Layout() {
                 {item.label}
               </NavLink>
             ))}
+            <button type="button" onClick={handleLogout} className="nav-link">
+              Logout
+            </button>
           </nav>
         </header>
 

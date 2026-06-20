@@ -149,7 +149,7 @@ export default function AdminDashboardScreen({ route, navigation }) {
 
   const totalStudents = students.length;
   const emailedCount = students.filter(s => s.emailSent).length;
-  const programmes = new Set(students.map(s => s.programme)).size;
+  const programmes = new Set(students.map(s => s.programmeLevel)).size;
 
   const renderStudent = ({ item }) => {
     const isSelected = selectedIds.includes(item.id);
@@ -167,7 +167,8 @@ export default function AdminDashboardScreen({ route, navigation }) {
           </View>
           <View style={styles.studentMeta}>
             <Text style={styles.metaTag}>{item.rollNo}</Text>
-            <Text style={styles.metaTag}>{item.programme}</Text>
+            <Text style={styles.metaTag}>{item.programmeLevel} {item.discipline}</Text>
+            <Text style={styles.metaTag}>Batch {item.batch || 'N/A'}</Text>
             <Text style={styles.metaTag}>DOB: {item.dob || 'N/A'}</Text>
             {item.revoked ? (
               <Text style={[styles.metaTag, styles.metaTagRevoked]}>🚫 Revoked</Text>

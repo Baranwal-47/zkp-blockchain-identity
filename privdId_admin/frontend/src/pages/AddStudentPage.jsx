@@ -9,8 +9,9 @@ const initialFormState = {
   name: "",
   email: "",
   rollNo: "",
-  programme: "",
-  contactNo: "",
+  programmeLevel: "",
+  discipline: "",
+  batch: "",
   dob: "",
 };
 

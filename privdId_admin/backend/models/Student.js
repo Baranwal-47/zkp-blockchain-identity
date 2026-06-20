@@ -20,16 +20,6 @@ const studentSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-    programme: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    contactNo: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     dob: {
       type: String,
       required: false,

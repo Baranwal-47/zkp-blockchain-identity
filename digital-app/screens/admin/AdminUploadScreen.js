@@ -78,7 +78,7 @@ export default function AdminUploadScreen({ route, navigation }) {
       <View style={styles.infoBox}>
         <Text style={styles.infoTitle}>Bulk Import from Excel</Text>
         <Text style={styles.infoText}>
-          - The Excel file must have columns: `name`, `email`, `rollNo`, `programme`, `contactNo`, and `dob`.
+          - The Excel file must have columns: `name`, `email`, `rollNo`, `programmeLevel`, `discipline`, `batch`, and `dob`.
         </Text>
         <Text style={styles.infoText}>
           - The `dob` column should be in `DDMMYYYY` format.

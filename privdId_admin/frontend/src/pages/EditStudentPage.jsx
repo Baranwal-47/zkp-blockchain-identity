@@ -21,8 +21,9 @@ export default function EditStudentPage() {
           name: student.name,
           email: student.email,
           rollNo: student.rollNo,
-          programme: student.programme,
-          contactNo: student.contactNo,
+          programmeLevel: student.programmeLevel || "",
+          discipline: student.discipline || "",
+          batch: student.batch || "",
           dob: student.dob || "",
         });
       } catch (error) {

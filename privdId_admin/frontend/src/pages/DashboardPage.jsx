@@ -72,7 +72,7 @@ export default function DashboardPage() {
   }, []);
 
   const totalStudents = students.length;
-  const uniqueProgrammes = new Set(students.map((student) => student.programme)).size;
+  const uniqueProgrammes = new Set(students.map((student) => student.programmeLevel)).size;
   const emailedStudents = students.filter((student) => student.emailSent).length;
 
   return (

@@ -86,8 +86,6 @@ const SEED = [
     discipline: "CSE",
     batch: 2023,
     dob: "2004-02-15",
-    programme: "B.Tech CSE",
-    contactNo: "9876543210",
   },
 
   // --- Student 2 ---
@@ -102,8 +100,6 @@ const SEED = [
     discipline: "ECE",
     batch: 2022,
     dob: "2001-04-22",
-    programme: "M.Tech ECE",
-    contactNo: "9123456789",
   },
 
   // --- Student 3 ---
@@ -117,8 +113,6 @@ const SEED = [
     discipline: "Design",
     batch: 2023,
     dob: "2010-03-22",
-    programme: "B.Des Design",
-    contactNo: "9988776655",
   },
 
   // --- Student 4 ---
@@ -132,8 +126,6 @@ const SEED = [
     discipline: "ME",
     batch: 2022,
     dob: "2000-11-08",
-    programme: "PhD ME",
-    contactNo: "9871234560",
   },
 
   // --- Student 5 ---
@@ -147,8 +139,6 @@ const SEED = [
     discipline: "SmartMfg",
     batch: 2021,
     dob: "2003-07-19",
-    programme: "Dual SmartMfg",
-    contactNo: "8800112233",
   },
 
   // --- Student 6 ---
@@ -162,8 +152,6 @@ const SEED = [
     discipline: "NatSci",
     batch: 2024,
     dob: "2009-12-05",
-    programme: "B.Tech NatSci",
-    contactNo: "7711223344",
   },
 
   // --- Student 7 ---
@@ -177,8 +165,6 @@ const SEED = [
     discipline: "Design",
     batch: 2021,
     dob: "2002-09-30",
-    programme: "M.Des Design",
-    contactNo: "6655443322",
   },
 ];
 
@@ -205,7 +191,7 @@ async function main() {
     let passCount = 0;
 
     for (const seedData of SEED) {
-      const { name, email, rollNo, programmeLevel, discipline, batch, dob, programme, contactNo } =
+      const { name, email, rollNo, programmeLevel, discipline, batch, dob } =
         seedData;
 
       const dobInt = parseDobInt(dob);
@@ -221,13 +207,11 @@ async function main() {
         name,
         email,
         rollNo,
-        programme,
         programmeLevel,
         discipline,
         batch,
         dob,
         dobInt,
-        contactNo,
         salts,
         merkleRoot,
         // hashedData: no longer used for new records — set a placeholder to satisfy the schema

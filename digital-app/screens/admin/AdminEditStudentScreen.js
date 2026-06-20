@@ -13,6 +13,33 @@ import {
 } from 'react-native';
 import { ADMIN_BACKEND_URL } from '../../environment';
 
+// Mirrors privdId_admin/backend/constants/enumCodes.js exactly (FROZEN,
+// circuit-hardcoded integer codes) — do not reorder/rename without updating
+// enumCodes.js and the circuit's set-membership check in lockstep.
+const PROGRAMME_LEVELS = ['B.Tech', 'B.Des', 'Dual', 'M.Tech', 'M.Des', 'PhD'];
+const DISCIPLINES = ['CSE', 'ECE', 'ME', 'SmartMfg', 'Design', 'NatSci'];
+
+function ChipPicker({ label, options, value, onSelect }) {
+  return (
+    <View style={styles.fieldGroup}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.chipRow}>
+        {options.map(option => (
+          <TouchableOpacity
+            key={option}
+            style={[styles.chip, value === option && styles.chipSelected]}
+            onPress={() => onSelect(option)}
+          >
+            <Text style={[styles.chipText, value === option && styles.chipTextSelected]}>
+              {option}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export default function AdminEditStudentScreen({ route, navigation }) {
   const { studentId, token } = route.params || {};
   const [form, setForm] = useState(null);
@@ -33,8 +60,9 @@ export default function AdminEditStudentScreen({ route, navigation }) {
           name: student.name,
           email: student.email,
           rollNo: student.rollNo,
-          programme: student.programme,
-          contactNo: student.contactNo,
+          programmeLevel: student.programmeLevel || '',
+          discipline: student.discipline || '',
+          batch: student.batch ? String(student.batch) : '',
           dob: student.dob || '',
         });
       } catch (error) {
@@ -52,12 +80,13 @@ export default function AdminEditStudentScreen({ route, navigation }) {
   };
 
   const validateForm = () => {
-    const { name, email, rollNo, programme, contactNo, dob } = form;
+    const { name, email, rollNo, programmeLevel, discipline, batch, dob } = form;
     if (!name.trim()) return 'Full name is required';
     if (!email.trim() || !email.includes('@')) return 'A valid email is required';
     if (!rollNo.trim()) return 'Roll number is required';
-    if (!programme.trim()) return 'Programme is required';
-    if (!contactNo.trim()) return 'Contact number is required';
+    if (!programmeLevel) return 'Programme is required';
+    if (!discipline) return 'Branch is required';
+    if (!batch.trim() || !/^\d{4}$/.test(batch.trim())) return 'A valid 4-digit batch year is required';
     if (!dob.trim() || dob.length !== 8) return 'Date of Birth in DDMMYYYY format is required';
     return null;
   };
@@ -79,8 +108,9 @@ export default function AdminEditStudentScreen({ route, navigation }) {
         },
         body: JSON.stringify({
           name: form.name.trim(),
-          programme: form.programme.trim(),
-          contactNo: form.contactNo.trim(),
+          programmeLevel: form.programmeLevel,
+          discipline: form.discipline,
+          batch: Number(form.batch.trim()),
           dob: form.dob.trim(),
         }),
       });
@@ -113,8 +143,7 @@ export default function AdminEditStudentScreen({ route, navigation }) {
 
   const fields = [
     { key: 'name', label: 'Full Name', placeholder: 'e.g. Aarav Sharma', autoCapitalize: 'words', keyboardType: 'default' },
-    { key: 'programme', label: 'Programme / Branch', placeholder: 'e.g. B.Tech CSE', autoCapitalize: 'words', keyboardType: 'default' },
-    { key: 'contactNo', label: 'Contact Number', placeholder: '9876543210', autoCapitalize: 'none', keyboardType: 'phone-pad' },
+    { key: 'batch', label: 'Batch (Year)', placeholder: 'e.g. 2026', autoCapitalize: 'none', keyboardType: 'number-pad' },
     { key: 'dob', label: 'Date of Birth', placeholder: 'DDMMYYYY', autoCapitalize: 'none', keyboardType: 'number-pad' },
   ];
 
@@ -140,6 +169,18 @@ export default function AdminEditStudentScreen({ route, navigation }) {
             <TextInput style={[styles.input, styles.readOnlyInput]} value={form.rollNo} editable={false} />
           </View>
 
+          <ChipPicker
+            label="Programme"
+            options={PROGRAMME_LEVELS}
+            value={form.programmeLevel}
+            onSelect={v => handleChange('programmeLevel', v)}
+          />
+          <ChipPicker
+            label="Branch"
+            options={DISCIPLINES}
+            value={form.discipline}
+            onSelect={v => handleChange('discipline', v)}
+          />
           {fields.map(({ key, label, placeholder, autoCapitalize, keyboardType }) => (
             <View key={key} style={styles.fieldGroup}>
               <Text style={styles.label}>{label}</Text>
@@ -233,6 +274,31 @@ const styles = StyleSheet.create({
   readOnlyInput: {
     backgroundColor: '#eef2f9',
     color: '#64748b',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: '#f9fafb',
+  },
+  chipSelected: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#3b82f6',
+  },
+  chipText: {
+    fontSize: 14,
+    color: '#1f2937',
+    fontWeight: '600',
+  },
+  chipTextSelected: {
+    color: '#ffffff',
   },
   submitButton: {
     backgroundColor: '#3b82f6',

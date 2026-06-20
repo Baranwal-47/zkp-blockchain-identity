@@ -33,8 +33,10 @@ export function parseStudentsFromWorkbook(buffer) {
     name: getField(row, ["name"]),
     email: getField(row, ["email", "mail"]),
     rollNo: getField(row, ["rollno", "rollnumber", "roll"]),
-    programme: getField(row, ["programme", "program", "course"]),
-    contactNo: getField(row, ["contactno", "contactnumber", "contact"]),
+    programmeLevel: getField(row, ["programmelevel", "programme", "program"]),
+    discipline: getField(row, ["discipline", "branch"]),
+    batch: getField(row, ["batch", "batchyear", "year"]),
+    dob: getField(row, ["dob", "dateofbirth"]),
     rowNumber: index + 2,
   }));
 }

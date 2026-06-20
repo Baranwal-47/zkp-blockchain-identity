@@ -1,3 +1,9 @@
+// Mirrors privdId_admin/backend/constants/enumCodes.js exactly (FROZEN,
+// circuit-hardcoded integer codes) — do not reorder/rename without updating
+// enumCodes.js and the circuit's set-membership check in lockstep.
+const PROGRAMME_LEVELS = ["B.Tech", "B.Des", "Dual", "M.Tech", "M.Des", "PhD"];
+const DISCIPLINES = ["CSE", "ECE", "ME", "SmartMfg", "Design", "NatSci"];
+
 export default function StudentForm({ formData, onChange, onSubmit, loading, submitLabel }) {
   return (
     <form className="panel grid gap-5" onSubmit={onSubmit}>
@@ -21,18 +27,37 @@ export default function StudentForm({ formData, onChange, onSubmit, loading, sub
           <input className="field-input" id="rollNo" name="rollNo" value={formData.rollNo} onChange={onChange} placeholder="CS-2026-014" />
         </div>
         <div>
-          <label className="field-label" htmlFor="programme">
+          <label className="field-label" htmlFor="batch">
+            Batch (year)
+          </label>
+          <input className="field-input" id="batch" name="batch" type="number" value={formData.batch} onChange={onChange} placeholder="2026" />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="programmeLevel">
             Programme
           </label>
-          <input className="field-input" id="programme" name="programme" value={formData.programme} onChange={onChange} placeholder="B.Tech Computer Science" />
+          <select className="field-input" id="programmeLevel" name="programmeLevel" value={formData.programmeLevel} onChange={onChange}>
+            <option value="">Select programme</option>
+            {PROGRAMME_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </select>
         </div>
-      </div>
-
-      <div>
-        <label className="field-label" htmlFor="contactNo">
-          Contact number
-        </label>
-        <input className="field-input" id="contactNo" name="contactNo" value={formData.contactNo} onChange={onChange} placeholder="9876543210" />
+        <div>
+          <label className="field-label" htmlFor="discipline">
+            Branch
+          </label>
+          <select className="field-input" id="discipline" name="discipline" value={formData.discipline} onChange={onChange}>
+            <option value="">Select branch</option>
+            {DISCIPLINES.map((discipline) => (
+              <option key={discipline} value={discipline}>
+                {discipline}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div>

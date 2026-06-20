@@ -79,8 +79,9 @@ export default function StudentsTable({
               <th className="px-4 py-2">Email</th>
               <th className="px-4 py-2">Roll No</th>
               <th className="px-4 py-2">Programme</th>
+              <th className="px-4 py-2">Branch</th>
+              <th className="px-4 py-2">Batch</th>
               <th className="px-4 py-2">DOB</th>
-              <th className="px-4 py-2">Contact</th>
               <th className="px-4 py-2">Email Status</th>
               <th className="px-4 py-2">Hash</th>
               <th className="px-4 py-2">Created</th>
@@ -101,9 +102,10 @@ export default function StudentsTable({
                 <td className="px-4 py-4 font-medium text-white">{student.name}</td>
                 <td className="px-4 py-4">{student.email}</td>
                 <td className="px-4 py-4">{student.rollNo}</td>
-                <td className="px-4 py-4">{student.programme}</td>
+                <td className="px-4 py-4">{student.programmeLevel}</td>
+                <td className="px-4 py-4">{student.discipline}</td>
+                <td className="px-4 py-4">{student.batch}</td>
                 <td className="px-4 py-4">{student.dob}</td>
-                <td className="px-4 py-4">{student.contactNo}</td>
                 <td className="px-4 py-4">
                   <span className={student.revoked ? "rounded-full bg-red-400/15 px-3 py-1 text-xs font-medium text-red-200" : student.emailSent ? "rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-medium text-emerald-200" : "rounded-full bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-200"}>
                     {student.revoked ? "Revoked" : student.emailSent ? `Sent${student.emailSentAt ? ` • ${formatDate(student.emailSentAt)}` : ""}` : "Pending"}

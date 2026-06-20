@@ -9,21 +9,6 @@ import { wrapDEK } from "../crypto/ecies.js";
 import { hashToField, generateSalts, computeMerkleRoot, CHUNK_COUNTS } from "../utils/identityCommitment.js";
 import { PROGRAMME_LEVEL, DISCIPLINE } from "../constants/enumCodes.js";
 
-function normalizePhone(contactNo) {
-  if (!contactNo) return "";
-  const digits = contactNo.replace(/\D/g, "");
-  if (digits.startsWith("91") && digits.length === 12) {
-    return `+91${digits.slice(2)}`;
-  }
-  if (digits.length === 10) {
-    return `+91${digits}`;
-  }
-  if (!contactNo.startsWith("+")) {
-    return `+91${digits}`;
-  }
-  return contactNo;
-}
-
 export function normalizeStudentInput(studentPayload) {
   // parse YYYY-MM-DD → YYYYMMDD integer for commitment; keep dob string for display
   const dobStr = String(studentPayload.dob ?? "").trim();
@@ -32,11 +17,9 @@ export function normalizeStudentInput(studentPayload) {
     name: String(studentPayload.name ?? "").trim(),
     email: String(studentPayload.email ?? "").trim().toLowerCase(),
     rollNo: String(studentPayload.rollNo ?? "").trim(),
-    programme: String(studentPayload.programme ?? "").trim(),       // retained as display field; not committed
     programmeLevel: String(studentPayload.programmeLevel ?? "").trim(),
     discipline: String(studentPayload.discipline ?? "").trim(),
     batch: Number(studentPayload.batch) || null,
-    contactNo: String(studentPayload.contactNo ?? "").trim(),       // retained as operational field; not committed
     dob: dobStr,                                                    // display string
     dobInt,                                                         // YYYYMMDD integer for commitment (leaf 2)
   };
@@ -48,8 +31,9 @@ export function sanitizeStudent(student) {
     name: student.name,
     email: student.email,
     rollNo: student.rollNo,
-    programme: student.programme,
-    contactNo: student.contactNo,
+    programmeLevel: student.programmeLevel,
+    discipline: student.discipline,
+    batch: student.batch,
     dob: student.dob,
     hashedData: student.hashedData,
     emailSent: student.emailSent,
@@ -139,11 +123,9 @@ export async function createStudent(studentPayload) {
     name: record.name,
     email: record.email,
     rollNo: record.rollNo,
-    programme: record.programme,
     programmeLevel: record.programmeLevel,
     discipline: record.discipline,
     batch: record.batch,
-    contactNo: record.contactNo,
     dob: record.dob,
     dobInt: record.dobInt,
     salts: record.salts,
@@ -243,7 +225,7 @@ export async function updateStudent(id, payload) {
   if (!student) throw new AppError("Student not found.", 404);
   if (student.revoked) throw new AppError("Cannot update a revoked credential.", 400);
 
-  const allowedFields = ["name", "programmeLevel", "discipline", "batch", "contactNo", "dob", "programme"];
+  const allowedFields = ["name", "programmeLevel", "discipline", "batch", "dob"];
   allowedFields.forEach((field) => {
     if (payload[field] !== undefined) student[field] = String(payload[field]).trim();
   });
