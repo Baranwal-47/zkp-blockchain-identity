@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-06-19T18:40:03.587Z"
-last_activity: 2026-06-19
+status: completed
+stopped_at: Phase 08 complete — clean stop, ready to plan Phase 09 (2026-06-21)
+last_updated: "2026-06-20T20:48:23.693Z"
+last_activity: 2026-06-20
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 12
-  completed_plans: 11
-  percent: 50
+  completed_plans: 12
+  percent: 75
 ---
 
 # Project State
@@ -21,20 +21,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-19)
 
 **Core value:** A student's credential is never stored in plaintext anywhere off-device; only the student (via their on-device secp256k1 key) can decrypt their own data to generate a proof.
-**Current focus:** Phase 08 — daily-access-flow
+**Current focus:** Phase 09 — crypto-shredding-erasure (Phase 08 complete)
 
 ## Current Position
 
-Phase: 08 (daily-access-flow) — EXECUTING
-Plan: 5 of 5
-Status: Tasks 1-2 complete (commits 8990a28, 5cc28f8); Task 3 blocking human-verify checkpoint pending — on-device two-phone QR verification required (also batches deferred Phase 07-04 Task 3). See 08-05-SUMMARY.md "Task 3 — Pending Checkpoint" for exact steps.
-Last activity: 2026-06-19
+Phase: 9
+Plan: Not started
+Status: Phase 08 complete
+Last activity: 2026-06-20
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 9
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -42,7 +42,8 @@ Last activity: 2026-06-19
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 7 | 4 | - | - |
+| 8 | 5 | - | - |
 
 **Recent Trend:**
 
@@ -89,11 +90,11 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- **BLOCKING — current checkpoint:** Phase 08 Plan 05 Task 3 — on-device end-to-end verification (enroll→claim→dashboard→view→generate→two-hop-verify), batching the deferred Phase 07-04 Task 3 claim-flow checkpoint into the same device session. Requires a physical/emulator device and ideally a second phone for the two-hop QR handshake. See `08-05-SUMMARY.md` "Task 3 — Pending Checkpoint" (or `08-05-PLAN.md` Task 3) for exact steps and the resume signal.
-- **Non-blocking cleanup, anytime:** `.planning/ROADMAP.md`'s "Target End-to-End UX" section + Phase 9 note, `08-DISCUSSION-LOG.md`, and memory file `e3_target_ux.md` still describe the old (superseded) Proof-ID/durable-store model — `08-CONTEXT.md` is the corrected source of truth and is what `/gsd:plan-phase` will read.
-- Phase 07-03 on-device RNG check: PASSED (confirmed this session); temporary probe removed from `App.js`; `07-03-SUMMARY.md` updated to PASS.
+- **DONE (2026-06-21):** Phase 08 Plan 05 Task 3 device checkpoint — on-device end-to-end verification (enroll→claim→dashboard→view→generate→two-hop-verify) performed and confirmed working by the user; this also cleared the batched Phase 07-04 claim-flow checkpoint. Phases 07 and 08 now marked complete. During verification, fixed nav param-loss, dekEnvelope JSON unwrap, added selective-disclosure binding (utils/identityEncoding.js + poseidon-lite) and a Dashboard logout.
+- **Non-blocking cleanup, anytime:** `.planning/ROADMAP.md`'s "Target End-to-End UX" section + Phase 9 note, `08-DISCUSSION-LOG.md`, and memory file `e3_target_ux.md` still describe the old (superseded) Proof-ID/durable-store model — `08-CONTEXT.md` is the corrected source of truth and is what `/gsd:plan-phase` will read. Revisit when planning Phase 09's revocation/verify-status surface.
+- Phase 07-03 on-device RNG check: PASSED; temporary probe removed from `App.js`; `07-03-SUMMARY.md` updated to PASS.
 
-Next: run the Phase 08 Plan 05 Task 3 device checkpoint above, then resume plan completion (STATE.md plan-advance, ROADMAP.md plan-progress, requirements mark-complete for ACCESS-02).
+Next: start Phase 09 (Crypto-Shredding Erasure) — run `/gsd:plan-phase 9`. Phase 09 has no directory/context/research yet (plan_count 0). Goal: destroying a student's DEK/envelope makes their ciphertext permanently unreadable (technical right-to-erasure).
 
 ### Blockers/Concerns
 
@@ -114,7 +115,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T18:39:58.556Z
-Stopped at: Completed 08-03-PLAN.md
+Last session: 2026-06-20T10:30:29.143Z
+Stopped at: context exhaustion at 76% (2026-06-20)
 Resume file: None
 </content>
