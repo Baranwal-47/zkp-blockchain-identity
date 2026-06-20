@@ -13,6 +13,8 @@ created: 2026-06-21
 
 Surface: `privdId_admin/frontend` (React 19 + Vite + Tailwind, **no component library/shadcn**). All tokens below are extracted verbatim from the existing shipped pages (`LoginPage.jsx`, `Layout.jsx`, `DashboardPage.jsx`, `StudentsTable.jsx`) and the shared utility classes in `src/index.css`. This phase introduces **zero new colors, sizes, or spacing values** — it reuses the existing dark zinc/blue admin theme exactly, including for the 3 new UI surfaces (Per-Role Login, Pending Approvals, Dashboard pending-status indicator).
 
+**Primary visual anchor — Pending Approvals screen:** the pending-transaction card list (Sign/Execute action cards) is the focal point of the screen; the "Signing as: {Role name}" identity banner (D-04) is secondary context displayed above the list, establishing identity before the user acts but not competing with the cards for visual weight.
+
 Note on `CLAUDE.md`'s "light modern indigo/neutral theme" line: the **already-shipped** `privdId_admin/frontend` is dark (zinc-900/black background, `#3b82f6` blue accent) — this is the live, working design system for this surface, not a future-state token system. Per the agent brief's instruction to "read the project's existing admin frontend design system... and reuse them," this contract follows what is actually built rather than retrofitting an unbuilt theme. Flag for a future `UI-01` token-system pass, not a Phase 9 concern.
 
 ---
@@ -54,18 +56,19 @@ Exceptions for this phase:
 
 ## Typography
 
-Source: extracted from `Layout.jsx` / `LoginPage.jsx` / `DashboardPage.jsx`. Declaring exactly 4 sizes + 2 weights — no new sizes/weights introduced.
+Source: extracted from `Layout.jsx` / `LoginPage.jsx` / `DashboardPage.jsx`. This phase's contract declares exactly 4 sizes + **2 weights** (400, 600) — no new sizes/weights introduced for the 3 new surfaces.
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Display (page heading, e.g. "Pending Approvals", "Official sign-in") | 24px (`text-2xl`, matches `LoginPage.jsx` h1 / `Layout.jsx` mobile h1) | 600 (semibold, `font-semibold`) | 1.2 |
 | Heading (panel/card heading, e.g. "Revoke — 22BCSD01") | 18-20px (`text-lg`/`text-xl`, matches `StudentsTable.jsx` "Students" heading) | 600 (semibold) | 1.2 |
 | Body (descriptions, signature-status text, helper copy) | 14px (`text-sm`, matches `Layout.jsx` subtitle / `StudentsTable.jsx` row text) | 400 (regular) | 1.5 |
-| Label / meta (eyebrow text, table headers, status pill text) | 12px (`text-xs`, matches `uppercase tracking-[0.35em]`/`tracking-[0.25em]` eyebrow + table header pattern) | 500 (medium, `font-medium`) — **note:** this introduces a 3rd weight tier (500) already present in the existing codebase's `.field-label` class; carrying it forward, not introducing it new | 1.4 |
+| Label / meta (eyebrow text, table headers, status pill text) | 12px (`text-xs`, matches `uppercase tracking-[0.35em]`/`tracking-[0.25em]` eyebrow + table header pattern) | 600 (semibold) — use the same semibold weight as Display/Heading, not a separate tier, for any *new* label/meta text this phase introduces | 1.4 |
 
 Notes:
-- Exactly 2 *primary* weights project-wide for body/heading hierarchy: 400 (regular body) and 600 (semibold headings/buttons — `.primary-button`, `.secondary-button`, `h1`/`h3` all use `font-semibold`). The existing `font-medium` (500) on `.field-label`/`.nav-link` is a pre-existing third tier reserved exclusively for labels/nav, carried forward unchanged — this phase does not add a 4th weight.
-- "Who is signing as" identity banner (D-04) uses the Heading role (18-20px, 600) for the official's name/role, with Label role (12px uppercase tracking) for the role badge — mirrors the existing eyebrow ("PrivdId Admin") + h1 pairing already used on every page.
+- Exactly 2 weights total for this phase's contract: 400 (regular body) and 600 (semibold — headings, buttons, and new label/meta text alike: `.primary-button`, `.secondary-button`, `h1`/`h3` all use `font-semibold`).
+- **Pre-existing, unchanged, not counted:** the shipped `.field-label`/`.nav-link` classes use `font-medium` (500) in the already-built codebase (e.g. form field labels on `StudentForm.jsx`). This phase does not touch, restyle, or extend those classes — they are out of scope, carried forward as-is, and excluded from this contract's 2-weight count, same exception pattern as the spacing scale's 44px touch-target note above. If this phase's new label/meta text (table headers, status pill text, eyebrow on new screens) needs a non-400 weight, use 600 — do not reach for `.field-label`'s 500.
+- "Who is signing as" identity banner (D-04) uses the Heading role (18-20px, 600) for the official's name/role, with Label role (12px uppercase tracking, 600) for the role badge — mirrors the existing eyebrow ("PrivdId Admin") + h1 pairing already used on every page.
 
 ---
 
