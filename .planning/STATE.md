@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: completed
-stopped_at: v2.0 (E3) complete — Phases 6-8 done; Phase 9 erasure moved to E6 (2026-06-21)
-last_updated: "2026-06-20T21:11:29.151Z"
-last_activity: 2026-06-20
+status: Awaiting next milestone
+stopped_at: context exhaustion at 76% (2026-06-20)
+last_updated: "2026-06-20T21:19:15.556Z"
+last_activity: 2026-06-20 — Milestone v2.0 completed and archived
 progress:
   total_phases: 3
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-06-19)
 
 ## Current Position
 
-Phase: — (v2.0 milestone complete; Phases 6-8 done)
+Phase: Milestone v2.0 complete
 Plan: —
-Status: v2.0 (E3) delivered. ERASE-01 → E6-04 (erasure needs E6's destroyable Shamir custody). Ready to scope the next milestone.
-Last activity: 2026-06-21
+Status: Awaiting next milestone
+Last activity: 2026-06-20 — Milestone v2.0 completed and archived
 
 ## Performance Metrics
 
@@ -119,3 +119,7 @@ Last session: 2026-06-20T10:30:29.143Z
 Stopped at: context exhaustion at 76% (2026-06-20)
 Resume file: None
 </content>
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
