@@ -47,18 +47,18 @@ Spec source: `docs/CLAUDE_CODE_BLUEPRINT.md` §E5, §E6, §16.2. Same 7-attribut
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GOV-01 | TBD | Not started |
-| GOV-02 | TBD | Not started |
-| GOV-03 | TBD | Not started |
-| GOV-04 | TBD | Not started |
-| CUST-01 | TBD | Not started |
-| CUST-02 | TBD | Not started |
-| CUST-03 | TBD | Not started |
-| REC-01 | TBD | Not started |
-| REC-02 | TBD | Not started |
-| REC-03 | TBD | Not started |
-| REC-04 | TBD | Not started |
-| ERASE-01 | TBD | Not started |
-| ERASE-02 | TBD | Not started |
+| GOV-01 | 9 | Not started |
+| GOV-02 | 9 | Not started |
+| GOV-03 | 9 | Not started |
+| GOV-04 | 9 | Not started |
+| CUST-01 | 10 | Not started |
+| CUST-02 | 10 | Not started |
+| CUST-03 | 10 | Not started |
+| REC-01 | 11 | Not started |
+| REC-02 | 11 | Not started |
+| REC-03 | 11 | Not started |
+| REC-04 | 11 | Not started |
+| ERASE-01 | 11 | Not started |
+| ERASE-02 | 11 | Not started |
 
-Coverage: 13 active v3.0 requirements (E5 ×4, E6 custody ×3, E6 recovery ×4, E6-04 erasure ×2). Phase mapping filled by the roadmapper.
+Coverage: 13 active v3.0 requirements (E5 ×4, E6 custody ×3, E6 recovery ×4, E6-04 erasure ×2) — 13/13 mapped across Phases 9-11 (Phase 9: E5 governance; Phase 10: E6 custody split; Phase 11: E6 recovery + erasure).

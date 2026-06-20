@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Governance & Custody (E5 + E6)
 status: planning
-last_updated: "2026-06-20T21:21:24.967Z"
-last_activity: 2026-06-20
+last_updated: "2026-06-21T01:28:00.000Z"
+last_activity: 2026-06-21
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-19)
 
 **Core value:** A student's credential is never stored in plaintext anywhere off-device; only the student (via their on-device secp256k1 key) can decrypt their own data to generate a proof.
-**Current focus:** v2.0 (E3) delivered — Phases 6-8 complete. Phase 9 (crypto-shredding) was removed from v2.0 and folded into the E6 milestone as E6-04 (Path 1, 2026-06-21). Next: scope the E5/E6 milestone.
+**Current focus:** v2.0 (E3) delivered — Phases 6-8 complete. v3.0 roadmap created (Phases 9-11: E5 Safe governance, E6 custody split, E6 recovery+erasure) — 13/13 requirements mapped. Next: `/gsd:plan-phase 9`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 9 (Multisig Registry Governance) — not yet planned
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-20 — Milestone v3.0 started
+Status: Roadmap created, awaiting plan-phase
+Last activity: 2026-06-21 — v3.0 ROADMAP.md + REQUIREMENTS.md traceability written (Phases 9-11, 13/13 requirements mapped)
 
 ## Performance Metrics
 
@@ -93,7 +93,7 @@ Recent decisions affecting current work:
 - **Non-blocking cleanup, anytime:** `.planning/ROADMAP.md`'s "Target End-to-End UX" section + Phase 9 note, `08-DISCUSSION-LOG.md`, and memory file `e3_target_ux.md` still describe the old (superseded) Proof-ID/durable-store model — `08-CONTEXT.md` is the corrected source of truth and is what `/gsd:plan-phase` will read. Revisit when planning Phase 09's revocation/verify-status surface.
 - Phase 07-03 on-device RNG check: PASSED; temporary probe removed from `App.js`; `07-03-SUMMARY.md` updated to PASS.
 
-Next: v2.0 (E3) is functionally complete (Phases 6-8). Start the next milestone with `/gsd:new-milestone` to scope **E5 (Gnosis Safe 2-of-3 governance)** and **E6 (Shamir 2-of-3 custody + recovery)** — and fold crypto-shredding erasure in there as **E6-04** (destroy ≥2 of 3 shares → DEK unreconstructable). Do NOT run `/gsd:plan-phase 9`; Phase 9 was removed from v2.0. Optional before that: `/gsd:complete-milestone` to archive v2.0 phase dirs.
+Next: v3.0 roadmap is in place (Phases 9-11). Run `/gsd:plan-phase 9` to plan Multisig Registry Governance (E5) first — it has no dependency on the Shamir track. Phase 10 (custody split) and Phase 11 (recovery + erasure) follow in sequence; Phase 11 depends on both 9 and 10.
 
 ### Blockers/Concerns
 
