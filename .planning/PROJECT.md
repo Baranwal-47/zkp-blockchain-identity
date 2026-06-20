@@ -2,22 +2,22 @@
 
 ## What This Is
 
-PrivdID is a privacy-preserving student identity verification system for IIITDM Jabalpur, built on ZK-SNARKs, IPFS, and Ethereum. The v1.0 milestone rebuilt the cryptographic core: the current circuit is an E1 depth-3 Merkle tree of per-attribute salted commitments with E2 verifier-nonce replay protection, deployed and benchmarked end-to-end. **This milestone (v2.0) adds E3**: encrypted, holder-controlled IPFS storage — credentials are AES-256-GCM encrypted, the DEK is ECIES-wrapped to an on-device student keypair, and the student becomes the sole party who can decrypt their own credential for daily proof generation.
+PrivdID is a privacy-preserving student identity verification system for IIITDM Jabalpur, built on ZK-SNARKs, IPFS, and Ethereum. v1.0 rebuilt the cryptographic core (E1 depth-3 Merkle tree of salted commitments + E2 verifier-nonce replay protection, deployed and benchmarked). v2.0 shipped E3: credentials are AES-256-GCM encrypted with the DEK ECIES-wrapped to an on-device student keypair, so only the student can decrypt their own credential for proof generation. **This milestone (v3.0) adds E5 + E6**: 2-of-3 threshold control by the same three officials (AcadAdmin, Asst. Registrar, Dean) — a Gnosis Safe gates on-chain writes (E5), and Shamir 2-of-3 shares gate access to the encrypted DEK, enabling key recovery and real crypto-shredding erasure (E6, incl. E6-04).
 
 ## Core Value
 
 A student's credential is never stored in plaintext anywhere off-device. Only the student (via their on-device secp256k1 key) can decrypt their own data to generate a proof; admin/custodians can pin/manage ciphertext but cannot read it. If everything else fails, this encrypt → wrap → claim → decrypt loop must work end-to-end without ever leaking the DEK or private key off-device.
 
-## Current Milestone: v2.0 E3 — Encrypted Holder-Controlled Storage
+## Current Milestone: v3.0 — Governance & Custody (E5 + E6)
 
-**Goal:** Credentials on IPFS are AES-256-GCM encrypted with the DEK ECIES-wrapped to an on-device student keypair, so only the student can decrypt their own data.
+**Goal:** Replace the single-EOA admin and single-custody DEK with 2-of-3 threshold control by the same three officials — a Gnosis Safe gates on-chain writes (E5); Shamir 2-of-3 shares gate access to the encrypted DEK, enabling key recovery and crypto-shredding erasure (E6).
 
 **Target features:**
-- AES-256-GCM credential encryption + ECIES DEK wrapping
-- On-device secp256k1 student keypair (SecureStore)
-- Two-phase enrollment (admin holds DEK → student claims → backend wraps + wipes)
-- Normal daily access flow (unwrap → decrypt → server-side proof gen)
-- Crypto-shredding erasure
+- E5: `CredentialRegistry` 2-step admin transfer → ownership held by a Gnosis Safe 2-of-3
+- E5: backend `safeService.js` wrapping propose → sign → execute for issue/revoke
+- E6: Shamir 2-of-3 split of the 32-byte DEK; 3 separated custodian stores
+- E6: recovery flow — `/recovery/initiate` + `/recovery/submit-share` → reconstruct on 2 shares → re-wrap to new keypair → wipe
+- E6-04: crypto-shredding erasure — destroy ≥2 shares ⇒ DEK unreconstructable (real GDPR/DPDPA erasure)
 
 ## Requirements
 
@@ -33,27 +33,31 @@ A student's credential is never stored in plaintext anywhere off-device. Only th
 - ✓ ZKP backend: new 19-signal proof shape; nonce lifecycle (issue → match → 5-min freshness → one-time use)
 - ✓ Benchmarked: constraint count, proof-gen, off-/on-chain verify, nonce ops, QR payload size (mean ± σ, n≥19) — `docs/improvement/PERFORMANCE_METRICS_E1E2.md`
 
+<!-- Shipped in v2.0 E3 (completed 2026-06-20). -->
+
+- ✓ AES-256-GCM credential encryption: random 32-byte per-student DEK, only ciphertext pinned (`ciphertextCID`) — v2.0 (STORE-01/02)
+- ✓ ECIES DEK wrapping (`eciesjs`) to an on-device secp256k1 keypair → `dekEnvelopeCID` — v2.0
+- ✓ On-device secp256k1 student keypair, private key in `expo-secure-store`, never exported; public key sent to backend — v2.0 (KEY-01/02)
+- ✓ Two-phase enrollment (admin holds DEK → student claims → backend wraps + wipes, `enrollmentPhase` active) — v2.0 (ENROLL-01/02)
+- ✓ Daily access: fetch both CIDs, unwrap + decrypt on-device, send only `{attrs, salts, nonce, currentDateInt}` to ZKP backend — v2.0 (ACCESS-01/02)
+
 ### Active
 
-<!-- v2.0 milestone: E3 encrypted holder-controlled IPFS storage. -->
+<!-- v3.0 milestone: E5 Gnosis Safe governance + E6 Shamir custody/recovery/erasure. Requirements defined in REQUIREMENTS.md. -->
 
-- [ ] AES-256-GCM credential encryption: admin backend generates a random 32-byte DEK, encrypts the credential JSON (7 attrs + 7 salts + merkleRoot + metadata), pins ciphertext → `ciphertextCID`
-- [ ] ECIES DEK wrapping (`eciesjs`) to an on-device secp256k1 student keypair → `dekEnvelopeCID`; only the student's private key can unwrap it
-- [ ] Student keypair generated on-device at first login, private key in `expo-secure-store`, never exported; public key sent to backend
-- [ ] Two-phase enrollment: admin enrolls + holds DEK (`enrollmentPhase: awaiting-keypair`) → student claims via `ClaimCredentialScreen` on first login → backend wraps DEK with student pubkey, wipes plaintext DEK, sets `enrollmentPhase: active`
-- [ ] Normal daily access: app fetches both CIDs, ECIES-unwraps DEK on-device, AES-GCM decrypts, sends plaintext `{attrs, salts, nonce, currentDateInt}` to ZKP backend over HTTPS for proof gen — DEK and private key never leave the device
-- [ ] Crypto-shredding erasure: destroying the DEK makes the ciphertext permanently unreadable (GDPR/DPDPA right-to-erasure story)
-- [ ] Backend additions: `crypto/aesgcm.js`, `crypto/ecies.js`, `credentialService.js` pins ciphertext + envelope instead of plaintext; `POST /students/:id/pubkey`, `GET /credential/:rollNo/blobs`
-- [ ] MongoDB schema: `ciphertextCID`, `dekEnvelopeCID`, `enrollmentPhase` fields added to student record
+- [ ] E5: `CredentialRegistry` 2-step admin transfer (`transferAdmin`/`acceptAdmin`); ownership moved to a Gnosis Safe 2-of-3 (AcadAdmin, Asst. Registrar, Dean)
+- [ ] E5: backend `services/safeService.js` wraps propose → sign → execute (`@safe-global/protocol-kit` + `api-kit`) for `issueCredential`/`revoke`
+- [ ] E6: `crypto/shamir.js` — `splitDEK(dek) → [A,B,C]`, `reconstructDEK([s1,s2]) → dek` (2-of-3 over the 32-byte DEK)
+- [ ] E6: 3 separated custodian stores so no single party holds ≥2 shares (Share A admin DB; B/C in stores admin can't read)
+- [ ] E6: recovery flow — `POST /recovery/initiate` + `POST /recovery/submit-share`; reconstruct in-memory on 2 authenticated shares, re-wrap/modify, then wipe
+- [ ] E6-04: crypto-shredding erasure — destroy ≥2 of 3 shares ⇒ DEK permanently unreconstructable (the GDPR/DPDPA erasure E3 couldn't deliver)
 
 ### Out of Scope
 
-- E5 Gnosis Safe 2-of-3 governance + registry admin transfer — deferred
-- E6 Shamir 2-of-3 key recovery — deferred. Consequence: the DEK held in memory during `awaiting-keypair` has no real 2-of-3 custodial split this milestone — single-custody in admin backend memory until the student claims, accepted as a deliberate interim gap until E6 ships
 - E4 post-quantum — explicitly out of scope for the entire project
 - UI redesign / theme token system (§9) — deferred
-- Auth/bcrypt/session-JWT/rate-limit hardening (§12.3–5) — deferred
-- Data migration of existing test students' plaintext-pinned credentials — wipe and re-seed instead, consistent with v1.0's approach
+- Auth/bcrypt/session-JWT/rate-limit hardening (§12.3–5) — deferred, EXCEPT the custodian/recovery-submission auth E6 requires (in scope this milestone)
+- Data migration of existing test students' plaintext-pinned credentials — wipe and re-seed instead, consistent with v1.0/v2.0's approach
 
 ## Context
 
@@ -75,10 +79,12 @@ A student's credential is never stored in plaintext anywhere off-device. Only th
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| This milestone = E3 only; E5/E6/UI remain deferred | E3 (storage privacy) is the most isolated of the remaining enhancements — doesn't require Gnosis Safe or Shamir infra to deliver real value | — Pending |
-| DEK held in backend memory (not real Shamir) during awaiting-keypair | E6 is deferred; a real 2-of-3 split needs E6's custodian infra which doesn't exist yet | — Pending |
-| Proof generation stays server-side | On-device Groth16 in Expo is heavy; DEK/private key still never leave device | — Pending |
-| Milestone versioned v2.0, not v1.1 | First milestone after v1.0 circuit rebuild shipped; E3 introduces a new architecture layer (storage/encryption), not a patch | — Pending |
+| v2.0 = E3 only; E5/E6/UI deferred | E3 (storage privacy) is the most isolated remaining enhancement — no Gnosis Safe/Shamir infra needed to deliver value | ✓ Good — shipped v2.0 |
+| DEK held in backend memory (not real Shamir) during awaiting-keypair | E6 was deferred; a real 2-of-3 split needs E6's custodian infra | ⚠️ Interim gap — closed by E6-03 this milestone (v3.0) |
+| Proof generation stays server-side | On-device Groth16 in Expo is heavy; DEK/private key still never leave device | ✓ Good |
+| Milestone versioned v2.0, not v1.1 | First milestone after v1.0 circuit rebuild; E3 is a new architecture layer, not a patch | ✓ Good |
+| v3.0 bundles E5 + E6 (not split into two milestones) | Same 3 officials, complementary mechanisms; shipping governance without recovering the custody gap (E6-03) leaves v2.0's interim single-custody open. E5/E6 are also the last in-scope enhancements (E4 out). | — Pending |
+| v3.0 versioned major (not v2.1) | E5 (multisig governance) + E6 (threshold custody) add new architecture layers, not a patch on E3 storage | — Pending |
 | Phase 9 (crypto-shredding) removed from v2.0; erasure folded into E6 as E6-04 (2026-06-21) | Reliable erasure needs a destroyable custodial key; post-claim the institution no longer holds the DEK, so in the E3 model erasure is best-effort only (unpin ≠ IPFS delete, student device copy out of reach). E6's Shamir 2-of-3 makes "destroy ≥2 shares → DEK unreconstructable" a clean, auditable erasure. Proof-level revocation already exists (on-chain `revoked` flag), so no runtime-security gap is left open. | ✅ v2.0 closes at Phase 8; ERASE-01 → E6-04 |
 
 ## Evolution
@@ -99,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-19 — milestone v2.0 (E3) started*
+*Last updated: 2026-06-21 — v2.0 (E3) shipped & archived; milestone v3.0 (E5+E6) started*
