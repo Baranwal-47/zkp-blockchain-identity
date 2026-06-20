@@ -79,6 +79,7 @@ A student's credential is never stored in plaintext anywhere off-device. Only th
 | DEK held in backend memory (not real Shamir) during awaiting-keypair | E6 is deferred; a real 2-of-3 split needs E6's custodian infra which doesn't exist yet | — Pending |
 | Proof generation stays server-side | On-device Groth16 in Expo is heavy; DEK/private key still never leave device | — Pending |
 | Milestone versioned v2.0, not v1.1 | First milestone after v1.0 circuit rebuild shipped; E3 introduces a new architecture layer (storage/encryption), not a patch | — Pending |
+| Phase 9 (crypto-shredding) removed from v2.0; erasure folded into E6 as E6-04 (2026-06-21) | Reliable erasure needs a destroyable custodial key; post-claim the institution no longer holds the DEK, so in the E3 model erasure is best-effort only (unpin ≠ IPFS delete, student device copy out of reach). E6's Shamir 2-of-3 makes "destroy ≥2 shares → DEK unreconstructable" a clean, auditable erasure. Proof-level revocation already exists (on-chain `revoked` flag), so no runtime-security gap is left open. | ✅ v2.0 closes at Phase 8; ERASE-01 → E6-04 |
 
 ## Evolution
 

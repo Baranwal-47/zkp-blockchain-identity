@@ -27,10 +27,6 @@ Scope = blueprint §E3 (E3.1–E3.6). Each maps to roadmap phases.
 - [x] **ACCESS-01**: `GET /credential/:rollNo/blobs` returns both `ciphertextCID` and `dekEnvelopeCID` for an active student
 - [x] **ACCESS-02**: The app fetches both blobs, ECIES-unwraps the DEK with the on-device private key, AES-GCM decrypts the credential JSON, and sends only `{attrs, salts, nonce, currentDateInt}` to the existing ZKP backend over HTTPS to generate a proof — the DEK and private key never leave the device
 
-### Erasure
-
-- [ ] **ERASE-01**: Destroying a student's DEK (crypto-shredding) makes their ciphertext on IPFS permanently unreadable, satisfying the GDPR/DPDPA right-to-erasure story
-
 ## Deferred Requirements
 
 Tracked, not in this roadmap.
@@ -45,6 +41,7 @@ Tracked, not in this roadmap.
 - **E6-01**: Shamir 2-of-3 split/reconstruct over the DEK; custodian share distribution
 - **E6-02**: Recovery flows (record modification, lost-key re-wrap)
 - **E6-03**: Replace this milestone's single-custody DEK-in-memory interim gap (ENROLL-01) with a real 2-of-3 Shamir split once E6 ships
+- **E6-04** (was **ERASE-01**, moved out of v2.0 on 2026-06-21): Crypto-shredding right-to-erasure — destroy ≥2 of the 3 Shamir shares so the DEK is permanently unreconstructable and the IPFS ciphertext stays unreadable. Moved here because reliable erasure needs the destroyable custodial shares E6 introduces; in the E3 model the institution no longer holds the DEK after claim, so erasure would be best-effort only (unpinning IPFS ≠ deletion, and the student's device copy is out of reach). Note: proof-level *revocation* already exists (on-chain `revoked` flag, checked at verify) — E6-04 adds only the stronger data-erasure guarantee.
 
 ### UI & Hardening
 
@@ -72,9 +69,9 @@ Tracked, not in this roadmap.
 | ENROLL-02 | Phase 7 | Complete |
 | ACCESS-01 | Phase 8 | Complete |
 | ACCESS-02 | Phase 8 | Complete |
-| ERASE-01 | Phase 9 | Pending |
+| ERASE-01 → E6-04 | Deferred to E6 | Moved 2026-06-21 |
 
-Coverage: 9/9 v2.0 requirements mapped. No orphans.
+Coverage: 8/8 active v2.0 requirements complete (Phases 6–8). ERASE-01 moved to E6-04 (Path 1 — erasure folds into E6's Shamir custody). No orphans.
 
 ---
 *Requirements defined: 2026-06-19*

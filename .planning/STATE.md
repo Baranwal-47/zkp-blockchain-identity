@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 08 complete — clean stop, ready to plan Phase 09 (2026-06-21)
-last_updated: "2026-06-20T20:48:23.693Z"
+stopped_at: v2.0 (E3) complete — Phases 6-8 done; Phase 9 erasure moved to E6 (2026-06-21)
+last_updated: "2026-06-20T21:11:29.151Z"
 last_activity: 2026-06-20
 progress:
-  total_phases: 4
+  total_phases: 3
   completed_phases: 3
   total_plans: 12
   completed_plans: 12
-  percent: 75
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-19)
 
 **Core value:** A student's credential is never stored in plaintext anywhere off-device; only the student (via their on-device secp256k1 key) can decrypt their own data to generate a proof.
-**Current focus:** Phase 09 — crypto-shredding-erasure (Phase 08 complete)
+**Current focus:** v2.0 (E3) delivered — Phases 6-8 complete. Phase 9 (crypto-shredding) was removed from v2.0 and folded into the E6 milestone as E6-04 (Path 1, 2026-06-21). Next: scope the E5/E6 milestone.
 
 ## Current Position
 
-Phase: 9
-Plan: Not started
-Status: Phase 08 complete
-Last activity: 2026-06-20
+Phase: — (v2.0 milestone complete; Phases 6-8 done)
+Plan: —
+Status: v2.0 (E3) delivered. ERASE-01 → E6-04 (erasure needs E6's destroyable Shamir custody). Ready to scope the next milestone.
+Last activity: 2026-06-21
 
 ## Performance Metrics
 
@@ -94,7 +94,7 @@ Recent decisions affecting current work:
 - **Non-blocking cleanup, anytime:** `.planning/ROADMAP.md`'s "Target End-to-End UX" section + Phase 9 note, `08-DISCUSSION-LOG.md`, and memory file `e3_target_ux.md` still describe the old (superseded) Proof-ID/durable-store model — `08-CONTEXT.md` is the corrected source of truth and is what `/gsd:plan-phase` will read. Revisit when planning Phase 09's revocation/verify-status surface.
 - Phase 07-03 on-device RNG check: PASSED; temporary probe removed from `App.js`; `07-03-SUMMARY.md` updated to PASS.
 
-Next: start Phase 09 (Crypto-Shredding Erasure) — run `/gsd:plan-phase 9`. Phase 09 has no directory/context/research yet (plan_count 0). Goal: destroying a student's DEK/envelope makes their ciphertext permanently unreadable (technical right-to-erasure).
+Next: v2.0 (E3) is functionally complete (Phases 6-8). Start the next milestone with `/gsd:new-milestone` to scope **E5 (Gnosis Safe 2-of-3 governance)** and **E6 (Shamir 2-of-3 custody + recovery)** — and fold crypto-shredding erasure in there as **E6-04** (destroy ≥2 of 3 shares → DEK unreconstructable). Do NOT run `/gsd:plan-phase 9`; Phase 9 was removed from v2.0. Optional before that: `/gsd:complete-milestone` to archive v2.0 phase dirs.
 
 ### Blockers/Concerns
 

@@ -32,7 +32,6 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Encryption & Ciphertext Storage** - Admin backend encrypts every credential with a per-student AES-256-GCM DEK and pins only ciphertext to IPFS — no plaintext blob exists post-encryption (completed 2026-06-19)
 - [x] **Phase 7: Student Keypair & Two-Phase Enrollment** - Students get an on-device secp256k1 keypair at first login, and claiming a credential ECIES-wraps the escrowed DEK to that keypair, ending single-custody of the DEK (completed 2026-06-20)
 - [x] **Phase 8: Daily Access Flow** - An active student's app fetches both CIDs, unwraps the DEK on-device, decrypts the credential locally, and generates a proof via the existing ZKP backend without the DEK or private key ever leaving the device (completed 2026-06-20)
-- [ ] **Phase 9: Crypto-Shredding Erasure** - Destroying a student's DEK/envelope makes their ciphertext permanently unreadable, satisfying the GDPR/DPDPA right-to-erasure story
 
 ## Phase Details
 
@@ -94,29 +93,3 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 08-05-PLAN.md — Verify Proof two-hop QR (D-09) + App.js wiring/legacy deletion (D-04) + device checkpoint [Wave 3]
 
 **UI scope still missing from the success criteria above** — see "Target End-to-End UX" section: Dashboard (3 buttons), View Credentials screen, Generate Proof screen (attribute checkboxes + nonce entry + Proof ID/Verification URL result). Must be added during `/gsd:plan-phase` for this phase, not assumed.
-
-### Phase 9: Crypto-Shredding Erasure
-
-**Goal**: A custodian can permanently and verifiably revoke a student's ability to ever decrypt their stored credential again by destroying the DEK material, giving the system a real technical right-to-erasure mechanism rather than a policy promise.
-**Depends on**: Phase 7 (requires the envelope/DEK custody model to exist)
-**Requirements**: ERASE-01
-**Success Criteria** (what must be TRUE):
-
-  1. Triggering erasure for a student destroys the only path to recovering their DEK (the envelope and/or any escrowed copy), with no backup plaintext DEK retained anywhere in the system.
-  2. After erasure, attempting the Phase 8 daily-access flow for that student fails to recover a usable DEK — the ciphertext on IPFS remains physically present but is permanently unreadable.
-  3. The erasure action is auditable (recorded against the student record, e.g. a revoked/erased status or timestamp) so it is distinguishable from a transient fetch failure.
-
-**Net-new scope likely belongs here** — see "Target End-to-End UX": the **Verify Proof** screen's "check revocation status" step needs this phase's erasure/revocation state to be queryable by the verify-by-Proof-ID lookup (Phase 8). Confirm during planning whether the persistent Proof-ID store itself is built here or in Phase 8.
-**Plans**: TBD
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 6 → 7 → 8 → 9
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 6. Encryption & Ciphertext Storage | 3/3 | Complete   | 2026-06-19 |
-| 7. Student Keypair & Two-Phase Enrollment | 4/4 | Complete    | 2026-06-20 |
-| 8. Daily Access Flow | 5/5 | Complete    | 2026-06-20 |
-| 9. Crypto-Shredding Erasure | 0/TBD | Not started | - |
