@@ -1,6 +1,9 @@
 /**
- * GenerateProofScreen.js — checklist (consent) + manual nonce + /generate-proof
- * call + result QR (Phase 8 Plan 04).
+ * GenerateProofScreen.js — scan-or-enter the verifier's challenge QR
+ * ({nonce, sessionId, requestedFields}), checklist (consent, pre-checked from
+ * requestedFields but freely editable) + /generate-proof call + result QR
+ * carrying {proof, publicSignals, sessionId} for the verifier's /verify-onchain
+ * step (Phase 8 Plan 04, reworked for the QR challenge/response loop).
  *
  * Checkbox-to-reveal-key mapping (Task 1 checkpoint, resolved: map-a):
  *   "Name"             -> name: true
@@ -28,7 +31,7 @@
  * Never logs the DEK, private key, or decrypted plaintext (T-08-04/T-08-07).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -69,6 +72,19 @@ export const REVEAL_KEY_MAP = {
 };
 
 export const CHECKLIST_LABELS = Object.keys(REVEAL_KEY_MAP);
+
+// Frozen circuit attr order (identity.circom / witnessBuilder.js ATTR_KEYS) ->
+// human label, for decoding a proof's revealMask back into readable field
+// names on the verifier's result screen.
+export const ATTR_DISPLAY_LABELS = {
+  name: 'Name',
+  rollNo: 'Roll No',
+  dob: 'Date of Birth',
+  programmeLevel: 'Degree Program',
+  discipline: 'Discipline',
+  batch: 'Graduation Year',
+  email: 'Email',
+};
 
 /**
  * buildRevealMap(checkedLabels) -> { name, rollNo, dob, programmeLevel,
@@ -120,31 +136,75 @@ export function AttributeChecklist({ checked, onToggle, note }) {
 }
 
 export default function GenerateProofScreen({ route, navigation }) {
-  const { rollNo, requestedFields, fromVerifierRequest } = route.params || {};
+  const { rollNo } = route.params || {};
 
-  const initialChecked = {};
-  if (fromVerifierRequest && Array.isArray(requestedFields)) {
-    requestedFields.forEach(label => {
-      if (CHECKLIST_LABELS.includes(label)) {
-        initialChecked[label] = true;
-      }
-    });
-  }
-
-  const [checked, setChecked] = useState(initialChecked);
-  const [nonce, setNonce] = useState('');
+  const [checked, setChecked] = useState({});
+  // The verifier's challenge — { nonce, sessionId, requestedFields } — scanned
+  // or pasted in. Required before a proof can be generated, since
+  // /verify-onchain needs sessionId to consume the nonce (it was issued by
+  // the verifier's /session/nonce call, never invented client-side).
+  const [challenge, setChallenge] = useState(null);
+  const [showManualChallengeInput, setShowManualChallengeInput] = useState(false);
+  const [manualChallengeText, setManualChallengeText] = useState('');
+  const [challengeError, setChallengeError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState(null);
   const [submitError, setSubmitError] = useState(null);
-  const [result, setResult] = useState(null); // { proof, publicSignals }
+  const [result, setResult] = useState(null); // { proof, publicSignals, sessionId }
+
+  // Picked up after QRScannerScreen navigates back here with a scanned
+  // challenge payload.
+  useEffect(() => {
+    const scanned = route.params?.scannedChallengePayload;
+    if (scanned) {
+      applyChallenge(scanned);
+      navigation.setParams({ scannedChallengePayload: undefined });
+    }
+  }, [route.params?.scannedChallengePayload]);
+
+  const applyChallenge = payload => {
+    setChallenge(payload);
+    setChallengeError(null);
+    setShowManualChallengeInput(false);
+    setManualChallengeText('');
+    const requested = {};
+    (payload.requestedFields || []).forEach(label => {
+      if (CHECKLIST_LABELS.includes(label)) {
+        requested[label] = true;
+      }
+    });
+    setChecked(prev => ({ ...prev, ...requested }));
+  };
 
   const handleToggle = label => {
     setChecked(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
+  const handleScanChallenge = () => {
+    navigation.navigate('QRScannerScreen');
+  };
+
+  const handleManualChallengeSubmit = () => {
+    try {
+      const payload = JSON.parse(manualChallengeText);
+      if (!payload.nonce || !payload.sessionId) {
+        setChallengeError("That doesn't look like a verifier challenge code.");
+        return;
+      }
+      applyChallenge(payload);
+    } catch (error) {
+      setChallengeError("Couldn't read that code. Check it and try again.");
+    }
+  };
+
   const handleGenerateProof = async () => {
     setValidationError(null);
     setSubmitError(null);
+
+    if (!challenge) {
+      setValidationError("Scan or enter the verifier's challenge first.");
+      return;
+    }
 
     const checkedLabels = CHECKLIST_LABELS.filter(label => checked[label]);
     if (checkedLabels.length === 0) {
@@ -165,10 +225,15 @@ export default function GenerateProofScreen({ route, navigation }) {
       const { ciphertextCID, dekEnvelopeCID } = blobsData;
 
       // 2. fetch both objects from the IPFS gateway
-      const [ciphertextBlob, dekEnvelopeBase64] = await Promise.all([
+      const [ciphertextBlob, dekEnvelopeJson] = await Promise.all([
         fetch(`${IPFS_GATEWAY_BASE}${ciphertextCID}`).then(r => r.json()),
-        fetch(`${IPFS_GATEWAY_BASE}${dekEnvelopeCID}`).then(r => r.text()),
+        fetch(`${IPFS_GATEWAY_BASE}${dekEnvelopeCID}`).then(r => r.json()),
       ]);
+      // Pinata's pinJSONToIPFS wraps content as JSON, so the envelope is pinned
+      // as { dekEnvelope: "<base64>" }, not a bare base64 string — extract the
+      // field (matches ViewCredentialsScreen; passing the raw JSON to unwrapDEK
+      // decodes to garbage and throws "bad point" in eciesjs).
+      const dekEnvelopeBase64 = dekEnvelopeJson.dekEnvelope;
 
       // 3. unwrap DEK on-device (Plan 08-02)
       const dek = await unwrapDEK(dekEnvelopeBase64);
@@ -188,6 +253,31 @@ export default function GenerateProofScreen({ route, navigation }) {
       };
 
       const reveal = buildRevealMap(checkedLabels);
+
+      // Plaintext of the revealed fields, carried in the result QR so the
+      // verifier can display the actual content. The proof's public signals
+      // only carry Poseidon hashes for the string fields (name/rollNo/email),
+      // so the content itself can't be recovered from the proof alone — the
+      // student explicitly chose to reveal these (reveal{} above). The verifier
+      // BINDS these back to the proof's revealedValue[] signals on-device
+      // (utils/identityEncoding.js), so a tampered value is rejected.
+      const dobDisplay = String(cred.dobInt || '').replace(
+        /^(\d{4})(\d{2})(\d{2})$/,
+        '$1-$2-$3'
+      );
+      const revealedSource = {
+        name: cred.name,
+        rollNo: cred.rollNo,
+        dob: dobDisplay,
+        programmeLevel: cred.programmeLevel,
+        discipline: cred.discipline,
+        batch: String(cred.batch ?? ''),
+        email: cred.email,
+      };
+      const revealed = Object.keys(revealedSource)
+        .filter(key => reveal[key])
+        .reduce((acc, key) => ({ ...acc, [key]: revealedSource[key] }), {});
+
       const currentDateInt = Number(
         new Date().toISOString().slice(0, 10).replace(/-/g, '')
       );
@@ -199,7 +289,7 @@ export default function GenerateProofScreen({ route, navigation }) {
           attrs,
           salts: cred.salts, // Pitfall 2: never omit
           reveal,
-          nonce: nonce.trim(),
+          nonce: challenge.nonce,
           currentDateInt,
         }),
       });
@@ -209,12 +299,20 @@ export default function GenerateProofScreen({ route, navigation }) {
         throw new Error(data.message || 'Failed to generate proof');
       }
 
-      setResult({ proof: data.proof, publicSignals: data.publicSignals });
+      // sessionId rides along in the result QR (not sent to /generate-proof
+      // itself) so the verifier's /verify-onchain call can consume the nonce.
+      setResult({
+        proof: data.proof,
+        publicSignals: data.publicSignals,
+        sessionId: challenge.sessionId,
+        revealed,
+      });
     } catch (error) {
+      // Never logs DEK/key/plaintext — `error` here is always a fetch/HTTP-
+      // layer Error with a safe backend-supplied or network-layer message.
+      console.error('[GenerateProofScreen] generate-proof failed:', error);
       setSubmitError(
-        error.message
-          ? `Couldn't generate proof. Check your challenge code and try again.`
-          : `Couldn't generate proof. Check your challenge code and try again.`
+        error.message || "Couldn't generate proof. Check your challenge code and try again."
       );
     } finally {
       setLoading(false);
@@ -230,6 +328,8 @@ export default function GenerateProofScreen({ route, navigation }) {
     const qrValue = JSON.stringify({
       proof: result.proof,
       publicSignals: result.publicSignals,
+      sessionId: result.sessionId,
+      revealed: result.revealed,
     });
 
     return (
@@ -260,26 +360,61 @@ export default function GenerateProofScreen({ route, navigation }) {
       <Text style={styles.screenHeading}>Generate Proof</Text>
 
       <View style={styles.card}>
+        <Text style={styles.label}>Verifier's Request</Text>
+
+        {!challenge ? (
+          <>
+            <View style={styles.footer}>
+              <TouchableOpacity style={styles.scanButton} onPress={handleScanChallenge}>
+                <Text style={styles.scanButtonText}>Scan QR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowManualChallengeInput(v => !v)}>
+                <Text style={styles.manualLink}>Or enter code manually</Text>
+              </TouchableOpacity>
+            </View>
+
+            {showManualChallengeInput && (
+              <View>
+                <TextInput
+                  style={styles.input}
+                  placeholder='{"nonce": "...", "sessionId": "...", "requestedFields": [...]}'
+                  value={manualChallengeText}
+                  onChangeText={setManualChallengeText}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholderTextColor="#9ca3af"
+                />
+                <TouchableOpacity
+                  style={styles.generateButton}
+                  onPress={handleManualChallengeSubmit}
+                >
+                  <Text style={styles.generateButtonText}>Use This Code</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {challengeError ? <Text style={styles.errorText}>{challengeError}</Text> : null}
+          </>
+        ) : (
+          <TouchableOpacity onPress={() => setChallenge(null)}>
+            <Text style={styles.manualLink}>Scan a different code</Text>
+          </TouchableOpacity>
+        )}
+
         <AttributeChecklist
           checked={checked}
           onToggle={handleToggle}
           note={
-            fromVerifierRequest ? 'Requested by verifier — review before sharing' : null
+            challenge && challenge.requestedFields?.length
+              ? `Verifier is asking for: ${challenge.requestedFields.join(', ')}`
+              : null
           }
         />
 
         {validationError ? <Text style={styles.errorText}>{validationError}</Text> : null}
-
-        <Text style={styles.label}>Verifier Challenge Code</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Paste the code from your verifier"
-          value={nonce}
-          onChangeText={setNonce}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholderTextColor="#9ca3af"
-        />
 
         {submitError ? (
           <View>
@@ -327,6 +462,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.07,
     shadowRadius: 8,
     elevation: 3,
+  },
+  footer: {
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  scanButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 24,
+    alignItems: 'center',
+  },
+  scanButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  manualLink: {
+    color: '#3b82f6',
+    fontSize: 14,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+    marginBottom: 16,
   },
   checklistHeading: {
     fontSize: 18,

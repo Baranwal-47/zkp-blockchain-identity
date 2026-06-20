@@ -1,4 +1,5 @@
 import 'react-native-get-random-values'; // MUST stay first: polyfills crypto.getRandomValues before any eciesjs/ethers import
+global.Buffer = global.Buffer || require('buffer').Buffer; // Hermes has no global Buffer; dek.js/credentialCrypto.js rely on it
 
 import { registerRootComponent } from 'expo';
 

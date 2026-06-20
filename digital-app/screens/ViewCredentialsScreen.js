@@ -6,6 +6,12 @@ import { decryptCredentialBlob } from '../utils/credentialCrypto';
 
 const IPFS_GATEWAY_BASE = 'https://gateway.pinata.cloud/ipfs/';
 
+// dobInt is YYYYMMDD as an integer (e.g. 20041014) — the circuit's encoding.
+function formatDobInt(dobInt) {
+  const s = String(dobInt);
+  return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+}
+
 // D-05 mapping: found && !revoked -> Verified; found && revoked -> Revoked;
 // network/throw on the status check ONLY -> Unable to verify (never red,
 // never fails the whole screen — T-08-08).
@@ -60,10 +66,13 @@ export default function ViewCredentialsScreen({ route, navigation }) {
       const { ciphertextCID, dekEnvelopeCID } = blobsData;
 
       // 2. fetch both objects from the IPFS gateway
-      const [ciphertextBlob, dekEnvelopeBase64] = await Promise.all([
+      const [ciphertextBlob, dekEnvelopeJson] = await Promise.all([
         fetch(`${IPFS_GATEWAY_BASE}${ciphertextCID}`).then(r => r.json()),
-        fetch(`${IPFS_GATEWAY_BASE}${dekEnvelopeCID}`).then(r => r.text()),
+        fetch(`${IPFS_GATEWAY_BASE}${dekEnvelopeCID}`).then(r => r.json()),
       ]);
+      // Pinata's pinJSONToIPFS always wraps content as JSON, so the envelope
+      // is pinned as { dekEnvelope: "<base64>" }, not a bare base64 string.
+      const dekEnvelopeBase64 = dekEnvelopeJson.dekEnvelope;
 
       // 3. unwrap the DEK on-device (Plan 08-02)
       const dek = await unwrapDEK(dekEnvelopeBase64);
@@ -77,8 +86,14 @@ export default function ViewCredentialsScreen({ route, navigation }) {
       // 5. live on-chain status (D-05) — isolated, cannot fail the screen
       checkBlockchainStatus(cred.merkleRoot);
     } catch (error) {
+      // unwrapDEK throws this exact message when no key exists in this
+      // device's SecureStore — i.e. the key pair was generated on a
+      // different device and never left it (by design).
+      const isMissingKey = error.message === 'unwrapDEK: no stored private key found';
       setErrorMessage(
-        error.message || "Couldn't load your credential. Check your connection and try again."
+        isMissingKey
+          ? 'Your private key is not available on this device. It was generated on the device where you first claimed your credential, and never leaves that device.'
+          : error.message || "Couldn't load your credential. Check your connection and try again."
       );
       setStatus('error');
     }
@@ -93,9 +108,7 @@ export default function ViewCredentialsScreen({ route, navigation }) {
       <View style={styles.container}>
         <View style={styles.card}>
           <Text style={styles.errorHeading}>Couldn't Load Credential</Text>
-          <Text style={styles.body}>
-            Couldn't load your credential. Check your connection and try again.
-          </Text>
+          <Text style={styles.body}>{errorMessage}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadCredential}>
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
@@ -131,6 +144,22 @@ export default function ViewCredentialsScreen({ route, navigation }) {
         <View style={styles.attributeRow}>
           <Text style={styles.attributeLabel}>Program</Text>
           <Text style={styles.attributeValue}>{credential.programmeLevel}</Text>
+        </View>
+        <View style={styles.attributeRow}>
+          <Text style={styles.attributeLabel}>Branch</Text>
+          <Text style={styles.attributeValue}>{credential.discipline}</Text>
+        </View>
+        <View style={styles.attributeRow}>
+          <Text style={styles.attributeLabel}>Batch</Text>
+          <Text style={styles.attributeValue}>{credential.batch}</Text>
+        </View>
+        <View style={styles.attributeRow}>
+          <Text style={styles.attributeLabel}>Date of Birth</Text>
+          <Text style={styles.attributeValue}>{formatDobInt(credential.dobInt)}</Text>
+        </View>
+        <View style={styles.attributeRow}>
+          <Text style={styles.attributeLabel}>Email</Text>
+          <Text style={styles.attributeValue}>{credential.email}</Text>
         </View>
         <View style={styles.attributeRow}>
           <Text style={styles.attributeLabel}>Status</Text>

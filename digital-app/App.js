@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
+import WelcomeScreen from './screens/WelcomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import ClaimCredentialScreen from './screens/ClaimCredentialScreen';
 import DashboardScreen from './screens/DashboardScreen';
@@ -62,7 +63,14 @@ const adminHeaderStyle = {
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="LoginScreen" screenOptions={defaultHeaderStyle}>
+      <Stack.Navigator initialRouteName="WelcomeScreen" screenOptions={defaultHeaderStyle}>
+        {/* ── Entry Point ── */}
+        <Stack.Screen
+          name="WelcomeScreen"
+          component={WelcomeScreen}
+          options={{ headerShown: false }}
+        />
+
         {/* ── Student Login Flow ── */}
         <Stack.Screen
           name="LoginScreen"
@@ -79,7 +87,7 @@ export default function App() {
         <Stack.Screen
           name="DashboardScreen"
           component={DashboardScreen}
-          options={{ title: 'Dashboard', headerLeft: null }}
+          options={{ title: 'Dashboard', headerLeft: null, gestureEnabled: false }}
         />
         <Stack.Screen
           name="ViewCredentialsScreen"

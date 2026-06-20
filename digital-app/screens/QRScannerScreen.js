@@ -30,12 +30,18 @@ export default function QRScannerScreen({ navigation }) {
       const payload = JSON.parse(data);
 
       // Two-hop QR shapes (D-09): a proof-response {proof, publicSignals, sessionId}
-      // or a challenge {nonce, sessionId, requestedFields}. Route into the screen
-      // that owns whichever hop this payload belongs to.
+      // goes back to the verifier (VerifyProofScreen); a challenge
+      // {nonce, sessionId, requestedFields} goes to the prover who must answer
+      // it (GenerateProofScreen).
+      // pop:true returns to the existing prover/verifier screen already in the
+      // stack (instead of RN7's default of pushing a fresh instance); merge:true
+      // keeps that screen's existing params — critically the prover's rollNo,
+      // whose loss was causing "/credential/undefined/blobs" -> "Student not
+      // found" on generate-proof, and the verifier's hop-1 challenge state.
       if (payload.proof && payload.publicSignals) {
-        navigation.navigate('VerifyProofScreen', { scannedProofPayload: payload });
+        navigation.navigate('VerifyProofScreen', { scannedProofPayload: payload }, { merge: true, pop: true });
       } else if (payload.nonce && payload.sessionId) {
-        navigation.navigate('VerifyProofScreen', { scannedChallengePayload: payload });
+        navigation.navigate('GenerateProofScreen', { scannedChallengePayload: payload }, { merge: true, pop: true });
       } else {
         Alert.alert(
           'Invalid QR Code',

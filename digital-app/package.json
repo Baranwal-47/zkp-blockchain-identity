@@ -29,6 +29,7 @@
     "expo-secure-store": "~14.2.4",
     "expo-status-bar": "~2.2.3",
     "js-sha256": "^0.11.1",
+    "poseidon-lite": "^0.3.0",
     "react": "19.0.0",
     "react-native": "0.79.5",
     "react-native-get-random-values": "^1.11.0",

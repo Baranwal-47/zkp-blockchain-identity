@@ -7,9 +7,10 @@
  * function argument — the private key never leaves the device (CLAUDE.md
  * ground rule 4).
  *
- * Envelope shape (frozen, do NOT change): a single base64 string — the raw
- * output of eciesjs's `encrypt()` (ephemeral pubkey + IV + AES-GCM
- * ciphertext + MAC). No additional wrapping/JSON.
+ * Envelope shape: the caller fetches { dekEnvelope: "<base64>" } from IPFS
+ * (Pinata's pinJSONToIPFS wraps all pins as JSON) and passes the base64
+ * string here. The base64 itself is the raw output of eciesjs's `encrypt()`
+ * (ephemeral pubkey + IV + AES-GCM ciphertext + MAC).
  *
  * THREAT MITIGATIONS (per threat_model in 08-02-PLAN.md):
  *   T-08-04: this module never console.logs privKeyHex or the dek — only a

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { ADMIN_BACKEND_URL } from '../environment';
 import { generateAndStoreKeypair, getStoredPublicKeyHexForRetry } from '../utils/keypair';
@@ -6,12 +6,27 @@ import { generateAndStoreKeypair, getStoredPublicKeyHexForRetry } from '../utils
 export default function ClaimCredentialScreen({ route, navigation }) {
   const { student } = route.params;
 
-  const [status, setStatus] = useState('loading'); // 'loading' | 'error'
+  // 'intro' | 'generating' | 'generated' | 'claiming' | 'error'
+  const [status, setStatus] = useState('intro');
   const [errorMessage, setErrorMessage] = useState(null);
   const [hasGeneratedKey, setHasGeneratedKey] = useState(false);
 
+  const generateKeys = async () => {
+    setStatus('generating');
+    try {
+      await generateAndStoreKeypair();
+      setHasGeneratedKey(true);
+      setStatus('generated');
+    } catch (error) {
+      setErrorMessage(
+        error.message || 'Something went wrong while generating your keys. Try again.'
+      );
+      setStatus('error');
+    }
+  };
+
   const attemptClaim = async () => {
-    setStatus('loading');
+    setStatus('claiming');
     try {
       const pubKeyHex = hasGeneratedKey
         ? await getStoredPublicKeyHexForRetry()
@@ -40,20 +55,16 @@ export default function ClaimCredentialScreen({ route, navigation }) {
     }
   };
 
-  useEffect(() => {
-    attemptClaim();
-  }, []); // D-01: fire on mount, no confirmation tap
-
   if (status === 'error') {
     return (
       <View style={styles.container}>
         <View style={styles.card}>
           <Text style={styles.errorHeading}>Couldn't Complete Setup</Text>
-          <Text style={styles.body}>
-            Something went wrong while securing your credential. Check your connection and try
-            again.
-          </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={attemptClaim}>
+          <Text style={styles.body}>{errorMessage}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={hasGeneratedKey ? attemptClaim : generateKeys}
+          >
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -61,15 +72,56 @@ export default function ClaimCredentialScreen({ route, navigation }) {
     );
   }
 
+  if (status === 'generating' || status === 'claiming') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <ActivityIndicator color="#3b82f6" size="large" style={styles.spinner} />
+          <Text style={styles.heading}>
+            {status === 'generating' ? 'Generating your keys…' : 'Securing your credential…'}
+          </Text>
+          <Text style={styles.body}>
+            {status === 'generating'
+              ? 'Creating your public/private key pair on this device.'
+              : 'Sending your public key and wrapping your credential to it.'}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (status === 'generated') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.checkmark}>✅</Text>
+          <Text style={styles.heading}>Keys Generated</Text>
+          <Text style={styles.body}>
+            Your public and private key pair has been created. Your private key is stored
+            securely on this device only — it is never sent over the network, and is required to
+            access your credential.
+          </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={attemptClaim}>
+            <Text style={styles.retryButtonText}>Continue</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // status === 'intro'
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <ActivityIndicator color="#3b82f6" size="large" style={styles.spinner} />
-        <Text style={styles.heading}>Securing your credential…</Text>
+        <Text style={styles.heading}>Claim Your Credential</Text>
         <Text style={styles.body}>
-          Generating your private key on this device. This stays on your phone and is never sent
-          anywhere.
+          Before you can access your digital ID, you need to claim your credential. This
+          generates a private key on this device and uses it to securely unlock your encrypted
+          credential — only this device will be able to decrypt it.
         </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={generateKeys}>
+          <Text style={styles.retryButtonText}>Generate Keys</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -97,6 +149,10 @@ const styles = StyleSheet.create({
   },
   spinner: {
     marginBottom: 16,
+  },
+  checkmark: {
+    fontSize: 40,
+    marginBottom: 8,
   },
   heading: {
     fontSize: 22,

@@ -39,11 +39,20 @@ export default function DashboardScreen({ route, navigation }) {
 
         <TouchableOpacity
           style={styles.loginButton}
-          onPress={() => navigation.navigate('VerifyProofScreen')}
+          onPress={() => navigation.navigate('VerifyProofScreen', { student })}
         >
           <Text style={styles.loginButtonText}>Verify Proof</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={() =>
+          navigation.reset({ index: 0, routes: [{ name: 'WelcomeScreen' }] })
+        }
+      >
+        <Text style={styles.logoutButtonText}>Log Out</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -87,6 +96,19 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: '#ffffff',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  logoutButton: {
+    marginTop: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+  },
+  logoutButtonText: {
+    color: '#475569',
+    fontSize: 15,
     fontWeight: '700',
   },
 });

@@ -22,7 +22,7 @@
  * QRScannerScreen.js's footer gap:16 button stack.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -35,7 +35,22 @@ import {
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { BACKEND_URL } from '../environment';
-import { AttributeChecklist, CHECKLIST_LABELS } from './GenerateProofScreen';
+import { AttributeChecklist, CHECKLIST_LABELS, ATTR_DISPLAY_LABELS } from './GenerateProofScreen';
+import { verifyRevealedBinding } from '../utils/identityEncoding';
+
+// Public-signal layout (identity.circom lines 22-30, frozen):
+// [0] pubHash [1] nonce [2] currentDateInt [3] isOver18 [4] isPostgrad
+// [5..11] revealedValue[7] [12..18] revealMask[7], both in ATTR_KEYS order
+// (name, rollNo, dob, programmeLevel, discipline, batch, email).
+const ATTR_KEYS = ['name', 'rollNo', 'dob', 'programmeLevel', 'discipline', 'batch', 'email'];
+const REVEAL_MASK_OFFSET = 12;
+
+function decodeRevealedFields(publicSignals) {
+  if (!Array.isArray(publicSignals) || publicSignals.length < REVEAL_MASK_OFFSET + 7) return [];
+  return ATTR_KEYS.filter((key, i) => String(publicSignals[REVEAL_MASK_OFFSET + i]) === '1').map(
+    key => ATTR_DISPLAY_LABELS[key]
+  );
+}
 
 // ponytail: the nonce is one-time-use per sessionId (zkp-backend/lib/nonceStore.js),
 // and /verify + /verify-onchain both independently consume it — so only one can
@@ -68,24 +83,29 @@ function mapInvalidReason(reason, registry) {
 }
 
 export default function VerifyProofScreen({ navigation, route }) {
-  const scannedProofPayload = route?.params?.scannedProofPayload || null;
-  const scannedChallengePayload = route?.params?.scannedChallengePayload || null;
-
-  const [hop, setHop] = useState(scannedChallengePayload ? 2 : 1);
+  const [hop, setHop] = useState(1);
 
   // Step 1 state
   const [checked, setChecked] = useState({});
   const [creatingChallenge, setCreatingChallenge] = useState(false);
   const [challenge, setChallenge] = useState(null); // { nonce, sessionId, requestedFields }
   const [challengeError, setChallengeError] = useState(null);
-  const [manualChallengeText, setManualChallengeText] = useState('');
-  const [showManualChallengeInput, setShowManualChallengeInput] = useState(false);
 
   // Step 2 state
   const [manualProofText, setManualProofText] = useState('');
   const [showManualProofInput, setShowManualProofInput] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [verifyResult, setVerifyResult] = useState(null); // { valid, reasonText, details }
+  const [verifyResult, setVerifyResult] = useState(null); // { valid, reasonText, details, revealedFields }
+
+  // Picked up after QRScannerScreen navigates back here with a scanned proof.
+  useEffect(() => {
+    const scanned = route?.params?.scannedProofPayload;
+    if (scanned) {
+      setHop(2);
+      runVerification(scanned);
+      navigation.setParams({ scannedProofPayload: undefined });
+    }
+  }, [route?.params?.scannedProofPayload]);
 
   const handleToggleAttribute = label => {
     setChecked(prev => ({ ...prev, [label]: !prev[label] }));
@@ -119,20 +139,8 @@ export default function VerifyProofScreen({ navigation, route }) {
     }
   };
 
-  const handleScanChallenge = () => {
-    navigation.navigate('QRScannerScreen', {
-      onScanned: null,
-      scanTarget: 'verifyProofChallenge',
-      returnScreen: 'VerifyProofScreen',
-    });
-  };
-
   const handleScanProof = () => {
-    navigation.navigate('QRScannerScreen', {
-      onScanned: null,
-      scanTarget: 'verifyProofResult',
-      returnScreen: 'VerifyProofScreen',
-    });
+    navigation.navigate('QRScannerScreen');
   };
 
   const handleManualProofSubmit = () => {
@@ -158,7 +166,7 @@ export default function VerifyProofScreen({ navigation, route }) {
     setVerifying(true);
     setVerifyResult(null);
     try {
-      const { proof, publicSignals, sessionId } = payload;
+      const { proof, publicSignals, sessionId, revealed } = payload;
 
       // Authoritative cryptographic + nonce check. Do NOT also call /verify —
       // see header comment / T-08-14.
@@ -187,17 +195,39 @@ export default function VerifyProofScreen({ navigation, route }) {
 
       const cryptoValid = !!verifyOnChainData.valid;
       const revoked = registry.found && registry.revoked;
-      const overallValid = cryptoValid && !revoked;
+
+      // Bind the shared plaintext to the proof: re-derive each revealed field
+      // and confirm it equals the proof's revealedValue[] public signal. A
+      // valid proof says nothing about whether the QR's `revealed` object is
+      // honest, so a mismatch here means tampered/forged disclosure -> reject.
+      const hasRevealed = revealed && Object.keys(revealed).length > 0;
+      const binding = hasRevealed
+        ? verifyRevealedBinding(revealed, publicSignals)
+        : { ok: true, mismatched: [] };
+
+      const overallValid = cryptoValid && !revoked && binding.ok;
 
       if (overallValid) {
         setVerifyResult({
           valid: true,
+          // Actual plaintext the prover chose to share (from the QR); falls
+          // back to field-name-only when an older proof carries no `revealed`.
+          revealedValues: revealed && Object.keys(revealed).length ? revealed : null,
+          revealedFields: decodeRevealedFields(publicSignals),
           details: {
             issuer: 'PrivdID — IIITDM Jabalpur',
             timestamp: new Date().toISOString(),
             onChain: true,
             registryFound: registry.found,
           },
+        });
+      } else if (cryptoValid && !revoked && !binding.ok) {
+        // Proof is cryptographically sound but the shared values don't match
+        // what it commits to — surface this distinctly from a bad proof.
+        setVerifyResult({
+          valid: false,
+          reasonText:
+            'The shared details do not match the proof. The values may have been altered — do not trust them.',
         });
       } else {
         const reasonText = mapInvalidReason(verifyOnChainData.reason, registry);
@@ -215,19 +245,12 @@ export default function VerifyProofScreen({ navigation, route }) {
   };
 
   const handleReset = () => {
-    setHop(1);
-    setChecked({});
-    setChallenge(null);
-    setChallengeError(null);
-    setManualChallengeText('');
-    setShowManualChallengeInput(false);
-    setManualProofText('');
-    setShowManualProofInput(false);
-    setVerifyResult(null);
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'DashboardScreen' }],
-    });
+    // This screen is popped on navigate-away, so no need to clear local state.
+    // A student reaches it from their Dashboard (student in params); a public
+    // verifier reaches it from WelcomeScreen with none. popTo returns to the
+    // existing screen up the stack with its original params intact — no reset
+    // jank, and DashboardScreen keeps the `student` it already has.
+    navigation.popTo(route?.params?.student ? 'DashboardScreen' : 'WelcomeScreen');
   };
 
   const hopBadge = (
@@ -261,6 +284,23 @@ export default function VerifyProofScreen({ navigation, route }) {
                 <Text style={styles.detailLabel}>On-Chain</Text>
                 <Text style={styles.detailValue}>Verified</Text>
               </View>
+              {verifyResult.revealedValues ? (
+                Object.entries(verifyResult.revealedValues).map(([key, value]) => (
+                  <View style={styles.detailRow} key={key}>
+                    <Text style={styles.detailLabel}>{ATTR_DISPLAY_LABELS[key] || key}</Text>
+                    <Text style={styles.detailValue}>{String(value)}</Text>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Revealed Fields</Text>
+                  <Text style={styles.detailValue}>
+                    {verifyResult.revealedFields?.length
+                      ? verifyResult.revealedFields.join(', ')
+                      : 'None'}
+                  </Text>
+                </View>
+              )}
             </>
           ) : (
             <>
@@ -270,7 +310,9 @@ export default function VerifyProofScreen({ navigation, route }) {
           )}
 
           <TouchableOpacity style={styles.secondaryButton} onPress={handleReset}>
-            <Text style={styles.secondaryButtonText}>Back to Dashboard</Text>
+            <Text style={styles.secondaryButtonText}>
+              {route?.params?.student ? 'Back to Dashboard' : 'Done'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
