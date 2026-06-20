@@ -9,9 +9,7 @@ import DashboardScreen from './screens/DashboardScreen';
 import ViewCredentialsScreen from './screens/ViewCredentialsScreen';
 import GenerateProofScreen from './screens/GenerateProofScreen';
 import VerifyProofScreen from './screens/VerifyProofScreen';
-import ErrorScreen from './screens/ErrorScreen';
 import QRScannerScreen from './screens/QRScannerScreen';
-import ManualQRInput from './screens/ManualQRInput';
 
 // Admin screens
 import AdminLoginScreen from './screens/admin/AdminLoginScreen';
@@ -107,11 +105,6 @@ export default function App() {
 
         {/* ── Shared Utility Screens ── */}
         <Stack.Screen
-          name="ErrorScreen"
-          component={ErrorScreen}
-          options={{ title: 'Error', headerLeft: null }}
-        />
-        <Stack.Screen
           name="QRScannerScreen"
           component={QRScannerScreen}
           options={{
@@ -121,12 +114,6 @@ export default function App() {
             headerTransparent: true,
           }}
         />
-        <Stack.Screen
-          name="ManualQRInput"
-          component={ManualQRInput}
-          options={{ title: 'Manual Input' }}
-        />
-
         {/* ── Admin Screens ── */}
         <Stack.Screen
           name="AdminLogin"
