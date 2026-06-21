@@ -56,6 +56,10 @@ a {
     @apply inline-flex items-center justify-center rounded-2xl bg-zinc-200 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
+  .destructive-button {
+    @apply inline-flex items-center justify-center rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
   .secondary-button {
     @apply inline-flex items-center justify-center rounded-2xl border border-white/10 bg-zinc-800/70 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-white/20 hover:bg-zinc-700/70;
   }
