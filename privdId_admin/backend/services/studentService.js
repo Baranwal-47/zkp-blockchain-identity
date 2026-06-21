@@ -311,16 +311,17 @@ export async function revokeStudent(id) {
   if (!student) throw new AppError("Student not found.", 404);
   if (student.revoked) throw new AppError("Student credential already revoked.", 400);
 
-  // Revoke on blockchain first
+  // Propose revocation on-chain first — terminal `revoked` state is deferred
+  // to the execute-confirmation path (09-03), not set here on propose (D-12).
+  let safeTxHash;
   try {
-    await revokeCredentialOnChain(student.rollNo);
+    ({ safeTxHash } = await revokeCredentialOnChain(student.rollNo));
   } catch (err) {
     console.error("[credential] On-chain revocation failed for", student.rollNo, ":", err.message);
     throw new AppError("On-chain revocation failed: " + err.message, 500);
   }
 
-  student.revoked = true;
-  student.revokedAt = new Date();
+  student.pendingRegistryAction = { safeTxHash, type: 'revoke' };
   await student.save();
 
   return { student: sanitizeStudent(student) };
