@@ -47,3 +47,74 @@ Gas used for issueCredential (new): ${receipt.gasUsed.toString()}`);
     expect(receipt.gasUsed).to.be.gt(0);
   });
 });
+
+describe("Admin transfer", function () {
+  let registry;
+  let deployer, newAdmin, stranger;
+
+  beforeEach(async function () {
+    [deployer, newAdmin, stranger] = await ethers.getSigners();
+    const Registry = await ethers.getContractFactory("CredentialRegistry");
+    registry = await Registry.deploy();
+    await registry.waitForDeployment();
+  });
+
+  it("Should set deployer as admin after deploy", async function () {
+    expect(await registry.admin()).to.equal(deployer.address);
+  });
+
+  it("Should let the admin start a transfer, setting pendingAdmin without changing admin", async function () {
+    const tx = await registry.connect(deployer).transferAdmin(newAdmin.address);
+    const receipt = await tx.wait();
+    console.log(`Gas used for transferAdmin: ${receipt.gasUsed.toString()}`);
+
+    expect(await registry.pendingAdmin()).to.equal(newAdmin.address);
+    expect(await registry.admin()).to.equal(deployer.address);
+  });
+
+  it("Should revert when a non-admin calls transferAdmin", async function () {
+    await expect(
+      registry.connect(stranger).transferAdmin(newAdmin.address)
+    ).to.be.revertedWith("Not authorized");
+  });
+
+  it("Should revert when an account that is not pendingAdmin calls acceptAdmin", async function () {
+    await registry.connect(deployer).transferAdmin(newAdmin.address);
+
+    await expect(
+      registry.connect(stranger).acceptAdmin()
+    ).to.be.revertedWith("Not pending admin");
+  });
+
+  it("Should let pendingAdmin accept, flipping admin and zeroing pendingAdmin", async function () {
+    await registry.connect(deployer).transferAdmin(newAdmin.address);
+
+    const tx = await registry.connect(newAdmin).acceptAdmin();
+    const receipt = await tx.wait();
+    console.log(`Gas used for acceptAdmin: ${receipt.gasUsed.toString()}`);
+
+    expect(await registry.admin()).to.equal(newAdmin.address);
+    expect(await registry.pendingAdmin()).to.equal(ethers.ZeroAddress);
+  });
+
+  it("Should revert old admin's issueCredential after handoff and allow the new admin", async function () {
+    await registry.connect(deployer).transferAdmin(newAdmin.address);
+    await registry.connect(newAdmin).acceptAdmin();
+
+    await expect(
+      registry.connect(deployer).issueCredential(
+        "22BCS003",
+        "QmOldAdminShouldNotBeAbleToIssueAfterHandoff",
+        "0x1111111111111111111111111111111111111111111111111111111111111111"
+      )
+    ).to.be.revertedWith("Not authorized");
+
+    await expect(
+      registry.connect(newAdmin).issueCredential(
+        "22BCS003",
+        "QmNewAdminCanIssueAfterHandoff",
+        "0x2222222222222222222222222222222222222222222222222222222222222222"
+      )
+    ).to.not.be.reverted;
+  });
+});
