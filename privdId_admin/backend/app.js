@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 
 import studentRoutes from "./routes/studentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import safeRoutes from "./routes/safeRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 dotenv.config();
@@ -29,6 +30,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/students", studentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/safe", safeRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
