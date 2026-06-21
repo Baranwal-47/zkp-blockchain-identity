@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import StudentsTable from "../components/StudentsTable.jsx";
 import api, { getApiErrorMessage } from "../services/api.js";
+
+const TYPE_LABEL = { issue: "Issue", revoke: "Revoke" };
+const SIGN_THRESHOLD = 2;
 
 export default function DashboardPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
   const [emailSendDetails, setEmailSendDetails] = useState([]);
+  const [pendingActions, setPendingActions] = useState([]);
 
   async function loadStudents() {
     setLoading(true);
@@ -20,6 +25,15 @@ export default function DashboardPage() {
       toast.error(getApiErrorMessage(error));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadPendingActions() {
+    try {
+      const response = await api.get("/safe/pending");
+      setPendingActions(response.data.pending || []);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     }
   }
 
@@ -69,6 +83,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void loadStudents();
+    void loadPendingActions();
   }, []);
 
   const totalStudents = students.length;
@@ -90,6 +105,41 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-400">Programmes</p>
           <h3 className="mt-3 text-3xl font-semibold text-white">{uniqueProgrammes}</h3>
         </div>
+      </section>
+
+      <section className="panel-soft">
+        <h3 className="text-lg font-semibold text-white">Pending Registry Actions</h3>
+
+        {pendingActions.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-400">No pending registry actions.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {pendingActions.map((tx) => {
+              const signedCount = tx.signedCount ?? tx.confirmations ?? 0;
+              const remaining = Math.max(SIGN_THRESHOLD - signedCount, 0);
+              const typeLabel = TYPE_LABEL[tx.type] || tx.type;
+              return (
+                <li
+                  key={tx.safeTxHash}
+                  className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3"
+                >
+                  <span className="text-sm text-slate-200">
+                    {typeLabel} requested for {tx.rollNo}, awaiting {remaining} more signature{remaining === 1 ? "" : "s"}
+                  </span>
+                  <span className="rounded-full bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-200">
+                    {signedCount}/{SIGN_THRESHOLD}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <p className="mt-3 text-sm text-slate-500">
+          <Link to="/pending-approvals" className="hover:text-slate-300">
+            View and sign in Pending Approvals.
+          </Link>
+        </p>
       </section>
 
       <StudentsTable
