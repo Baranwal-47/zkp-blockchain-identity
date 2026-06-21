@@ -32,6 +32,9 @@ Replace `CredentialRegistry`'s single-EOA admin with a Gnosis Safe 2-of-3 (AcadA
 - **D-10:** Build and unit-test `safeService.js`'s propose/execute logic and the Safe deployment script against **local Hardhat first**, using raw private keys as signers (no MetaMask needed, fast iteration).
 - **D-11:** Once that's solid, deploy the **real Safe on Sepolia** and do the actual MetaMask-based Pending-Approvals walkthrough there — that's the environment where the manual-signing UX actually needs to be verified (per GOV-04's dual requirement).
 
+### Propose/execute return semantics
+- **D-12:** `anchorOnChain()`/`revokeCredentialOnChain()` return immediately after the Safe transaction is **proposed** (async) — they do not block until execution. Proposing already counts as the proposer's signature (Safe SDK requires the proposer to sign), so a fresh propose starts at 1/2 confirmations toward the 2-of-3 threshold. The student record gets a `pendingRegistryAction`-style status (e.g. `pending-issue` / `pending-revoke`) that the dashboard indicator (D-07) and Pending Approvals screen (D-05) read to show "X/2 signatures received." Even after the 2nd confirmation reaches threshold, Execute stays a separate deliberate action (D-06) — the Execute button visually flips from gray to green/enabled once threshold is met, but still requires an explicit click; it never auto-fires. Only after execution succeeds does the student status flip to the terminal `issued`/`revoked` state.
+
 ### Claude's Discretion
 - Exact UI layout/styling of the Pending Approvals screen.
 - Whether the per-role password check lives as a tiny dedicated middleware/route or inline in the existing admin auth path — implementation detail, not a user-facing decision.
