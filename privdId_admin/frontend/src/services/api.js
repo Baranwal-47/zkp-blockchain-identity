@@ -6,7 +6,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("adminToken");
+  const isOfficialRoute = typeof config.url === "string" && (config.url.includes("/safe") || config.url.includes("/admin/role-login"));
+  const officialToken = localStorage.getItem("officialToken");
+  const adminToken = localStorage.getItem("adminToken");
+  const token = isOfficialRoute ? officialToken || adminToken : adminToken || officialToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
