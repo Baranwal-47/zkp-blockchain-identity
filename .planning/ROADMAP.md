@@ -48,7 +48,7 @@ Full detail archived in `.planning/milestones/v2.0-ROADMAP.md`; phase dirs in `.
 - [x] 09-02-PLAN.md — safeService.js propose/confirm/execute + credentialService redirect + pendingRegistryAction status (GOV-02, GOV-03)
 - [x] 09-03-PLAN.md — backend per-role login + /api/safe routes/controller + app.js mount (GOV-03, GOV-04 control surface)
 - [x] 09-04-PLAN.md — web admin UI: role login, Pending Approvals + MetaMask, dashboard indicator, token-collision fix (GOV-02, GOV-03)
-- [ ] 09-05-PLAN.md — Sepolia Safe deploy + live 2-of-3 MetaMask propose/sign/execute walkthrough (GOV-04 Sepolia)
+- [ ] 09-05-PLAN.md — Sepolia Safe deploy + live 2-of-3 MetaMask propose/sign/execute walkthrough (GOV-04 Sepolia) — PARTIAL: Tasks 1-2 (generateSafeOwners.js, proposeAcceptAdmin.js) done; stopped at Task 3 human-action checkpoint (needs funded Sepolia wallets, RPC URL, Safe API key, MetaMask)
 
 ### Phase 10: Threshold Custody Primitive (E6 split)
 **Goal**: Every credential's DEK is split 2-of-3 at issuance and distributed across three independently-credentialed custodian stores, so the admin alone never holds enough material to reconstruct it — closing v2.0's single-custody interim gap.
