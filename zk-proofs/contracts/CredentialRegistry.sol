@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 contract CredentialRegistry {
     address public admin;
+    address public pendingAdmin;
 
     struct Credential {
         string  rollNo;
@@ -19,6 +20,8 @@ contract CredentialRegistry {
 
     event CredentialIssued(string indexed rollNo, string ipfsCID, bytes32 pubHash, uint256 timestamp);
     event CredentialRevoked(string indexed rollNo, bytes32 pubHash, uint256 timestamp);
+    event AdminTransferStarted(address indexed previousAdmin, address indexed newAdmin);
+    event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "Not authorized");
@@ -27,6 +30,18 @@ contract CredentialRegistry {
 
     constructor() {
         admin = msg.sender;
+    }
+
+    function transferAdmin(address newAdmin) external onlyAdmin {
+        pendingAdmin = newAdmin;
+        emit AdminTransferStarted(admin, newAdmin);
+    }
+
+    function acceptAdmin() external {
+        require(msg.sender == pendingAdmin, "Not pending admin");
+        emit AdminTransferred(admin, pendingAdmin);
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
     }
 
     function issueCredential(
