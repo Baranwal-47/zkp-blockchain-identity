@@ -88,6 +88,13 @@ const studentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // GOV-02/GOV-03 (D-12): records an in-flight Safe propose for this student's
+    // issue/revoke registry write. Terminal state (onChainTxHash/onChainBlock or
+    // revoked/revokedAt) is set only once the proposal executes (09-03).
+    pendingRegistryAction: {
+      safeTxHash: { type: String, default: null },
+      type: { type: String, enum: ["issue", "revoke"], default: null },
+    },
     // --- 7-attribute salted Merkle commitment fields (plan 03) ---
     programmeLevel: {
       type: String,

@@ -141,11 +141,10 @@ export async function createStudent(studentPayload) {
   // retry affected students instead of the failure being a silent, unrecoverable no-op.
   try {
     const dek = generateDEK();
-    const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
+    const { cid, safeTxHash } = await issueCredentialOnChain(student, dek);
     student.dek = dek.toString('base64');
     student.ciphertextCID = cid;
-    student.onChainTxHash = txHash;
-    student.onChainBlock = blockNumber;
+    student.pendingRegistryAction = { safeTxHash, type: 'issue' };
     student.anchorPending = false;
     student.lastAnchorError = null;
     await student.save();
@@ -190,14 +189,13 @@ export async function insertBulkStudents(preparedStudents) {
   for (const student of insertedStudents) {
     try {
       const dek = generateDEK();
-      const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
+      const { cid, safeTxHash } = await issueCredentialOnChain(student, dek);
       await Student.updateOne(
         { _id: student._id },
-        { ciphertextCID: cid, dek: dek.toString('base64'), onChainTxHash: txHash, onChainBlock: blockNumber, anchorPending: false, lastAnchorError: null }
+        { ciphertextCID: cid, dek: dek.toString('base64'), pendingRegistryAction: { safeTxHash, type: 'issue' }, anchorPending: false, lastAnchorError: null }
       );
       student.ciphertextCID = cid;
-      student.onChainTxHash = txHash;
-      student.onChainBlock = blockNumber;
+      student.pendingRegistryAction = { safeTxHash, type: 'issue' };
       student.anchorPending = false;
       anchored += 1;
     } catch (err) {
@@ -295,10 +293,9 @@ export async function updateStudent(id, payload) {
       console.error('[credential] updateStudent: missing DEK for', student.rollNo, '— cannot re-issue without rotating');
     } else {
       const dek = Buffer.from(student.dek, 'base64');
-      const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
+      const { cid, safeTxHash } = await issueCredentialOnChain(student, dek);
       student.ciphertextCID = cid;
-      student.onChainTxHash = txHash;
-      student.onChainBlock = blockNumber;
+      student.pendingRegistryAction = { safeTxHash, type: 'issue' };
       await student.save();
     }
   } catch (err) {
