@@ -44,7 +44,7 @@ Full detail archived in `.planning/milestones/v2.0-ROADMAP.md`; phase dirs in `.
   3. `services/safeService.js` exposes the propose → confirm → execute flow (`@safe-global/protocol-kit` + `api-kit`) and is the code path the admin backend's issue/revoke handlers call — no direct unsigned `ethers` write to the registry remains in that flow.
   4. A real Safe 2-of-3 (3 named owner addresses, threshold 2) is deployed and verifiable on Sepolia (Safe address resolvable via the Safe Transaction Service / Etherscan); the identical propose/sign/execute sequence is reproducible locally against 3 Hardhat keys for dev/test.
 **Plans**: 5 plans (5 waves)
-- [ ] 09-01-PLAN.md — CredentialRegistry 2-step admin transfer + local Safe 2-of-3 deploy script + Hardhat tests (GOV-01, GOV-04 local)
+- [x] 09-01-PLAN.md — CredentialRegistry 2-step admin transfer + local Safe 2-of-3 deploy script + Hardhat tests (GOV-01, GOV-04 local)
 - [ ] 09-02-PLAN.md — safeService.js propose/confirm/execute + credentialService redirect + pendingRegistryAction status (GOV-02, GOV-03)
 - [ ] 09-03-PLAN.md — backend per-role login + /api/safe routes/controller + app.js mount (GOV-03, GOV-04 control surface)
 - [ ] 09-04-PLAN.md — web admin UI: role login, Pending Approvals + MetaMask, dashboard indicator, token-collision fix (GOV-02, GOV-03)
@@ -81,6 +81,6 @@ Full detail archived in `.planning/milestones/v2.0-ROADMAP.md`; phase dirs in `.
 | 6. Encryption & Ciphertext Storage | v2.0 | 3/3 | Complete | 2026-06-19 |
 | 7. Student Keypair & Two-Phase Enrollment | v2.0 | 4/4 | Complete | 2026-06-20 |
 | 8. Daily Access Flow | v2.0 | 5/5 | Complete | 2026-06-20 |
-| 9. Multisig Registry Governance (E5) | v3.0 | 0/5 | Not started | - |
+| 9. Multisig Registry Governance (E5) | v3.0 | 1/5 | In Progress|  |
 | 10. Threshold Custody Primitive (E6 split) | v3.0 | 0/TBD | Not started | - |
 | 11. Recovery & Crypto-Shredding Erasure (E6 ops) | v3.0 | 0/TBD | Not started | - |

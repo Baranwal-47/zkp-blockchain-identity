@@ -8,10 +8,10 @@ Spec source: `docs/CLAUDE_CODE_BLUEPRINT.md` §E5, §E6, §16.2. Same 7-attribut
 
 ### E5 — Multisig Governance (GOV)
 
-- [ ] **GOV-01**: `CredentialRegistry` gains a 2-step admin transfer (`transferAdmin`/`acceptAdmin`); registry admin is transferred from the deployer EOA to a Gnosis Safe 2-of-3 address
+- [x] **GOV-01**: `CredentialRegistry` gains a 2-step admin transfer (`transferAdmin`/`acceptAdmin`); registry admin is transferred from the deployer EOA to a Gnosis Safe 2-of-3 address
 - [ ] **GOV-02**: Sensitive registry writes (`issueCredential`, `revoke`) succeed only through a Safe 2-of-3 transaction — one official acting alone cannot mutate registry state
 - [ ] **GOV-03**: Backend `services/safeService.js` wraps the Safe propose → confirm → execute flow (`@safe-global/protocol-kit` + `api-kit`) and is the path the admin issue/revoke flow uses
-- [ ] **GOV-04**: A real Safe 2-of-3 (3 official owner addresses, threshold 2) is deployed on Sepolia; local dev exercises the same propose/sign/execute flow with 3 Hardhat keys
+- [x] **GOV-04**: A real Safe 2-of-3 (3 official owner addresses, threshold 2) is deployed on Sepolia; local dev exercises the same propose/sign/execute flow with 3 Hardhat keys
 
 ### E6 — Threshold Custody (CUST)
 
