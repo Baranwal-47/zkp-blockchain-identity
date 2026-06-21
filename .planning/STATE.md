@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: — Governance & Custody
 status: executing
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-06-21T03:52:29.526Z"
+stopped_at: Completed 09-04-PLAN.md
+last_updated: "2026-06-21T04:08:11.661Z"
 last_activity: 2026-06-21
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-19)
 ## Current Position
 
 Phase: 09 (multisig-registry-governance-e5) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-06-21
 
@@ -62,6 +62,7 @@ Last activity: 2026-06-21
 | Phase 09 P01 | 15min | 3 tasks | 3 files |
 | Phase 09 P02 | 70min | 4 tasks | 5 files |
 | Phase 09 P03 | 25 | 4 tasks | 8 files |
+| Phase 09 P04 | 20min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,8 @@ Recent decisions affecting current work:
 - [Phase 09-02]: SafeApiKit must be lazily constructed (getApiKit()), not module-load-eager, because credentialService.js->safeService.js import chain is itself import-chained from server.js boot; eager throw on missing SAFE_API_KEY would crash the whole backend
 - [Phase 09-02]: pendingRegistryAction 2-phase lifecycle (D-12) recorded at all 4 issue/revoke call-sites on propose; terminal issued/revoked + onChainTxHash/onChainBlock state deferred to 09-03 execute-confirmation, with DEK persistence explicitly preserved at every issue site
 - [Phase ?]: [Phase 09-03]: Per-role login mirrors adminLogin; requireAuth gates only /api/safe; executePendingTx is sole D-12 terminal-state writer
+- [Phase 09]: Phase 09-04: api.js dual-token interceptor branches by config.url (officialToken for /safe + /admin/role-login, adminToken otherwise) to prevent T-09-14 token collision
+- [Phase 09]: Phase 09-04: Sign button uses explicit bg-blue-600 (not literal .primary-button, which is actually zinc) to satisfy UI-SPEC's Sign=blue/Execute=red color-separation contract
 
 ### Pending Todos
 
@@ -123,8 +126,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-21T03:49:26.965Z
-Stopped at: Completed 09-02-PLAN.md
+Last session: 2026-06-21T04:08:11.646Z
+Stopped at: Completed 09-04-PLAN.md
 Resume file: None
 </content>
 
