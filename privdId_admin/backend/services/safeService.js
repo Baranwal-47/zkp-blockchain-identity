@@ -15,8 +15,27 @@ const registryArtifact = JSON.parse(
   )
 );
 
-const SAFE_CHAIN_ID = BigInt(process.env.SAFE_CHAIN_ID || 11155111);
-const apiKit = new SafeApiKit({ chainId: SAFE_CHAIN_ID });
+// Constructed lazily (not at module load) so importing this module never
+// crashes the backend before SAFE_ADDRESS/SAFE_API_KEY are configured —
+// credentialService.js imports this module at the top level, which is in
+// turn imported by studentService.js, so an eager throw here would take
+// down the whole server on boot (Rule 3 fix: discovered at runtime —
+// SafeApiKit v4.2.0 requires `apiKey` unless a custom `txServiceUrl` is
+// supplied, since it otherwise targets the official api.safe.global service).
+let _apiKit = null;
+function getApiKit() {
+  if (!_apiKit) {
+    const chainId = BigInt(process.env.SAFE_CHAIN_ID || 11155111);
+    const apiKey = process.env.SAFE_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        '[safe] SAFE_API_KEY is not configured. Obtain one at https://developer.safe.global and set it in .env.'
+      );
+    }
+    _apiKit = new SafeApiKit({ chainId, apiKey });
+  }
+  return _apiKit;
+}
 
 // D-01/D-03: the backend never holds an official's private key. In production
 // (Sepolia) the proposer signature must be relayed in from the caller's
@@ -65,7 +84,7 @@ export async function proposeSafeTransaction(to, data, externalSigner) {
   const signedTx = await protocolKit.signTransaction(safeTransaction);
   const senderAddress = await protocolKit.getSafeProvider().getSignerAddress();
 
-  await apiKit.proposeTransaction({
+  await getApiKit().proposeTransaction({
     safeAddress,
     safeTransactionData: signedTx.data,
     safeTxHash,
@@ -94,7 +113,7 @@ export async function proposeRegistryWrite(fnName, args, externalSigner) {
  * Second (and subsequent) official confirms an already-proposed Safe tx.
  */
 export async function confirmSignature(safeTxHash, signature, signerAddress) {
-  const result = await apiKit.confirmTransaction(safeTxHash, signature);
+  const result = await getApiKit().confirmTransaction(safeTxHash, signature);
   console.log(`[safe] Confirmed ${safeTxHash} | signer: ${signerAddress}`);
   return result;
 }
@@ -110,7 +129,7 @@ export async function executeTransaction(safeTxHash, externalSigner) {
   const safeAddress = process.env.SAFE_ADDRESS;
 
   const protocolKit = await Safe.init({ provider, signer, safeAddress });
-  const txToExecute = await apiKit.getTransaction(safeTxHash);
+  const txToExecute = await getApiKit().getTransaction(safeTxHash);
   const executeResult = await protocolKit.executeTransaction(txToExecute);
   const receipt = await executeResult.transactionResponse?.wait?.();
 
@@ -128,8 +147,8 @@ export async function executeTransaction(safeTxHash, externalSigner) {
  */
 export async function getPendingTransactions() {
   const safeAddress = process.env.SAFE_ADDRESS;
-  const safeInfo = await apiKit.getSafeInfo(safeAddress);
-  const pending = await apiKit.getPendingTransactions(safeAddress);
+  const safeInfo = await getApiKit().getSafeInfo(safeAddress);
+  const pending = await getApiKit().getPendingTransactions(safeAddress);
 
   const threshold = safeInfo.threshold;
   const results = (pending.results || []).map((tx) => {
