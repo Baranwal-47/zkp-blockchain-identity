@@ -4,6 +4,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { encryptCredential } from '../crypto/aesgcm.js';
+import { proposeRegistryWrite } from './safeService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -41,30 +42,15 @@ export async function pinEnvelopeToIPFS(envelopeBase64, pinName) {
   return pinToIPFS({ dekEnvelope: envelopeBase64 }, pinName);
 }
 
-async function anchorOnChain(rollNo, cid, merkleRoot) {
-  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
-  const wallet = new ethers.Wallet(`0x${process.env.PRIVATE_KEY}`, provider);
-  const registry = new ethers.Contract(process.env.REGISTRY_ADDRESS, registryArtifact.abi, wallet);
-
-  // merkleRoot is a decimal string field element — convert to bytes32 (IDENTITY_SPEC §4)
-  const pubHashBytes32 = ethers.zeroPadValue(ethers.toBeHex(BigInt(merkleRoot)), 32);
-
-  const tx = await registry.issueCredential(rollNo, cid, pubHashBytes32);
-  const receipt = await tx.wait();
-
-  return { txHash: tx.hash, blockNumber: receipt.blockNumber };
-}
-
 export async function revokeCredentialOnChain(rollNo) {
-  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
-  const wallet = new ethers.Wallet(`0x${process.env.PRIVATE_KEY}`, provider);
-  const registry = new ethers.Contract(process.env.REGISTRY_ADDRESS, registryArtifact.abi, wallet);
+  // GOV-02/GOV-03 (D-12): no single backend key may mutate registry state.
+  // Propose the revocation through the Safe 2-of-3 flow instead of signing
+  // directly with PRIVATE_KEY. Terminal "revoked" state is set only once the
+  // proposal is executed (09-03's execute-confirmation path).
+  const { safeTxHash, status } = await proposeRegistryWrite('revokeCredential', [rollNo]);
 
-  const tx = await registry.revokeCredential(rollNo);
-  const receipt = await tx.wait();
-
-  console.log(`[credential] Revoked ${rollNo} | Tx: ${tx.hash}`);
-  return { txHash: tx.hash, blockNumber: receipt.blockNumber };
+  console.log(`[credential] Proposed revoke for ${rollNo} | safeTxHash: ${safeTxHash}`);
+  return { safeTxHash, status };
 }
 
 export function buildCredentialJson(student) {
@@ -97,8 +83,19 @@ export async function issueCredentialOnChain(student, dek) {
   const credentialJson = buildCredentialJson(student);
   const encryptedBlob = await encryptCredential(credentialJson, dek);
   const cid = await pinToIPFS(encryptedBlob, student.rollNo);
-  const { txHash, blockNumber } = await anchorOnChain(student.rollNo, cid, student.merkleRoot);
 
-  console.log(`[credential] Anchored ${student.rollNo} → IPFS: ${cid} | Tx: ${txHash}`);
-  return { cid, txHash, blockNumber };
+  // merkleRoot is a decimal string field element — convert to bytes32 (IDENTITY_SPEC §4)
+  const pubHashBytes32 = ethers.zeroPadValue(ethers.toBeHex(BigInt(student.merkleRoot)), 32);
+
+  // GOV-02/GOV-03 (D-12): propose through the Safe 2-of-3 flow instead of
+  // signing directly with PRIVATE_KEY. Terminal on-chain state (onChainTxHash/
+  // onChainBlock) is set only once the proposal is executed (09-03).
+  const { safeTxHash, status } = await proposeRegistryWrite('issueCredential', [
+    student.rollNo,
+    cid,
+    pubHashBytes32,
+  ]);
+
+  console.log(`[credential] Proposed issue for ${student.rollNo} → IPFS: ${cid} | safeTxHash: ${safeTxHash}`);
+  return { cid, safeTxHash, status };
 }
