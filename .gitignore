@@ -17,6 +17,9 @@ Thumbs.db
 .env
 .env.*
 .env*.local
+# ...except checked-in placeholder templates (no real secrets, safe to track)
+!.env.example
+!**/.env.example
 *.pem
 *.key
 *.p12
