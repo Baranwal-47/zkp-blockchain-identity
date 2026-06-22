@@ -23,23 +23,43 @@ async function main() {
   const { default: Safe } = await import("@safe-global/protocol-kit");
 
   const signers = await hre.ethers.getSigners();
-  const [deployer, ownerA, ownerB, ownerC] = signers;
+  const deployer = signers[0];
 
   console.log("Deploying with account:", deployer.address);
   const balance = await hre.ethers.provider.getBalance(deployer.address);
   console.log("Account balance:", hre.ethers.formatEther(balance), "ETH");
 
-  const owners = [ownerA.address, ownerB.address, ownerC.address];
+  // Local Hardhat exposes 20+ deterministic signers; real networks (Sepolia) only
+  // configure the deployer's own key in hardhat.config.js, so the 3 fresh throwaway
+  // owners (D-02) come from env instead of getSigners() there.
+  let owners;
+  if (hre.network.name === "hardhat" || hre.network.name === "localhost") {
+    const [, ownerA, ownerB, ownerC] = signers;
+    owners = [ownerA.address, ownerB.address, ownerC.address];
+    console.log("Safe owners (local Hardhat deterministic accounts):", owners);
+  } else {
+    const { SAFE_OWNER_ACADADMIN, SAFE_OWNER_REGISTRAR, SAFE_OWNER_DEAN } = process.env;
+    if (!SAFE_OWNER_ACADADMIN || !SAFE_OWNER_REGISTRAR || !SAFE_OWNER_DEAN) {
+      throw new Error(
+        "SAFE_OWNER_ACADADMIN/REGISTRAR/DEAN must be set in env for non-local networks (D-02 fresh owner keys)."
+      );
+    }
+    owners = [SAFE_OWNER_ACADADMIN, SAFE_OWNER_REGISTRAR, SAFE_OWNER_DEAN];
+    console.log("Safe owners (env-provided throwaway Sepolia keys):", owners);
+  }
   const threshold = 2;
-  console.log("Safe owners (local Hardhat deterministic accounts):", owners);
   console.log("Threshold:", threshold);
 
   const network = await hre.ethers.provider.getNetwork();
   const rpcUrl = hre.network.config.url || "http://127.0.0.1:8545";
 
-  // Deployer's private key — local Hardhat only. Hardhat's default deterministic
-  // accounts are well-known test keys, never used on a real network.
-  const deployerPrivateKey = deployer.privateKey;
+  // Deployer's private key — read directly from env rather than the Hardhat signer
+  // wrapper, since `.privateKey` is only reliably present on local Hardhat's
+  // deterministic test-account signers, not on every network's signer shape.
+  const deployerPrivateKey =
+    hre.network.name === "hardhat" || hre.network.name === "localhost"
+      ? deployer.privateKey
+      : `0x${process.env.PRIVATE_KEY}`;
 
   const protocolKit = await Safe.init({
     provider: rpcUrl,

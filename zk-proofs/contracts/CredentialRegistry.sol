@@ -4,6 +4,9 @@ pragma solidity ^0.8.20;
 contract CredentialRegistry {
     address public admin;
     address public pendingAdmin;
+    // Direct issuer (acad-admin backend EOA). Issuance is a routine direct write;
+    // only revocation/governance goes through `admin` (the Gnosis Safe 2-of-3).
+    address public issuer;
 
     struct Credential {
         string  rollNo;
@@ -22,14 +25,27 @@ contract CredentialRegistry {
     event CredentialRevoked(string indexed rollNo, bytes32 pubHash, uint256 timestamp);
     event AdminTransferStarted(address indexed previousAdmin, address indexed newAdmin);
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
+    event IssuerChanged(address indexed previousIssuer, address indexed newIssuer);
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "Not authorized");
         _;
     }
 
+    modifier onlyIssuer() {
+        require(msg.sender == issuer, "Not issuer");
+        _;
+    }
+
     constructor() {
         admin = msg.sender;
+        issuer = msg.sender;
+    }
+
+    // Rotate the direct issuer. Only the governance admin (Safe) can change it.
+    function setIssuer(address newIssuer) external onlyAdmin {
+        emit IssuerChanged(issuer, newIssuer);
+        issuer = newIssuer;
     }
 
     function transferAdmin(address newAdmin) external onlyAdmin {
@@ -48,7 +64,7 @@ contract CredentialRegistry {
         string  calldata rollNo,
         string  calldata ipfsCID,
         bytes32          pubHash
-    ) external onlyAdmin {
+    ) external onlyIssuer {
         // If re-issuing (student update), invalidate the old hash
         Credential storage existing = credentialsByRollNo[rollNo];
         if (existing.exists && existing.pubHash != bytes32(0)) {

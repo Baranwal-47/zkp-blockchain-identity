@@ -29,5 +29,10 @@ module.exports = {
       url: SEPOLIA_RPC_URL || "",
       accounts: PRIVATE_KEY ? [`0x${PRIVATE_KEY}`] : []
     }
+  },
+  // `npx hardhat verify --network sepolia <address>` publishes source to
+  // Etherscan. Etherscan V2 uses one API key for all chains — set it in .env.
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY || ""
   }
 };
