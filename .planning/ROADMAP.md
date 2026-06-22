@@ -74,7 +74,10 @@ Full detail archived in `.planning/milestones/v2.0-ROADMAP.md`; phase dirs in `.
   4. A custodian share submission without valid authentication (no custodian login / invalid signed payload) is rejected by `/recovery/submit-share` and does not count toward the 2-of-3 threshold.
   5. A governed erasure operation destroys at least 2 of the 3 shares for a credential; a subsequent recovery attempt using only the remaining share (or no shares) fails to reconstruct the DEK, and this is verified as a permanent, non-reversible state (no backup copy of the destroyed shares exists).
   6. Erasure also best-effort unpins the ciphertext and DEK envelope from IPFS and flags the record as erased in the admin store; the existing on-chain `revoked` flag continues to independently cause proof verification to reject the credential, so no runtime-security gap is introduced by erasure being best-effort at the storage layer.
-**Plans**: TBD
+**Plans**: 3 plans (2 waves)
+- [ ] 11-01-PLAN.md — Recovery session Map + /initiate + /submit-share + auth/duplicate-role guards (REC-01, REC-04)
+- [ ] 11-02-PLAN.md — Case A (credential-mod re-issuance) + Case B (device-loss re-wrap) operations wired into session completion (REC-02, REC-03)
+- [ ] 11-03-PLAN.md — Governed erasure: atomic $unset of shares B+C + best-effort IPFS unpin (ERASE-01, ERASE-02)
 
 ## Progress
 
