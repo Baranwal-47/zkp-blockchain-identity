@@ -7,6 +7,8 @@ import {
   addShare,
   reconstructIfReady,
   runOperation,
+  performDeviceLoss,
+  performCredentialMod,
 } from "../services/recoveryService.js";
 
 const CUSTODIAN_ROLES = ["acadadmin", "registrar", "dean"];
@@ -80,10 +82,13 @@ export const submitShare = asyncHandler(async (req, res) => {
     return res.status(202).json({ status: "pending", sharesReceived: result.sharesReceived });
   }
 
-  // TODO(11-02): replace the no-op operationFn with Case A / Case B dispatch by operationType
-  await runOperation(sessionId, result.dek, async () => {});
+  const opFn =
+    session.operationType === "device-loss"
+      ? (dek) => performDeviceLoss(session, dek)
+      : (dek) => performCredentialMod(session, dek);
+  const operationResult = await runOperation(sessionId, result.dek, opFn);
 
-  res.json({ status: "reconstructed" });
+  res.json({ status: "complete", operationType: session.operationType, result: operationResult });
 });
 
 /**

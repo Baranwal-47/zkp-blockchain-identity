@@ -28,6 +28,10 @@
 import crypto from "crypto";
 
 import { reconstructDEK } from "../crypto/shamir.js";
+import { wrapDEK } from "../crypto/ecies.js";
+import { pinEnvelopeToIPFS } from "./credentialService.js";
+import { reissueWithDEK } from "./studentService.js";
+import Student from "../models/Student.js";
 import AppError from "../utils/appError.js";
 
 const sessions = new Map();
@@ -147,4 +151,40 @@ export async function runOperation(sessionId, dek, operationFn) {
     dek.fill(0);
     deleteSession(sessionId);
   }
+}
+
+/**
+ * performDeviceLoss(session, dek) → { dekEnvelopeCID, pubKey }
+ *
+ * Case B (REC-02): re-wraps the reconstructed DEK to the student's new
+ * on-device pubkey, pins a fresh envelope, and updates Student.{dekEnvelopeCID,
+ * pubKey}. Writes NO on-chain transaction — device-loss never touches the
+ * registry or the Merkle root, only the off-chain DEK envelope/pubkey pointer.
+ */
+export async function performDeviceLoss(session, dek) {
+  if (typeof session.newPubKey !== "string" || !session.newPubKey.trim()) {
+    throw new AppError("newPubKey is required for device-loss recovery.", 400);
+  }
+
+  const envelope = await wrapDEK(session.newPubKey, dek);
+  const dekEnvelopeCID = await pinEnvelopeToIPFS(envelope, session.studentId);
+
+  await Student.findByIdAndUpdate(session.studentId, {
+    dekEnvelopeCID,
+    pubKey: session.newPubKey,
+  });
+
+  return { dekEnvelopeCID, pubKey: session.newPubKey };
+}
+
+/**
+ * performCredentialMod(session, dek) → { ciphertextCID, onChainTxHash, anchorPending }
+ *
+ * Case A (REC-03): delegates to studentService.reissueWithDEK, which decrypts/
+ * re-encrypts the credential under the SAME reconstructed DEK, preserves the
+ * frozen 7-attribute field set, and re-anchors on-chain via the direct
+ * issuer-EOA write (Q3 — not Safe-governed).
+ */
+export async function performCredentialMod(session, dek) {
+  return await reissueWithDEK(session.studentId, session.attributeUpdates ?? {}, dek);
 }
