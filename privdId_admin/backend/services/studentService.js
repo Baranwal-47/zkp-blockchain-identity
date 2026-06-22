@@ -3,7 +3,7 @@ import Student from "../models/Student.js";
 import { hashPoseidonFields } from "../utils/poseidonHash.js"; // kept for legacy callers; NOT called from new commitment path
 import { generateTemporaryPassword } from "../utils/password.js";
 import { sendCredentialsEmail } from "./emailService.js";
-import { issueCredentialOnChain, revokeCredentialOnChain, pinEnvelopeToIPFS } from "./credentialService.js";
+import { issueCredentialOnChain, encryptAndPinCredential, anchorCredentialOnChain, pinEnvelopeToIPFS } from "./credentialService.js";
 import { generateDEK } from "../crypto/aesgcm.js";
 import { wrapDEK } from "../crypto/ecies.js";
 import { hashToField, generateSalts, computeMerkleRoot, CHUNK_COUNTS } from "../utils/identityCommitment.js";
@@ -48,6 +48,8 @@ export function sanitizeStudent(student) {
     dekEnvelopeCID: student.dekEnvelopeCID ?? null,
     onChainTxHash: student.onChainTxHash ?? null,
     onChainBlock: student.onChainBlock ?? null,
+    anchorPending: student.anchorPending ?? false,
+    lastAnchorError: student.lastAnchorError ?? null,
     revoked: student.revoked ?? false,
     revokedAt: student.revokedAt ?? null,
   };
@@ -135,21 +137,26 @@ export async function createStudent(studentPayload) {
     emailSentAt: null,
   });
 
-  // Anchor credential on IPFS + Sepolia — non-blocking, student is saved regardless
-  // (T-06-09 accepted risk: a Pinata/RPC failure here must NOT block student.save()).
-  // On failure, anchorPending/lastAnchorError are persisted so operators can find and
-  // retry affected students instead of the failure being a silent, unrecoverable no-op.
+  // Issuance is split into (1) encrypt+pin and (2) the DIRECT on-chain write so a
+  // chain-write failure can NEVER discard the DEK/ciphertext/CID. The DEK + CID are
+  // persisted as soon as the IPFS pin succeeds; the on-chain anchor is attempted
+  // separately and only its outcome (onChainTxHash / anchorPending) is conditional.
+  const dek = generateDEK();
   try {
-    const dek = generateDEK();
-    const { cid, safeTxHash } = await issueCredentialOnChain(student, dek);
+    const cid = await encryptAndPinCredential(student, dek);
     student.dek = dek.toString('base64');
     student.ciphertextCID = cid;
-    student.pendingRegistryAction = { safeTxHash, type: 'issue' };
+    await student.save();
+
+    // Direct issuer-EOA write (acad-admin) — not Safe-governed.
+    const { txHash, blockNumber } = await anchorCredentialOnChain(student, cid);
+    student.onChainTxHash = txHash;
+    student.onChainBlock = blockNumber;
     student.anchorPending = false;
     student.lastAnchorError = null;
     await student.save();
   } catch (err) {
-    console.error('[credential] On-chain anchoring failed for', student.rollNo, ':', err.message);
+    console.error('[credential] Issuance failed for', student.rollNo, ':', err.message);
     student.anchorPending = true;
     student.lastAnchorError = err.message;
     await student.save();
@@ -189,13 +196,13 @@ export async function insertBulkStudents(preparedStudents) {
   for (const student of insertedStudents) {
     try {
       const dek = generateDEK();
-      const { cid, safeTxHash } = await issueCredentialOnChain(student, dek);
+      const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
       await Student.updateOne(
         { _id: student._id },
-        { ciphertextCID: cid, dek: dek.toString('base64'), pendingRegistryAction: { safeTxHash, type: 'issue' }, anchorPending: false, lastAnchorError: null }
+        { ciphertextCID: cid, dek: dek.toString('base64'), onChainTxHash: txHash, onChainBlock: blockNumber, anchorPending: false, lastAnchorError: null }
       );
       student.ciphertextCID = cid;
-      student.pendingRegistryAction = { safeTxHash, type: 'issue' };
+      student.onChainTxHash = txHash;
       student.anchorPending = false;
       anchored += 1;
     } catch (err) {
@@ -292,10 +299,15 @@ export async function updateStudent(id, payload) {
       anchorWarning = 'Credential metadata updated, but re-issuance skipped: no DEK on file.';
       console.error('[credential] updateStudent: missing DEK for', student.rollNo, '— cannot re-issue without rotating');
     } else {
+      // NOTE (deferred): attribute-change re-issuance should go through the Safe
+      // 2-of-3 + Shamir flow (see plan). For now it reuses the same DIRECT
+      // issuer-EOA write as initial issuance — consistent with issuance, but NOT
+      // yet governed. Revisit when the Shamir milestone lands.
       const dek = Buffer.from(student.dek, 'base64');
-      const { cid, safeTxHash } = await issueCredentialOnChain(student, dek);
+      const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
       student.ciphertextCID = cid;
-      student.pendingRegistryAction = { safeTxHash, type: 'issue' };
+      student.onChainTxHash = txHash;
+      student.onChainBlock = blockNumber;
       await student.save();
     }
   } catch (err) {
@@ -306,26 +318,9 @@ export async function updateStudent(id, payload) {
   return { student: sanitizeStudent(student), anchorWarning };
 }
 
-export async function revokeStudent(id) {
-  const student = await Student.findById(id);
-  if (!student) throw new AppError("Student not found.", 404);
-  if (student.revoked) throw new AppError("Student credential already revoked.", 400);
-
-  // Propose revocation on-chain first — terminal `revoked` state is deferred
-  // to the execute-confirmation path (09-03), not set here on propose (D-12).
-  let safeTxHash;
-  try {
-    ({ safeTxHash } = await revokeCredentialOnChain(student.rollNo));
-  } catch (err) {
-    console.error("[credential] On-chain revocation failed for", student.rollNo, ":", err.message);
-    throw new AppError("On-chain revocation failed: " + err.message, 500);
-  }
-
-  student.pendingRegistryAction = { safeTxHash, type: 'revoke' };
-  await student.save();
-
-  return { student: sanitizeStudent(student) };
-}
+// Revocation is now proposed from the official's MetaMask (Safe 2-of-3) via the
+// /safe/propose-build → /safe/propose → sign → execute flow, NOT a backend
+// endpoint. The old revokeStudent() server-side propose path was removed.
 
 // Phase 7 (ENROLL-02 / KEY-02): student-claim half of two-phase enrollment.
 // On a valid claim against an "awaiting-keypair" student, ECIES-wraps the

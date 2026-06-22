@@ -1,10 +1,11 @@
 import express from "express";
 
-import { adminLogin, roleLogin } from "../controllers/adminController.js";
+import { roleLogin } from "../controllers/adminController.js";
 
 const router = express.Router();
 
-router.post("/login", adminLogin);
+// Old generic ADMIN_PASSWORD login retired — the Academic Admin role
+// (/role-login with role=acadadmin) is now the full registry admin.
 router.post("/role-login", roleLogin);
 
 export default router;

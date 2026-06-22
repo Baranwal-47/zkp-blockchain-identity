@@ -14,7 +14,6 @@ import {
   sanitizeStudent,
   sendEmailsForStudents,
   updateStudent,
-  revokeStudent,
   claimCredential,
 } from "../services/studentService.js";
 import Student from "../models/Student.js";
@@ -214,15 +213,6 @@ export const updateStudentById = asyncHandler(async (req, res) => {
   });
 });
 
-export const revokeStudentById = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const result = await revokeStudent(id);
-  res.json({
-    status: "success",
-    message: "Student credential revoked on blockchain.",
-    student: result.student,
-  });
-});
 
 // Phase 7 (ENROLL-02 / KEY-02): student-claim half of two-phase enrollment.
 // T-07-02: validates pubKeyHex looks like a compressed secp256k1 public key

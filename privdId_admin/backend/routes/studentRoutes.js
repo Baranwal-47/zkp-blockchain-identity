@@ -1,6 +1,6 @@
 import express from "express";
 
-import { addStudent, getStudents, getStudentById, getCredentialBlobs, loginStudent, sendStudentEmails, updateStudentById, revokeStudentById, uploadMiddleware, uploadStudents, claimPubkey } from "../controllers/studentController.js";
+import { addStudent, getStudents, getStudentById, getCredentialBlobs, loginStudent, sendStudentEmails, updateStudentById, uploadMiddleware, uploadStudents, claimPubkey } from "../controllers/studentController.js";
 
 const router = express.Router();
 
@@ -17,6 +17,7 @@ router.get("/credential/:rollNo/blobs", getCredentialBlobs);
 router.get("/:id", getStudentById);
 router.post("/:id/pubkey", claimPubkey);
 router.put("/:id", updateStudentById);
-router.delete("/:id", revokeStudentById);
+// Revocation is Safe-governed via /api/safe/propose-build → /propose → sign →
+// execute (MetaMask), not a direct DELETE — the old route was removed.
 
 export default router;
