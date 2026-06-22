@@ -75,7 +75,7 @@ Full detail archived in `.planning/milestones/v2.0-ROADMAP.md`; phase dirs in `.
   5. A governed erasure operation destroys at least 2 of the 3 shares for a credential; a subsequent recovery attempt using only the remaining share (or no shares) fails to reconstruct the DEK, and this is verified as a permanent, non-reversible state (no backup copy of the destroyed shares exists).
   6. Erasure also best-effort unpins the ciphertext and DEK envelope from IPFS and flags the record as erased in the admin store; the existing on-chain `revoked` flag continues to independently cause proof verification to reject the credential, so no runtime-security gap is introduced by erasure being best-effort at the storage layer.
 **Plans**: 3 plans (2 waves)
-- [ ] 11-01-PLAN.md — Recovery session Map + /initiate + /submit-share + auth/duplicate-role guards (REC-01, REC-04)
+- [x] 11-01-PLAN.md — Recovery session Map + /initiate + /submit-share + auth/duplicate-role guards (REC-01, REC-04)
 - [ ] 11-02-PLAN.md — Case A (credential-mod re-issuance) + Case B (device-loss re-wrap) operations wired into session completion (REC-02, REC-03)
 - [ ] 11-03-PLAN.md — Governed erasure: atomic $unset of shares B+C + best-effort IPFS unpin (ERASE-01, ERASE-02)
 
@@ -89,4 +89,4 @@ Full detail archived in `.planning/milestones/v2.0-ROADMAP.md`; phase dirs in `.
 | 8. Daily Access Flow | v2.0 | 5/5 | Complete | 2026-06-20 |
 | 9. Multisig Registry Governance (E5) | v3.0 | 4/5 | In Progress|  |
 | 10. Threshold Custody Primitive (E6 split) | v3.0 | 0/3 | Not started | - |
-| 11. Recovery & Crypto-Shredding Erasure (E6 ops) | v3.0 | 0/TBD | Not started | - |
+| 11. Recovery & Crypto-Shredding Erasure (E6 ops) | v3.0 | 1/3 | In Progress|  |

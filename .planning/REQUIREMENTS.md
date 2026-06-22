@@ -21,10 +21,10 @@ Spec source: `docs/CLAUDE_CODE_BLUEPRINT.md` §E5, §E6, §16.2. Same 7-attribut
 
 ### E6 — Key Recovery (REC)
 
-- [ ] **REC-01**: `POST /recovery/initiate` opens a recovery request for a student; `POST /recovery/submit-share` accepts authenticated custodian shares and reconstructs the DEK in memory once 2 arrive, wiping it immediately after the operation completes
+- [x] **REC-01**: `POST /recovery/initiate` opens a recovery request for a student; `POST /recovery/submit-share` accepts authenticated custodian shares and reconstructs the DEK in memory once 2 arrive, wiping it immediately after the operation completes
 - [ ] **REC-02**: Device-loss recovery re-wraps the reconstructed DEK (ECIES) to the student's **new** on-device public key and re-pins a fresh `dekEnvelopeCID` — daily access works again on the new device
 - [ ] **REC-03**: Credential-modification recovery uses the reconstructed DEK to decrypt, lets an official re-encrypt updated attributes, and re-pins ciphertext (re-issue) — preserving the frozen 7-attribute field-set/encoding so proofs still verify
-- [ ] **REC-04**: Custodian share submissions are authenticated (custodian login / signed payload); an unauthenticated request cannot contribute a share
+- [x] **REC-04**: Custodian share submissions are authenticated (custodian login / signed payload); an unauthenticated request cannot contribute a share
 
 ### E6-04 — Crypto-Shredding Erasure (ERASE)
 
