@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: — Governance & Custody
 status: executing
-stopped_at: Phase 10 context gathered
-last_updated: "2026-06-22T15:53:37.671Z"
-last_activity: 2026-06-22 -- Phase 10 planning complete
+stopped_at: Phase 10 complete
+last_updated: "2026-06-23T00:00:00.000Z"
+last_activity: 2026-06-23 -- Phase 10 complete (all 3 plans, human checkpoint approved)
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 6
-  percent: 33
+  completed_plans: 8
+  percent: 67
 ---
 
 # Project State
@@ -25,16 +25,25 @@ See: .planning/PROJECT.md (updated 2026-06-19)
 
 ## Current Position
 
-Phase: 09 (multisig-registry-governance-e5) — ✅ COMPLETE
-Plan: 6 of 6 (09-06 = governance live end-to-end)
-Status: Ready to execute
-  direct issuer-EOA write; revocation/graduation = MetaMask-driven Safe 2-of-3
-  (propose → sign → execute). Registry redeployed with issuer/admin split
-  (0x1e01…6A9f), admin handed to the Safe, all contracts Etherscan-verified,
-  gas + timing metrics instrumented. See 09-06-SUMMARY.md.
-Next: E6 (Shamir custody/recovery) — attribute-change re-issuance through
-  Safe + Shamir is deferred to E6.
-Last activity: 2026-06-22 -- Phase 10 planning complete
+Phase: 10 (threshold-custody-primitive-e6-split) — ✅ COMPLETE
+Plan: 3 of 3
+Status: Complete
+
+  10-01: splitDEK/reconstructDEK (secrets.js-grempe 2-of-3) + wrapShare/unwrapShare
+         (Node RSA-OAEP-SHA256). Both smoke tests pass. Commit c3cfed6.
+  10-02: Student.js dek→custodyShareA/B/C+pendingDek; custodianKeys.js lazy PEM
+         loader; createStudent+insertBulkStudents split DEK at issuance; claimCredential
+         $unsets pendingDek; updateStudent throws Phase-11 deferral for claimed students.
+         Smoke test + dek-sweep clean. Commit 48d602c.
+  10-03: Dev keygen script; POST /api/custodians/register-key (requireAuth + role-
+         ownership + private-key rejection); CustodianOnboardingPage WebCrypto keygen
+         (private key device-local, never transmitted); status endpoint + nav button
+         with green/amber dot in PendingApprovalsPage. Human checkpoint approved.
+         Commit 324cb13.
+
+Next: Phase 11 — DEK recovery (Case A: 2-of-3 custodian Shamir reconstruction for
+  attribute-change re-issuance; Case B: student device loss recovery).
+Last activity: 2026-06-23 -- Phase 10 all plans complete, human checkpoint approved
 
 ## Performance Metrics
 
