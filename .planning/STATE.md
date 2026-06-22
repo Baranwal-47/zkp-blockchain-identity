@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: — Governance & Custody
-status: executing
-stopped_at: Phase 09 COMPLETE — E5 Safe governance live end-to-end (09-06)
-last_updated: "2026-06-22T10:30:00.000Z"
+status: E5 Gnosis Safe registry governance OPERATIONAL on Sepolia. Issuance =
+stopped_at: Phase 10 context gathered
+last_updated: "2026-06-22T11:25:35.236Z"
 last_activity: 2026-06-22
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 6
+  total_plans: 5
   completed_plans: 6
   percent: 33
 ---
@@ -134,9 +134,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-21T04:22:29.491Z
-Stopped at: 09-05-PLAN.md Task 3 (human-action checkpoint) — Tasks 1-2 complete
-Resume file: 09-05-PLAN.md
+Last session: 2026-06-22T11:25:35.227Z
+Stopped at: Phase 10 context gathered
+Resume file: .planning/phases/10-threshold-custody-primitive-e6-split/10-CONTEXT.md
 </content>
 
 ## Operator Next Steps
