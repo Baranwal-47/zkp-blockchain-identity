@@ -48,13 +48,24 @@ crypto-shredding erasure.
   backend never holds a private custodian key.
 
 ### Daily-access DEK — remove single custody (CUST-03)
-- **D-06:** The persistent `student.dek` field is **removed as the custodial copy**. The
-  plaintext DEK is retained ONLY during the pre-claim window (issuance → student's first
-  claim). At first claim, the DEK is wrapped to the student's **on-device-generated**
-  public key (existing ECIES envelope → IPFS), and **then the plaintext DEK is split into
-  the 3 shares and DELETED**. After claim, the Shamir shares are the sole custodial copy.
-- **D-07:** No per-student 2-of-3 ceremony at enrollment — claim-time wrap uses the
-  transient pre-claim DEK, not a reconstruction.
+- **D-06 (canonical DEK lifecycle — "plaintext DEK exists only during the issuance
+  ceremony"):**
+  1. **Generate DEK** — admin backend generates a random 32-byte AES-256 key.
+  2. **Encrypt credential** — AES-GCM encrypt credential JSON → pin ciphertext to IPFS
+     (ciphertext CID in Mongo).
+  3. **Shamir SSS split** — 3 shares: **A → MongoDB (admin), B → Registrar, C → Dean**;
+     2-of-3 reconstructs (shares distributed).
+  4. **Wrap DEK (student pubKey)** — ECIES: DEK encrypted with the student's on-device
+     public key → DEK envelope pinned to IPFS (envelope CID in Mongo).
+  5. **Delete DEK** — plaintext DEK wiped from the backend. **Only remaining copies: the
+     3 Shamir shares + the encrypted envelope.**
+  Steps 3 and 4 both consume the same live plaintext DEK (two independent outputs) before
+  step 5 deletes it. The persistent `student.dek` field is removed — it is never the
+  custodial copy. (Timing in the current two-phase enrollment: step 4's wrap is gated on
+  the student's pubkey, so the DEK lives until the student's first claim, then is wrapped
+  and deleted; the planner resolves exact step-3-at-issuance vs at-claim ordering.)
+- **D-07:** No per-student 2-of-3 ceremony at enrollment — the wrap uses the transient
+  ceremony DEK, not a reconstruction.
 
 ### Recovery auth (forward-looking; shapes storage, implemented in Phase 11)
 - **D-08:** Custodian share submission (Phase 11) is authenticated by **MetaMask-signed
@@ -62,12 +73,20 @@ crypto-shredding erasure.
   decryption: the official decrypts their RSA-wrapped share with their private key on
   their own side, then submits the plaintext share with a MetaMask signature.
 - **D-09 (official private-key custody):** The RSA private key is **NOT** in MetaMask
-  (MetaMask only holds the secp256k1/Ethereum key — it stays as identity/auth only). Each
-  official **downloads their private `.pem` once at deployment and keeps it on their own
-  device** (never on the admin server). At recovery the official **loads their PEM into
-  the recovery page and decryption happens client-side in the browser (WebCrypto
-  RSA-OAEP)** — only the plaintext share + MetaMask signature is sent back; the RSA
-  private key never touches the backend or the network.
+  (MetaMask only holds the secp256k1/Ethereum key — it stays as identity/auth only). The
+  official keeps their private `.pem` on their own device (never on the admin server). At
+  recovery the official **loads their PEM into the recovery page and decryption happens
+  client-side in the browser (WebCrypto RSA-OAEP)** — only the plaintext share + MetaMask
+  signature is sent back; the RSA private key never touches the backend or the network.
+- **D-10 (custodian keygen — NEVER transmit a private key):** Custodian keypairs are
+  **generated client-side on the official's own device** via a one-time browser onboarding
+  (WebCrypto generates the RSA-2048 keypair; the **private `.pem` downloads locally and is
+  never transmitted**; only the **public** key is POSTed to the backend and stored). The
+  private key is never generated centrally and never "distributed" — it is born where it
+  lives. This mirrors the student's on-device keygen (D-02 invariant) and makes "the admin
+  server never holds a private custodian key" cryptographically true, not just asserted.
+  (Setup deps: a one-time custodian-onboarding page + a backend endpoint to register each
+  official's public key — Phase 10 setup work.)
 
 ### Claude's Discretion
 - Shamir library selection + share serialization (hex/base64).
