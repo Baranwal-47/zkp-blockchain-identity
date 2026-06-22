@@ -58,7 +58,10 @@ Full detail archived in `.planning/milestones/v2.0-ROADMAP.md`; phase dirs in `.
   1. `crypto/shamir.js` exports `splitDEK(dek) → [A, B, C]` and `reconstructDEK([s1, s2]) → dek`; reconstructing from any 2 of the 3 shares recovers the exact original 32-byte DEK, and a single share alone (fed into any reconstruction attempt) fails or yields no usable key.
   2. At issuance, the DEK is split and the 3 shares are written to 3 separated stores with independent access credentials (Share A in the admin-readable store; Shares B and C in stores the admin process's own credentials cannot read) — inspecting the admin DB/connection alone never yields 2+ shares.
   3. No code path remaining in the issuance flow holds the plaintext DEK in backend memory/short-lived storage as a substitute for real custody (the v2.0 documented interim gap is gone) — the Shamir-split shares are the sole custodial recovery copy of the DEK going forward.
-**Plans**: TBD
+**Plans**: 3 plans (2 waves)
+- [ ] 10-01-PLAN.md — crypto/shamir.js (Shamir 2-of-3 split/reconstruct) + crypto/rsaShare.js (RSA-2048-OAEP wrap/unwrap) primitives + smoke tests (CUST-01)
+- [ ] 10-02-PLAN.md — split-and-store at issuance, remove single-custody `dek` field, pendingDek claim-window field, custodianKeys.js lazy loader (CUST-02, CUST-03)
+- [ ] 10-03-PLAN.md — custodian onboarding: dev keygen script + requireAuth register-key endpoint (role-ownership + PEM/modulus-2048 validation) + client-side WebCrypto onboarding page (CUST-02 setup, D-10)
 
 ### Phase 11: Recovery & Crypto-Shredding Erasure (E6 ops)
 **Goal**: Custodians can jointly reconstruct a student's DEK to recover device-loss access or modify a credential, and can irreversibly erase a credential's recoverability on demand — both gated on 2-of-3 authenticated custodian participation.
@@ -82,5 +85,5 @@ Full detail archived in `.planning/milestones/v2.0-ROADMAP.md`; phase dirs in `.
 | 7. Student Keypair & Two-Phase Enrollment | v2.0 | 4/4 | Complete | 2026-06-20 |
 | 8. Daily Access Flow | v2.0 | 5/5 | Complete | 2026-06-20 |
 | 9. Multisig Registry Governance (E5) | v3.0 | 4/5 | In Progress|  |
-| 10. Threshold Custody Primitive (E6 split) | v3.0 | 0/TBD | Not started | - |
+| 10. Threshold Custody Primitive (E6 split) | v3.0 | 0/3 | Not started | - |
 | 11. Recovery & Crypto-Shredding Erasure (E6 ops) | v3.0 | 0/TBD | Not started | - |
