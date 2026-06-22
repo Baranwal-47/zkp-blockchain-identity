@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import StudentsTable from "../components/StudentsTable.jsx";
@@ -9,6 +9,7 @@ const TYPE_LABEL = { issue: "Issue", revoke: "Revoke" };
 const SIGN_THRESHOLD = 2;
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -69,15 +70,21 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleRevoke(studentId) {
-    if (window.confirm("Are you sure you want to revoke this student's credential? This action is irreversible.")) {
-      try {
-        await api.delete(`/students/${studentId}`);
-        toast.success("Student credential revoked successfully.");
-        await loadStudents();
-      } catch (error) {
-        toast.error(getApiErrorMessage(error));
-      }
+  function handleRevoke(studentId) {
+    const student = students.find((s) => s.id === studentId);
+    if (!student) return;
+    if (student.revoked) {
+      toast.error("This credential is already revoked.");
+      return;
+    }
+    // Revocation is Safe-governed: hand off to Pending Approvals, where the
+    // acad-admin signs the proposal in MetaMask (1 of 2) and officials approve.
+    if (
+      window.confirm(
+        `Propose revoking ${student.rollNo}? You'll sign it in MetaMask, then 2 of 3 officials must approve before it executes on-chain.`
+      )
+    ) {
+      navigate("/pending-approvals", { state: { proposeRevokeRollNo: student.rollNo } });
     }
   }
 

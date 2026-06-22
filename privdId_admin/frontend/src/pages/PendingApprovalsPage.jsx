@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import toast from "react-hot-toast";
 
 import api, { getApiErrorMessage } from "../services/api.js";
+import { getRole, logout } from "../services/auth.js";
 import PendingTxCard from "../components/PendingTxCard.jsx";
 
 const ROLE_LABELS = { acadadmin: "Academic Admin", registrar: "Assistant Registrar", dean: "Dean" };
@@ -14,24 +16,79 @@ const EXPECTED_OWNER_BY_ROLE = {
 };
 
 const SIGN_THRESHOLD = 2;
+const SAFE_OWNER_COUNT = 3;
 const POLL_INTERVAL_MS = 10000;
+// The Safe lives on Sepolia (locked decision). The EIP-712 domain chainId must
+// match the Safe's chain, NOT MetaMask's currently-selected network — otherwise
+// the signature is made over the wrong digest and the Safe service rejects it (422).
+const SAFE_CHAIN_ID = Number(import.meta.env.VITE_SAFE_CHAIN_ID || 11155111);
 
-function decodeRoleFromToken(token) {
-  if (!token) return null;
+// The Safe Tx Service validates confirmations against the EIP-712 SafeTx digest
+// (not personal_sign). Signing this typed struct ecrecovers to the same hash as
+// safeTxHash — shared by the propose (1st sig) and the sign (2nd sig) flows.
+const SAFE_TX_TYPES = {
+  SafeTx: [
+    { type: "address", name: "to" },
+    { type: "uint256", name: "value" },
+    { type: "bytes", name: "data" },
+    { type: "uint8", name: "operation" },
+    { type: "uint256", name: "safeTxGas" },
+    { type: "uint256", name: "baseGas" },
+    { type: "uint256", name: "gasPrice" },
+    { type: "address", name: "gasToken" },
+    { type: "address", name: "refundReceiver" },
+    { type: "uint256", name: "nonce" },
+  ],
+};
+
+async function ensureSepolia() {
+  // Make MetaMask switch to Sepolia so the signature, and any later on-chain
+  // step, target the right chain. Signing still uses the fixed SAFE_CHAIN_ID
+  // domain regardless, but this keeps the wallet UX consistent.
+  const hexChainId = "0x" + SAFE_CHAIN_ID.toString(16);
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.role || null;
-  } catch {
-    return null;
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: hexChainId }],
+    });
+  } catch (err) {
+    // 4902 = chain not added; ignore — signing uses the explicit domain anyway.
+    if (err?.code !== 4902) {
+      console.warn("Could not switch MetaMask network:", err?.message);
+    }
   }
 }
 
+async function signSafeTx(d, safeAddress) {
+  await ensureSepolia();
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
+  const domain = { chainId: SAFE_CHAIN_ID, verifyingContract: safeAddress };
+  const message = {
+    to: d.to,
+    value: d.value,
+    data: d.data,
+    operation: d.operation,
+    safeTxGas: d.safeTxGas,
+    baseGas: d.baseGas,
+    gasPrice: d.gasPrice,
+    gasToken: d.gasToken,
+    refundReceiver: d.refundReceiver,
+    nonce: d.nonce,
+  };
+  return signer.signTypedData(domain, SAFE_TX_TYPES, message);
+}
+
 export default function PendingApprovalsPage() {
-  const [role] = useState(() => decodeRoleFromToken(localStorage.getItem("officialToken")));
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [role] = useState(() => getRole());
   const [walletAddress, setWalletAddress] = useState(null);
   const [connecting, setConnecting] = useState(false);
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Roll number handed in by the dashboard "Revoke" button (auto-propose target).
+  const [revokeTarget, setRevokeTarget] = useState(() => location.state?.proposeRevokeRollNo || null);
 
   const roleLabel = ROLE_LABELS[role] || role || "Unknown";
   const expectedOwner = EXPECTED_OWNER_BY_ROLE[role];
@@ -57,31 +114,80 @@ export default function PendingApprovalsPage() {
     }
     setConnecting(true);
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const [address] = await provider.send("eth_requestAccounts", []);
-      setWalletAddress(address);
+      await ensureSepolia();
+      // Force MetaMask's account picker. eth_requestAccounts alone returns the
+      // already-permitted account (often a different role's wallet), which is
+      // why switching the active account in MetaMask didn't help — the dApp
+      // permission was still scoped to the old account. This re-prompts so the
+      // user can pick THIS role's wallet.
+      await window.ethereum.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+      const accounts = await window.ethereum.request({ method: "eth_accounts" });
+      setWalletAddress(accounts[0] || null);
     } catch (error) {
-      toast.error(getApiErrorMessage(error));
+      toast.error(error?.code === 4001 ? "Wallet connection cancelled." : getApiErrorMessage(error));
     } finally {
       setConnecting(false);
     }
   }
 
-  async function handleSign(tx) {
-    if (addressMismatch || !walletAddress) {
-      toast.error("Connect the correct MetaMask account before signing.");
-      return;
+  function requireWallet() {
+    if (!walletAddress) {
+      toast.error("Connect your MetaMask wallet first.");
+      return false;
     }
+    if (addressMismatch) {
+      toast.error("Connected wallet does not match your role. Switch accounts and reconnect.");
+      return false;
+    }
+    return true;
+  }
+
+  async function handleSign(tx) {
+    if (!requireWallet()) return;
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const signature = await signer.signMessage(tx.safeTxHash);
+      const signature = await signSafeTx(tx, tx.safe);
       await api.post("/safe/sign", {
         safeTxHash: tx.safeTxHash,
         signature,
         signerAddress: walletAddress,
       });
       toast.success("Signature submitted.");
+      await loadPending();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    }
+  }
+
+  // Proposer flow (1st signature): build the unsigned Safe tx server-side, sign
+  // its hash in MetaMask, relay the proposal. action is "revoke" or "acceptAdmin".
+  async function proposeAction(action, rollNo) {
+    if (!requireWallet()) return;
+    try {
+      const { data: built } = await api.post("/safe/propose-build", { action, rollNo });
+      const signature = await signSafeTx(built.safeTransactionData, built.safe);
+      await api.post("/safe/propose", {
+        action,
+        rollNo,
+        safeTransactionData: built.safeTransactionData,
+        safeTxHash: built.safeTxHash,
+        signature,
+        signerAddress: walletAddress,
+      });
+      toast.success(action === "revoke" ? `Revocation proposed for ${rollNo}.` : "Admin handoff proposed.");
+      await loadPending();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    }
+  }
+
+  async function handleReject(tx) {
+    if (!window.confirm("Reject and dismiss this proposal? It will not be executed.")) return;
+    try {
+      await api.post("/safe/reject", { safeTxHash: tx.safeTxHash });
+      toast.success("Proposal rejected.");
       await loadPending();
     } catch (error) {
       toast.error(getApiErrorMessage(error));
@@ -113,12 +219,44 @@ export default function PendingApprovalsPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Keep the connected wallet in sync when the user switches accounts in
+  // MetaMask, so the role-match check and "Signed" state reflect reality.
+  useEffect(() => {
+    if (!window.ethereum?.on) return undefined;
+    const handler = (accounts) => setWalletAddress(accounts[0] || null);
+    window.ethereum.on("accountsChanged", handler);
+    return () => window.ethereum.removeListener?.("accountsChanged", handler);
+  }, []);
+
   return (
     <div className="min-h-screen px-4 py-10 text-slate-100 sm:px-8">
       <div className="mx-auto max-w-3xl space-y-6">
-        <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-zinc-400">PrivdId Admin</p>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Pending Approvals</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-zinc-400">PrivdId Admin</p>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Pending Approvals</h1>
+          </div>
+          <div className="flex gap-2">
+            {role === "acadadmin" && (
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500"
+              >
+                Dashboard
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate("/official-login", { replace: true });
+              }}
+              className="rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         <div className="panel-soft">
@@ -142,11 +280,43 @@ export default function PendingApprovalsPage() {
               reconnect.
             </p>
           ) : (
-            <p className="mt-4 inline-block rounded-full bg-blue-400/15 px-3 py-1 text-xs font-medium text-blue-200">
-              Connected: {walletAddress}
-            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <p className="inline-block rounded-full bg-blue-400/15 px-3 py-1 text-xs font-medium text-blue-200">
+                Connected: {walletAddress}
+              </p>
+              {role === "acadadmin" && !addressMismatch && (
+                <button
+                  type="button"
+                  onClick={() => proposeAction("acceptAdmin", null)}
+                  className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-500"
+                  title="One-time: make the Safe the registry admin so revocations can execute on-chain."
+                >
+                  Finish admin handoff (one-time)
+                </button>
+              )}
+            </div>
           )}
         </div>
+
+        {revokeTarget && role === "acadadmin" && (
+          <div className="panel-soft border border-amber-400/30">
+            <h3 className="text-base font-semibold text-white">Propose revocation: {revokeTarget}</h3>
+            <p className="mt-1 text-sm text-slate-400">
+              Sign in MetaMask to create the 2-of-3 proposal. The other officials then approve it before you can execute.
+            </p>
+            <button
+              type="button"
+              disabled={!walletAddress || addressMismatch}
+              onClick={async () => {
+                await proposeAction("revoke", revokeTarget);
+                setRevokeTarget(null);
+              }}
+              className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Sign &amp; Propose Revocation
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="panel grid gap-3">
@@ -169,12 +339,16 @@ export default function PendingApprovalsPage() {
                 tx={tx}
                 onSign={handleSign}
                 onExecute={handleExecute}
+                onReject={handleReject}
+                canReject={role !== "acadadmin"}
                 alreadySigned={Boolean(
                   walletAddress &&
+                    !addressMismatch &&
                     Array.isArray(tx.confirmedSigners) &&
                     tx.confirmedSigners.some((signer) => signer.toLowerCase() === walletAddress.toLowerCase())
                 )}
                 threshold={SIGN_THRESHOLD}
+                ownerCount={SAFE_OWNER_COUNT}
               />
             ))}
           </div>

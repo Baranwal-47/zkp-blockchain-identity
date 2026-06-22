@@ -1,10 +1,10 @@
 const TYPE_LABEL = { issue: "Issue", revoke: "Revoke" };
 
-export default function PendingTxCard({ tx, onSign, onExecute, alreadySigned, threshold }) {
+export default function PendingTxCard({ tx, onSign, onExecute, onReject, canReject, alreadySigned, threshold, ownerCount }) {
   const signedCount = tx.signedCount ?? tx.confirmations ?? 0;
   const readyToExecute = signedCount >= threshold;
   const remaining = Math.max(threshold - signedCount, 0);
-  const typeLabel = TYPE_LABEL[tx.type] || tx.type;
+  const typeLabel = TYPE_LABEL[tx.type] || (tx.type ? tx.type : "Registry action");
 
   return (
     <div className="rounded-2xl bg-white/5 px-4 py-4">
@@ -21,7 +21,7 @@ export default function PendingTxCard({ tx, onSign, onExecute, alreadySigned, th
             }
           >
             {readyToExecute
-              ? `Ready to execute — ${threshold} of ${threshold} signed`
+              ? `Ready to execute — ${threshold} of ${ownerCount} threshold reached`
               : `Awaiting ${remaining} more signature${remaining === 1 ? "" : "s"}`}
           </span>
         </div>
@@ -36,6 +36,16 @@ export default function PendingTxCard({ tx, onSign, onExecute, alreadySigned, th
               className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Sign
+            </button>
+          )}
+
+          {canReject && onReject && (
+            <button
+              type="button"
+              onClick={() => onReject(tx)}
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-slate-400"
+            >
+              Reject
             </button>
           )}
 

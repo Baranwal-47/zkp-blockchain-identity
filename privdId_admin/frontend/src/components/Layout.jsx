@@ -1,17 +1,20 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
+import { logout } from "../services/auth.js";
+
 const navigation = [
   { to: "/", label: "Dashboard" },
   { to: "/students/new", label: "Add Student" },
   { to: "/students/upload", label: "Upload Excel" },
+  { to: "/pending-approvals", label: "Pending Approvals" },
 ];
 
 export default function Layout() {
   const navigate = useNavigate();
 
   function handleLogout() {
-    localStorage.removeItem("adminToken");
-    navigate("/login", { replace: true });
+    logout();
+    navigate("/official-login", { replace: true });
   }
 
   return (

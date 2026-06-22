@@ -5,42 +5,43 @@ import DashboardPage from "./pages/DashboardPage.jsx";
 import AddStudentPage from "./pages/AddStudentPage.jsx";
 import EditStudentPage from "./pages/EditStudentPage.jsx";
 import UploadPage from "./pages/UploadPage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
 import RoleLoginPage from "./pages/RoleLoginPage.jsx";
 import PendingApprovalsPage from "./pages/PendingApprovalsPage.jsx";
+import { getRole } from "./services/auth.js";
 
-function RequireAuth({ children }) {
-  if (!localStorage.getItem("adminToken")) {
-    return <Navigate to="/login" replace />;
-  }
+// Academic Admin is the full registry admin (dashboard + student CRUD).
+// Registrar/Dean are officials limited to the pending-approvals queue.
+function RequireAdmin({ children }) {
+  const role = getRole();
+  if (!role) return <Navigate to="/official-login" replace />;
+  if (role !== "acadadmin") return <Navigate to="/pending-approvals" replace />;
   return children;
 }
 
-function RequireOfficialAuth({ children }) {
-  if (!localStorage.getItem("officialToken")) {
-    return <Navigate to="/official-login" replace />;
-  }
+function RequireOfficial({ children }) {
+  if (!getRole()) return <Navigate to="/official-login" replace />;
   return children;
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      {/* /login retired — single official sign-in for all roles */}
+      <Route path="/login" element={<Navigate to="/official-login" replace />} />
       <Route path="/official-login" element={<RoleLoginPage />} />
       <Route
         path="/pending-approvals"
         element={
-          <RequireOfficialAuth>
+          <RequireOfficial>
             <PendingApprovalsPage />
-          </RequireOfficialAuth>
+          </RequireOfficial>
         }
       />
       <Route
         element={
-          <RequireAuth>
+          <RequireAdmin>
             <Layout />
-          </RequireAuth>
+          </RequireAdmin>
         }
       >
         <Route index element={<DashboardPage />} />

@@ -30,7 +30,8 @@ export default function RoleLoginPage() {
     try {
       const response = await api.post("/admin/role-login", { role, password });
       localStorage.setItem("officialToken", response.data.token);
-      navigate("/pending-approvals", { replace: true });
+      // Academic Admin lands on the full dashboard; officials go to approvals.
+      navigate(role === "acadadmin" ? "/" : "/pending-approvals", { replace: true });
     } catch (error) {
       toast.error(getApiErrorMessage(error) || "Incorrect password for this role. Try again.");
     } finally {

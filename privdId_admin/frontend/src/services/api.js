@@ -6,10 +6,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const isOfficialRoute = typeof config.url === "string" && (config.url.includes("/safe") || config.url.includes("/admin/role-login"));
-  const officialToken = localStorage.getItem("officialToken");
-  const adminToken = localStorage.getItem("adminToken");
-  const token = isOfficialRoute ? officialToken || adminToken : adminToken || officialToken;
+  const token = localStorage.getItem("officialToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -20,8 +17,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
-      localStorage.removeItem("adminToken");
-      window.location.href = "/login";
+      localStorage.removeItem("officialToken");
+      window.location.href = "/official-login";
     }
     return Promise.reject(error);
   }
