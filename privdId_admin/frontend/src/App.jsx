@@ -7,6 +7,7 @@ import EditStudentPage from "./pages/EditStudentPage.jsx";
 import UploadPage from "./pages/UploadPage.jsx";
 import RoleLoginPage from "./pages/RoleLoginPage.jsx";
 import PendingApprovalsPage from "./pages/PendingApprovalsPage.jsx";
+import CustodianOnboardingPage from "./pages/CustodianOnboardingPage.jsx";
 import { getRole } from "./services/auth.js";
 
 // Academic Admin is the full registry admin (dashboard + student CRUD).
@@ -34,6 +35,14 @@ export default function App() {
         element={
           <RequireOfficial>
             <PendingApprovalsPage />
+          </RequireOfficial>
+        }
+      />
+      <Route
+        path="/custodian-onboarding"
+        element={
+          <RequireOfficial>
+            <CustodianOnboardingPage />
           </RequireOfficial>
         }
       />
