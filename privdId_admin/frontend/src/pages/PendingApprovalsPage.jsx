@@ -87,6 +87,14 @@ export default function PendingApprovalsPage() {
   const [connecting, setConnecting] = useState(false);
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [keyRegistered, setKeyRegistered] = useState(null); // null=loading, true, false
+
+  useEffect(() => {
+    if (role === "acadadmin") return;
+    api.get("/custodians/status")
+      .then(r => setKeyRegistered(r.data.registered?.[role] ?? false))
+      .catch(() => setKeyRegistered(false));
+  }, [role]);
   // Roll number handed in by the dashboard "Revoke" button (auto-propose target).
   const [revokeTarget, setRevokeTarget] = useState(() => location.state?.proposeRevokeRollNo || null);
 
@@ -244,6 +252,22 @@ export default function PendingApprovalsPage() {
                 className="rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500"
               >
                 Dashboard
+              </button>
+            )}
+            {role !== "acadadmin" && (
+              <button
+                type="button"
+                onClick={() => navigate("/custodian-onboarding")}
+                className="relative rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500"
+                title={keyRegistered ? "Custodian key registered" : "Custodian key not yet registered"}
+              >
+                Custodian Key
+                {keyRegistered === false && (
+                  <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-400" />
+                )}
+                {keyRegistered === true && (
+                  <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green-400" />
+                )}
               </button>
             )}
             <button
