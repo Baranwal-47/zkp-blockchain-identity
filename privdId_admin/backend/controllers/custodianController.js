@@ -1,6 +1,18 @@
+import fs from "fs";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import AppError from "../utils/appError.js";
 import { registerCustodianPublicKey } from "../services/custodianService.js";
+
+const ROLE_PATH_ENV = { registrar: "REGISTRAR_PUBLIC_KEY_PATH", dean: "DEAN_PUBLIC_KEY_PATH" };
+
+export const getCustodianStatus = asyncHandler(async (req, res) => {
+  const statuses = {};
+  for (const [role, envVar] of Object.entries(ROLE_PATH_ENV)) {
+    const p = process.env[envVar];
+    statuses[role] = p ? fs.existsSync(p) : false;
+  }
+  res.json({ status: "success", registered: statuses });
+});
 
 export const registerCustodianKey = asyncHandler(async (req, res) => {
   const { role, publicKeyPem } = req.body;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api, { getApiErrorMessage } from "../services/api.js";
 import { getRole } from "../services/auth.js";
 
@@ -20,8 +20,17 @@ function downloadPem(filename, pem) {
 
 export default function CustodianOnboardingPage() {
   const role = getRole();
-  const [status, setStatus] = useState("idle"); // idle | generating | done | error
+  const [status, setStatus] = useState("loading"); // loading | idle | generating | done | error
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    api.get("/custodians/status")
+      .then(r => {
+        if (r.data.registered?.[role]) setStatus("done");
+        else setStatus("idle");
+      })
+      .catch(() => setStatus("idle"));
+  }, [role]);
 
   if (role === "acadadmin") {
     return (
@@ -81,7 +90,9 @@ export default function CustodianOnboardingPage() {
           your public key is registered.
         </p>
 
-        {status === "idle" || status === "error" ? (
+        {status === "loading" ? (
+          <p className="text-neutral-400 text-sm">Checking registration status…</p>
+        ) : status === "idle" || status === "error" ? (
           <button
             onClick={handleGenerate}
             className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
@@ -91,9 +102,10 @@ export default function CustodianOnboardingPage() {
         ) : status === "generating" ? (
           <p className="text-indigo-600 text-sm">Generating keypair…</p>
         ) : (
-          <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-800">
-            <p className="font-semibold">Your public key is registered.</p>
-            <p className="mt-1">Keep your private <code>.pem</code> file safe — it cannot be recovered and was never sent to the server.</p>
+          <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-800 space-y-2">
+            <p className="font-semibold text-base">✓ Custodian keypair registered</p>
+            <p>Your <strong>public key</strong> is stored on the server and will be used to encrypt your DEK share at every issuance.</p>
+            <p>Your <strong>private key</strong> was downloaded to your device (<code>{role}_private.pem</code>) and was <strong>never transmitted</strong> to the server. Keep it safe — it is required for Phase 11 DEK recovery.</p>
           </div>
         )}
 

@@ -3,14 +3,17 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import path from "path";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 import studentRoutes from "./routes/studentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import safeRoutes from "./routes/safeRoutes.js";
 import custodianRoutes from "./routes/custodianRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
-
-dotenv.config();
 
 const app = express();
 
