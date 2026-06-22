@@ -106,6 +106,17 @@ const studentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Phase 11 erasure (ERASE-02): written by the crypto-shredding erasure endpoint.
+    // The on-chain `revoked` flag — not `erased` — is what causes proof rejection;
+    // `erased` is an off-chain record that the custodial DEK shares were destroyed.
+    erased: {
+      type: Boolean,
+      default: false,
+    },
+    erasedAt: {
+      type: Date,
+      default: null,
+    },
     // GOV-02/GOV-03 (D-12): records an in-flight Safe propose for this student's
     // issue/revoke registry write. Terminal state (onChainTxHash/onChainBlock or
     // revoked/revokedAt) is set only once the proposal executes (09-03).
