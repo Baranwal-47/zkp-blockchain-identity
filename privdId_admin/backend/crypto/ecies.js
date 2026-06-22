@@ -7,7 +7,7 @@
  * Wraps/unwraps a 32-byte DEK (Data Encryption Key) to/from a student's
  * on-device secp256k1 keypair using ECIES (eciesjs). The DEK is generated
  * server-side at issuance time (Phase 6, crypto/aesgcm.js::generateDEK) and
- * held in Student.dek (select:false) until the student claims their
+ * held in Student.pendingDek (select:false) until the student claims their
  * credential by submitting a public key (Phase 7). wrapDEK is called once at
  * claim time to produce the envelope pinned to IPFS as dekEnvelopeCID;
  * unwrapDEK is the symmetric client-side counterpart (no server-side caller

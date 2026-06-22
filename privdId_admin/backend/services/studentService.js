@@ -6,6 +6,9 @@ import { sendCredentialsEmail } from "./emailService.js";
 import { issueCredentialOnChain, encryptAndPinCredential, anchorCredentialOnChain, pinEnvelopeToIPFS } from "./credentialService.js";
 import { generateDEK } from "../crypto/aesgcm.js";
 import { wrapDEK } from "../crypto/ecies.js";
+import { splitDEK } from "../crypto/shamir.js";
+import { wrapShare } from "../crypto/rsaShare.js";
+import { getRegistrarPublicKey, getDeanPublicKey } from "./custodianKeys.js";
 import { hashToField, generateSalts, computeMerkleRoot, CHUNK_COUNTS } from "../utils/identityCommitment.js";
 import { PROGRAMME_LEVEL, DISCIPLINE } from "../constants/enumCodes.js";
 
@@ -144,7 +147,13 @@ export async function createStudent(studentPayload) {
   const dek = generateDEK();
   try {
     const cid = await encryptAndPinCredential(student, dek);
-    student.dek = dek.toString('base64');
+    const registrarPub = getRegistrarPublicKey();
+    const deanPub = getDeanPublicKey();
+    const [a, b, c] = await splitDEK(dek);
+    student.custodyShareA = a;
+    student.custodyShareB = await wrapShare(registrarPub, b);
+    student.custodyShareC = await wrapShare(deanPub, c);
+    student.pendingDek = dek.toString('base64');
     student.ciphertextCID = cid;
     await student.save();
 
@@ -196,10 +205,25 @@ export async function insertBulkStudents(preparedStudents) {
   for (const student of insertedStudents) {
     try {
       const dek = generateDEK();
+      const registrarPub = getRegistrarPublicKey();
+      const deanPub = getDeanPublicKey();
+      const [a, b, c] = await splitDEK(dek);
+      const shareB = await wrapShare(registrarPub, b);
+      const shareC = await wrapShare(deanPub, c);
       const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
       await Student.updateOne(
         { _id: student._id },
-        { ciphertextCID: cid, dek: dek.toString('base64'), onChainTxHash: txHash, onChainBlock: blockNumber, anchorPending: false, lastAnchorError: null }
+        {
+          ciphertextCID: cid,
+          custodyShareA: a,
+          custodyShareB: shareB,
+          custodyShareC: shareC,
+          pendingDek: dek.toString('base64'),
+          onChainTxHash: txHash,
+          onChainBlock: blockNumber,
+          anchorPending: false,
+          lastAnchorError: null,
+        }
       );
       student.ciphertextCID = cid;
       student.onChainTxHash = txHash;
@@ -224,9 +248,7 @@ export async function insertBulkStudents(preparedStudents) {
 }
 
 export async function updateStudent(id, payload) {
-  // dek has select: false (WR-01/D-02) — must be explicitly selected here because
-  // the re-issuance path below reuses (never rotates) the existing DEK.
-  const student = await Student.findById(id).select('+dek');
+  const student = await Student.findById(id).select('+pendingDek');
   if (!student) throw new AppError("Student not found.", 404);
   if (student.revoked) throw new AppError("Cannot update a revoked credential.", 400);
 
@@ -293,23 +315,24 @@ export async function updateStudent(id, payload) {
   // silent 200 — on-chain merkleRoot has already been updated above (unconditional
   // student.save()), so a skipped/failed re-issuance here means the pinned
   // ciphertext/CID is now stale relative to the on-chain root.
+  // TODO(Phase 11): Case A re-issuance via 2-of-3 custodian Shamir reconstruction.
+  // A claimed student (enrollmentPhase "active") has no pendingDek — the only
+  // plaintext DEK copy was wiped at claim; recovery requires a live custodian
+  // Shamir session. Fail loudly rather than reusing or fabricating a DEK.
   let anchorWarning = null;
+  if (!student.pendingDek) {
+    throw new AppError(
+      "Re-issuance requires Phase 11 custodian 2-of-3 Shamir reconstruction; not available without a custodian session.",
+      409
+    );
+  }
   try {
-    if (!student.dek) {
-      anchorWarning = 'Credential metadata updated, but re-issuance skipped: no DEK on file.';
-      console.error('[credential] updateStudent: missing DEK for', student.rollNo, '— cannot re-issue without rotating');
-    } else {
-      // NOTE (deferred): attribute-change re-issuance should go through the Safe
-      // 2-of-3 + Shamir flow (see plan). For now it reuses the same DIRECT
-      // issuer-EOA write as initial issuance — consistent with issuance, but NOT
-      // yet governed. Revisit when the Shamir milestone lands.
-      const dek = Buffer.from(student.dek, 'base64');
-      const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
-      student.ciphertextCID = cid;
-      student.onChainTxHash = txHash;
-      student.onChainBlock = blockNumber;
-      await student.save();
-    }
+    const dek = Buffer.from(student.pendingDek, 'base64');
+    const { cid, txHash, blockNumber } = await issueCredentialOnChain(student, dek);
+    student.ciphertextCID = cid;
+    student.onChainTxHash = txHash;
+    student.onChainBlock = blockNumber;
+    await student.save();
   } catch (err) {
     anchorWarning = 'Re-anchoring failed: ' + err.message;
     console.error("[credential] Re-anchoring failed for", student.rollNo, ":", err.message);
@@ -333,8 +356,8 @@ export async function updateStudent(id, payload) {
 // retry, no DEK exposure if the pin fails) so a partial failure never
 // leaves the student stuck mid-claim with the plaintext DEK already wiped.
 export async function claimCredential(id, pubKeyHex) {
-  // dek has select: false (D-02) — must be explicitly selected to wrap it.
-  const student = await Student.findById(id).select("+dek");
+  // pendingDek has select: false (D-02) — must be explicitly selected to wrap it.
+  const student = await Student.findById(id).select("+pendingDek");
   if (!student) throw new AppError("Student not found.", 404);
   if (student.revoked) throw new AppError("Cannot claim a revoked credential.", 403);
 
@@ -344,12 +367,12 @@ export async function claimCredential(id, pubKeyHex) {
     throw new AppError("This credential has already been claimed.", 409);
   }
 
-  // Fail loudly on a missing DEK — never regenerate (Phase 6 decision).
-  if (!student.dek) {
-    throw new AppError("No DEK is on file for this student; cannot complete claim.", 500);
+  // Fail loudly on a missing pendingDek — never regenerate (Phase 6 decision).
+  if (!student.pendingDek) {
+    throw new AppError("No pending DEK is on file for this student; cannot complete claim.", 500);
   }
 
-  const dekBuffer = Buffer.from(student.dek, "base64");
+  const dekBuffer = Buffer.from(student.pendingDek, "base64");
   const envelopeBase64 = await wrapDEK(pubKeyHex, dekBuffer);
 
   // Pin FIRST — idempotent-safe to abandon/retry, and the plaintext dek is
@@ -363,7 +386,7 @@ export async function claimCredential(id, pubKeyHex) {
     { _id: id, enrollmentPhase: "awaiting-keypair" },
     {
       $set: { pubKey: pubKeyHex, dekEnvelopeCID, enrollmentPhase: "active" },
-      $unset: { dek: "" },
+      $unset: { pendingDek: "" },
     },
     { new: true }
   );

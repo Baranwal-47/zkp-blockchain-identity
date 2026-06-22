@@ -46,10 +46,28 @@ const studentSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    dek: {
+    custodyShareA: {
       type: String,
       default: null,
-      select: false, // never returned unless explicitly .select('+dek')'d — D-02 hard requirement
+      select: false, // plaintext Shamir share — admin-readable, A→AcadAdmin, D-03
+    },
+    custodyShareB: {
+      type: String,
+      default: null,
+      select: false, // base64 RSA-OAEP ciphertext to Registrar pubkey, B→Registrar
+    },
+    custodyShareC: {
+      type: String,
+      default: null,
+      select: false, // base64 RSA-OAEP ciphertext to Dean pubkey, C→Dean
+    },
+    pendingDek: {
+      type: String,
+      default: null,
+      // TRANSIENT base64 DEK for the issuance→claim window ONLY — wiped at claim;
+      // NOT the custodial copy (shares are), NOT the old `dek` field.
+      // Open Question #1 resolution, CUST-03 — see 10-02-PLAN.md.
+      select: false,
     },
     pubKey: {
       type: String,
