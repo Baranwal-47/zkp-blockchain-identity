@@ -9,3 +9,11 @@ files and were NOT auto-fixed (per executor scope-boundary rule).
   (`loadPending()` called synchronously inside `useEffect` at line ~223).
   Pre-existing from Phase 09/10 work, unrelated to the Task 5 change (which only
   added a "Recovery" nav button). Out of scope for 11-01 — left untouched.
+
+## 11-02
+
+- **react-hooks/set-state-in-effect lint error in DashboardPage.jsx**
+  (`loadStudents()`/`loadPendingActions()` called synchronously inside
+  `useEffect` at line ~96). Pre-existing from Phase 08/09 work, unrelated to
+  Task 4's change (which only added `handleRecover` + the `onRecover` prop
+  pass-through). Out of scope for 11-02 — left untouched.

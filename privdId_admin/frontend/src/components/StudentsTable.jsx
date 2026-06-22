@@ -10,6 +10,7 @@ export default function StudentsTable({
   onToggleSelectAll,
   onSendSelected,
   onRevoke,
+  onRecover,
 }) {
   const allSelected = students.length > 0 && selectedIds.length === students.length;
   const someSelected = selectedIds.length > 0 && selectedIds.length < students.length;
@@ -124,6 +125,12 @@ export default function StudentsTable({
                       disabled={student.revoked}
                     >
                       {student.revoked ? "Revoked" : "Revoke"}
+                    </button>
+                    <button
+                      onClick={() => onRecover(student.id)}
+                      className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+                    >
+                      Recover
                     </button>
                   </div>
                 </td>

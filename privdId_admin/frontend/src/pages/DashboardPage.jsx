@@ -88,6 +88,10 @@ export default function DashboardPage() {
     }
   }
 
+  function handleRecover(studentId) {
+    navigate("/recovery", { state: { studentId } });
+  }
+
   useEffect(() => {
     void loadStudents();
     void loadPendingActions();
@@ -158,6 +162,7 @@ export default function DashboardPage() {
         onToggleSelectAll={handleToggleSelectAll}
         onSendSelected={handleSendSelected}
         onRevoke={handleRevoke}
+        onRecover={handleRecover}
       />
 
       {emailSendDetails.length > 0 && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import api, { getApiErrorMessage } from "../services/api.js";
@@ -24,9 +25,9 @@ function copyToClipboard(text) {
   toast.success("Copied to clipboard.");
 }
 
-function AcadAdminInitiatePanel() {
+function AcadAdminInitiatePanel({ preselectedStudentId }) {
   const [students, setStudents] = useState([]);
-  const [studentId, setStudentId] = useState("");
+  const [studentId, setStudentId] = useState(preselectedStudentId || "");
   const [operationType, setOperationType] = useState("device-loss");
   const [newPubKey, setNewPubKey] = useState("");
   const [batchInput, setBatchInput] = useState("");
@@ -210,7 +211,7 @@ function CustodianSubmitPanel() {
 
       setOutcome(submitResult);
       toast.success(
-        submitResult.status === "reconstructed" ? "Recovery threshold reached." : "Share submitted."
+        submitResult.status === "complete" ? "Recovery completed." : "Share submitted."
       );
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -263,10 +264,46 @@ function CustodianSubmitPanel() {
           Waiting on one more share.
         </p>
       )}
-      {outcome && outcome.status === "reconstructed" && (
-        <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-800 space-y-1">
-          <p className="font-semibold text-base">✓ Recovery complete</p>
-          <p>The DEK was reconstructed and wiped from server memory.</p>
+      {outcome && outcome.status === "complete" && outcome.operationType === "device-loss" && (
+        <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-900 space-y-1">
+          <p className="font-semibold text-base">Device-loss recovery complete</p>
+          <p>
+            The student&apos;s new device key is now live. Daily access is restored — no on-chain
+            transaction was needed.
+          </p>
+          {outcome.result?.dekEnvelopeCID && (
+            <p className="font-mono text-xs text-green-800">
+              New DEK envelope CID: {outcome.result.dekEnvelopeCID}
+            </p>
+          )}
+        </div>
+      )}
+      {outcome && outcome.status === "complete" && outcome.operationType === "credential-mod" && (
+        <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-900 space-y-1">
+          {outcome.result?.anchorPending ? (
+            <>
+              <p className="font-semibold text-base">Credential updated — on-chain anchor pending</p>
+              <p>
+                New ciphertext was pinned, but the on-chain anchor write failed and will need a
+                retry.
+              </p>
+              {outcome.result?.ciphertextCID && (
+                <p className="font-mono text-xs text-green-800">
+                  New ciphertext CID: {outcome.result.ciphertextCID}
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="font-semibold text-base">Credential updated and re-anchored on-chain</p>
+              <p>New ciphertext pinned and the new Merkle root is anchored on-chain.</p>
+              {outcome.result?.onChainTxHash && (
+                <p className="font-mono text-xs text-green-800">
+                  Tx hash: {outcome.result.onChainTxHash}
+                </p>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -275,6 +312,8 @@ function CustodianSubmitPanel() {
 
 export default function RecoveryPage() {
   const role = getRole();
+  const location = useLocation();
+  const preselectedStudentId = location.state?.studentId;
 
   return (
     <div className="min-h-screen px-4 py-10 text-slate-100 sm:px-8">
@@ -284,7 +323,11 @@ export default function RecoveryPage() {
           <h1 className="mt-2 text-2xl font-semibold text-white">Credential Recovery</h1>
         </div>
 
-        {role === "acadadmin" ? <AcadAdminInitiatePanel /> : <CustodianSubmitPanel />}
+        {role === "acadadmin" ? (
+          <AcadAdminInitiatePanel preselectedStudentId={preselectedStudentId} />
+        ) : (
+          <CustodianSubmitPanel />
+        )}
       </div>
     </div>
   );
