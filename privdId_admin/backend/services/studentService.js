@@ -341,6 +341,112 @@ export async function updateStudent(id, payload) {
   return { student: sanitizeStudent(student), anchorWarning };
 }
 
+// Phase 11 (REC-03): Case A credential-modification re-issuance using a DEK
+// supplied by a live 2-of-3 custodian Shamir reconstruction (recoveryService.js
+// runOperation). Unlike updateStudent (which throws a 409 deferral for claimed
+// students because it has no DEK to re-encrypt with), reissueWithDEK takes the
+// DEK as an explicit parameter — it NEVER reads student.pendingDek and NEVER
+// calls updateStudent. The 7-attribute leaf order/encoding below is copied
+// verbatim from updateStudent's commitment block (T-11-09) so a re-generated
+// proof against the new merkleRoot still verifies.
+export async function reissueWithDEK(studentId, attributeUpdates, dek) {
+  const student = await Student.findById(studentId);
+  if (!student) throw new AppError("Student not found.", 404);
+  if (student.revoked) throw new AppError("Cannot re-issue a revoked credential.", 400);
+  if (student.erased) throw new AppError("Cannot re-issue an erased credential.", 409);
+
+  const payload = attributeUpdates ?? {};
+  const allowedFields = ["name", "programmeLevel", "discipline", "batch", "dob"];
+  allowedFields.forEach((field) => {
+    if (payload[field] !== undefined) student[field] = String(payload[field]).trim();
+  });
+  // batch is a Number — coerce separately after the String pass above
+  if (payload.batch !== undefined) student.batch = Number(payload.batch) || null;
+  // email and rollNo are not updatable — ignored if present (matches updateStudent's allowedFields)
+
+  if (!student.dob) {
+    throw new AppError("Date of Birth is required to issue a credential.", 400);
+  }
+
+  // Input guards for commitment fields
+  if (!student.programmeLevel) {
+    throw new AppError("programmeLevel is required to issue a credential.", 400);
+  }
+  if (!student.discipline) {
+    throw new AppError("discipline is required to issue a credential.", 400);
+  }
+  if (!student.batch) {
+    throw new AppError("batch is required to issue a credential.", 400);
+  }
+
+  // Enum code lookup — throws if not in the frozen map (T-01-09)
+  const programmeLevelCode = PROGRAMME_LEVEL[student.programmeLevel];
+  const disciplineCode = DISCIPLINE[student.discipline];
+  if (programmeLevelCode === undefined) {
+    throw new AppError(`Unknown programmeLevel: "${student.programmeLevel}"`, 400);
+  }
+  if (disciplineCode === undefined) {
+    throw new AppError(`Unknown discipline: "${student.discipline}"`, 400);
+  }
+
+  // Re-parse dobInt from the stored dob display string
+  const dobStr = String(student.dob ?? "").trim();
+  const dobInt = dobStr ? parseInt(dobStr.replace(/-/g, ""), 10) : null;
+  if (!dobInt) {
+    throw new AppError("Date of Birth could not be parsed to an integer. Expected YYYY-MM-DD.", 400);
+  }
+  student.dobInt = dobInt;
+
+  // Recompute 7-attribute salted Merkle commitment — both sites must use computeMerkleRoot (T-01-08)
+  const salts = generateSalts(7);
+  const attrs = [
+    await hashToField(student.name, CHUNK_COUNTS.name),        // leaf 0: name
+    await hashToField(student.rollNo, CHUNK_COUNTS.rollNo),    // leaf 1: rollNo
+    String(dobInt),                                             // leaf 2: dob YYYYMMDD int
+    String(programmeLevelCode),                                 // leaf 3: programmeLevel code
+    String(disciplineCode),                                     // leaf 4: discipline code
+    String(student.batch),                                      // leaf 5: batch year int
+    await hashToField(student.email, CHUNK_COUNTS.email),      // leaf 6: email
+  ];
+  student.salts = salts;
+  student.merkleRoot = await computeMerkleRoot(attrs, salts);
+
+  await student.save();
+
+  // Re-encrypt with the SAME caller-supplied DEK (never rotated, D-04/D-05) and
+  // re-pin — buildCredentialJson (called inside encryptAndPinCredential) reads
+  // the student doc's fixed field order, so the frozen 7-attribute set survives
+  // this edit (T-11-09).
+  const newCid = await encryptAndPinCredential(student, dek);
+  student.ciphertextCID = newCid;
+  await student.save();
+
+  // Re-anchor on-chain directly — mirrors createStudent's try/catch exactly.
+  // issueCredential is onlyIssuer (direct acad-admin EOA write), not Safe-governed
+  // (Q3) — anchorPending/lastAnchorError are used only as a failure-path retry
+  // signal, never a pendingRegistryAction/Safe proposal.
+  try {
+    const { txHash, blockNumber } = await anchorCredentialOnChain(student, newCid);
+    student.onChainTxHash = txHash;
+    student.onChainBlock = blockNumber;
+    student.anchorPending = false;
+    student.lastAnchorError = null;
+  } catch (err) {
+    console.error('[credential] Re-anchoring failed for', student.rollNo, ':', err.message);
+    student.anchorPending = true;
+    student.lastAnchorError = err.message;
+  }
+  await student.save();
+
+  return {
+    student: sanitizeStudent(student),
+    merkleRoot: student.merkleRoot,
+    ciphertextCID: newCid,
+    onChainTxHash: student.onChainTxHash,
+    anchorPending: student.anchorPending,
+  };
+}
+
 // Revocation is now proposed from the official's MetaMask (Safe 2-of-3) via the
 // /safe/propose-build → /safe/propose → sign → execute flow, NOT a backend
 // endpoint. The old revokeStudent() server-side propose path was removed.
