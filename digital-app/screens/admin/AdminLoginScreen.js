@@ -13,35 +13,52 @@ import {
 } from 'react-native';
 import { ADMIN_BACKEND_URL } from '../../environment';
 
+const ROLE_OPTIONS = [
+  { value: 'acadadmin', label: 'Academic Admin' },
+  { value: 'registrar', label: 'Asst. Registrar' },
+  { value: 'dean', label: 'Dean' },
+];
+
 export default function AdminLoginScreen({ navigation }) {
+  const [role, setRole] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
+    if (!role) {
+      Alert.alert('Required', 'Select your role first.');
+      return;
+    }
     if (!password.trim()) {
-      Alert.alert('Required', 'Please enter the admin password.');
+      Alert.alert('Required', 'Please enter your password.');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`${ADMIN_BACKEND_URL}/api/admin/login`, {
+      const response = await fetch(`${ADMIN_BACKEND_URL}/api/admin/role-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: password.trim() }),
+        body: JSON.stringify({ role, password: password.trim() }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Invalid admin password');
+        throw new Error(data.message || 'Invalid credentials');
       }
 
-      // Pass the token so admin screens can use it for API calls
-      navigation.navigate('AdminDashboard', { token: data.token });
+      // Academic Admin gets the full student-management dashboard.
+      // Registrar/Dean get the read-only pending-approvals view (signing
+      // happens in the web portal via MetaMask).
+      if (role === 'acadadmin') {
+        navigation.navigate('AdminDashboard', { token: data.token });
+      } else {
+        navigation.navigate('OfficialApprovals', { token: data.token, role });
+      }
     } catch (error) {
-      Alert.alert('Access Denied', error.message || 'Invalid admin credentials.');
+      Alert.alert('Access Denied', error.message || 'Invalid credentials.');
     } finally {
       setLoading(false);
     }
@@ -57,18 +74,33 @@ export default function AdminLoginScreen({ navigation }) {
           <View style={styles.shieldBadge}>
             <Text style={styles.shieldIcon}>🛡️</Text>
           </View>
-          <Text style={styles.title}>Admin Panel</Text>
+          <Text style={styles.title}>Official Sign-in</Text>
           <Text style={styles.subtitle}>
-            Enter the admin password to access the student management panel.
+            Select your role and enter your password to continue.
           </Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Admin Password</Text>
+          <Text style={styles.label}>Role</Text>
+          <View style={styles.roleRow}>
+            {ROLE_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.roleChip, role === option.value && styles.roleChipActive]}
+                onPress={() => setRole(option.value)}
+              >
+                <Text style={[styles.roleChipText, role === option.value && styles.roleChipTextActive]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={[styles.label, { marginTop: 18 }]}>Password</Text>
           <View style={styles.passwordRow}>
             <TextInput
               style={[styles.input, styles.passwordInput]}
-              placeholder="Enter admin password"
+              placeholder="Enter your password"
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
@@ -93,7 +125,7 @@ export default function AdminLoginScreen({ navigation }) {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.loginButtonText}>Access Admin Panel</Text>
+              <Text style={styles.loginButtonText}>Continue</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -164,6 +196,31 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  roleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  roleChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(148,163,184,0.2)',
+    backgroundColor: 'rgba(15,23,42,0.6)',
+  },
+  roleChipActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: 'rgba(59,130,246,0.18)',
+  },
+  roleChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94a3b8',
+  },
+  roleChipTextActive: {
+    color: '#bfdbfe',
   },
   passwordRow: {
     position: 'relative',

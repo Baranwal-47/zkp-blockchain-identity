@@ -103,11 +103,20 @@ export default function AdminAddStudentScreen({ route, navigation }) {
         throw new Error(data.message || 'Failed to create student');
       }
 
-      Alert.alert(
-        'Student Created',
-        `${data.student?.name || 'Student'} added successfully. Send credentials from the dashboard.`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      const name = data.student?.name || 'Student';
+      if (data.student?.anchorPending) {
+        Alert.alert(
+          'Saved — on-chain anchoring failed',
+          `${name} was saved and encrypted, but the on-chain credential issuance failed: ${data.student?.lastAnchorError || 'unknown error'}. The record is kept so it can be retried.`,
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        Alert.alert(
+          'Student Created',
+          `${name} added and issued on-chain successfully. Send credentials from the dashboard.`,
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
 
       setForm(EMPTY_FORM);
     } catch (error) {

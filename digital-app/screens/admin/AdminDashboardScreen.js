@@ -52,7 +52,18 @@ export default function AdminDashboardScreen({ route, navigation }) {
     }
   }, []);
 
+  const handleLogout = () => {
+    navigation.reset({ index: 0, routes: [{ name: 'WelcomeScreen' }] });
+  };
+
   useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      ),
+    });
     loadStudents();
     const unsubscribe = navigation.addListener('focus', () => loadStudents());
     return unsubscribe;
@@ -74,31 +85,14 @@ export default function AdminDashboardScreen({ route, navigation }) {
     navigation.navigate('AdminEditStudent', { studentId, token });
   };
 
-  const handleRevoke = async (studentId) => {
+  const handleRevoke = (studentId) => {
+    // Revocation is Safe-governed and requires the acad-admin's MetaMask
+    // signature to propose — not available in the app. Direct to the web portal.
+    const student = students.find((s) => s.id === studentId);
     Alert.alert(
-      'Revoke Credential',
-      'Are you sure you want to revoke this credential? This is irreversible.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Revoke',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await fetch(`${ADMIN_BACKEND_URL}/api/students/${studentId}`, {
-                method: 'DELETE',
-                headers: authHeaders,
-              });
-              const data = await response.json();
-              if (!response.ok) throw new Error(data.message || 'Failed to revoke');
-              Alert.alert('Success', 'Credential has been revoked.');
-              loadStudents();
-            } catch (error) {
-              Alert.alert('Error', error.message || 'Could not revoke credential.');
-            }
-          },
-        },
-      ]
+      'Revoke from the web portal',
+      `Revoking ${student?.rollNo || 'this student'} needs a MetaMask signature, which the app can't provide. Open the PrivdID admin web portal as Academic Admin, find the student, and choose Revoke — then 2 of 3 officials approve it.`,
+      [{ text: 'OK' }]
     );
   };
 
@@ -314,6 +308,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
+  logoutBtn: { paddingHorizontal: 14, paddingVertical: 6 },
+  logoutText: { color: '#f8fafc', fontWeight: '600', fontSize: 14 },
   centered: {
     flex: 1,
     justifyContent: 'center',

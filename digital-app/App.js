@@ -17,6 +17,7 @@ import AdminDashboardScreen from './screens/admin/AdminDashboardScreen';
 import AdminAddStudentScreen from './screens/admin/AdminAddStudentScreen';
 import AdminEditStudentScreen from './screens/admin/AdminEditStudentScreen';
 import AdminUploadScreen from './screens/admin/AdminUploadScreen';
+import OfficialApprovalsScreen from './screens/admin/OfficialApprovalsScreen';
 
 const Stack = createStackNavigator();
 
@@ -124,6 +125,11 @@ export default function App() {
           name="AdminDashboard"
           component={AdminDashboardScreen}
           options={{ ...adminHeaderStyle, title: 'Student Management', headerLeft: null }}
+        />
+        <Stack.Screen
+          name="OfficialApprovals"
+          component={OfficialApprovalsScreen}
+          options={{ ...adminHeaderStyle, title: 'Pending Approvals', headerLeft: null }}
         />
         <Stack.Screen
           name="AdminAddStudent"
