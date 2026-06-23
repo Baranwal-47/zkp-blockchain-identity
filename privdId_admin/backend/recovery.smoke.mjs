@@ -11,6 +11,17 @@
  *   3. addShare with a duplicate role throws AppError with statusCode 409.
  *   4. After runOperation, getSession returns null AND the dek Buffer passed in
  *      is all-zero (wipe verified).
+ *   5. (11-02 redesign) device-loss session created with newPubKey: null is NOT
+ *      ready even at 2-of-3 shares — reconstructIfReady reports
+ *      waitingOnPubKey:true and does NOT reconstruct the DEK.
+ *   6. (11-02 redesign) submitStudentPubKey after shares already met threshold
+ *      (shares-then-pubkey ordering) immediately satisfies the gate — calling
+ *      reconstructIfReady again now returns ready:true.
+ *   7. (11-02 redesign) pubkey-then-shares ordering: submitStudentPubKey on a
+ *      session with <2 shares only records the pubkey (ready stays false);
+ *      the 2nd addShare afterward is what flips ready:true.
+ *   8. (11-02 redesign) findOpenSessionForStudent / listOpenSessionsByStudent
+ *      surface the right operationType/hasPubKey/sharesReceived shape.
  *
  * Run: node recovery.smoke.mjs
  */
@@ -22,6 +33,9 @@ import {
   addShare,
   reconstructIfReady,
   runOperation,
+  submitStudentPubKey,
+  findOpenSessionForStudent,
+  listOpenSessionsByStudent,
 } from "./services/recoveryService.js";
 
 let pass = true;
@@ -96,6 +110,111 @@ if (!dekToWipe.every((byte) => byte === 0)) {
   pass = false;
 } else {
   console.log("PASS: dek buffer zero-filled after runOperation");
+}
+
+// --- 5. device-loss session with newPubKey: null is NOT ready at 2 shares ---
+{
+  const dek2 = generateDEK();
+  const [shA, shB] = await splitDEK(dek2);
+
+  const sid = initiateRecovery({
+    studentId: "smoke-student-2",
+    operationType: "device-loss",
+    newPubKey: null,
+    shareA: shA,
+  });
+  let s = addShare(sid, "registrar", shB);
+  const r = await reconstructIfReady(s);
+
+  if (r.ready) {
+    console.error("FAIL: reconstructIfReady returned ready:true without a student pubkey");
+    pass = false;
+  } else if (!r.waitingOnPubKey) {
+    console.error("FAIL: reconstructIfReady did not report waitingOnPubKey:true at 2 shares / no pubkey");
+    pass = false;
+  } else {
+    console.log("PASS: device-loss session at 2-of-3 shares without a pubkey reports waitingOnPubKey, DEK not reconstructed");
+  }
+
+  // --- 6. shares-then-pubkey ordering: submitStudentPubKey flips the gate ---
+  s = submitStudentPubKey(sid, "0".repeat(66));
+  const r2 = await reconstructIfReady(s);
+
+  if (!r2.ready || !Buffer.isBuffer(r2.dek) || Buffer.compare(r2.dek, dek2) !== 0) {
+    console.error("FAIL: shares-then-pubkey ordering did not reconstruct the correct DEK after pubkey arrived");
+    pass = false;
+  } else {
+    console.log("PASS: shares-then-pubkey ordering — submitStudentPubKey after threshold completes the gate");
+  }
+
+  await runOperation(sid, r2.dek, async () => {});
+}
+
+// --- 7. pubkey-then-shares ordering: pubkey alone (no shares yet) stays pending ---
+{
+  const dek3 = generateDEK();
+  const [shA, shB] = await splitDEK(dek3);
+
+  const sid = initiateRecovery({
+    studentId: "smoke-student-3",
+    operationType: "device-loss",
+    newPubKey: null,
+    shareA: shA,
+  });
+
+  let s = submitStudentPubKey(sid, "1".repeat(66));
+  let r = await reconstructIfReady(s);
+
+  if (r.ready) {
+    console.error("FAIL: reconstructIfReady returned ready:true with only 1 share submitted");
+    pass = false;
+  } else {
+    console.log("PASS: pubkey-then-shares ordering — pubkey alone (1 share) does not complete the gate");
+  }
+
+  s = addShare(sid, "dean", shB);
+  r = await reconstructIfReady(s);
+
+  if (!r.ready || !Buffer.isBuffer(r.dek) || Buffer.compare(r.dek, dek3) !== 0) {
+    console.error("FAIL: pubkey-then-shares ordering did not reconstruct the correct DEK after the 2nd share arrived");
+    pass = false;
+  } else {
+    console.log("PASS: pubkey-then-shares ordering — 2nd addShare after pubkey completes the gate");
+  }
+
+  await runOperation(sid, r.dek, async () => {});
+}
+
+// --- 8. findOpenSessionForStudent / listOpenSessionsByStudent shape ---
+{
+  const dek4 = generateDEK();
+  const [shA] = await splitDEK(dek4);
+
+  const sid = initiateRecovery({
+    studentId: "smoke-student-4",
+    operationType: "credential-mod",
+    attributeUpdates: { batch: 2027 },
+    shareA: shA,
+  });
+
+  const single = findOpenSessionForStudent("smoke-student-4");
+  if (!single || single.sessionId !== sid || single.operationType !== "credential-mod" || single.sharesReceived !== 1) {
+    console.error("FAIL: findOpenSessionForStudent did not return the expected shape for a credential-mod session");
+    pass = false;
+  } else {
+    console.log("PASS: findOpenSessionForStudent returns the expected shape");
+  }
+
+  const bulk = listOpenSessionsByStudent();
+  if (!bulk["smoke-student-4"] || bulk["smoke-student-4"].sessionId !== sid) {
+    console.error("FAIL: listOpenSessionsByStudent did not include the open credential-mod session");
+    pass = false;
+  } else {
+    console.log("PASS: listOpenSessionsByStudent includes the open session keyed by studentId");
+  }
+
+  // clean up directly via runOperation no-op so it doesn't leak into other assertions
+  await runOperation(sid, Buffer.alloc(32), async () => {});
 }
 
 if (!pass) {
