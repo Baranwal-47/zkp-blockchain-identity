@@ -20,10 +20,10 @@ export default function RecoverDeviceScreen({ route, navigation }) {
   const [hasGeneratedKey, setHasGeneratedKey] = useState(false);
   const [pendingResult, setPendingResult] = useState(null); // { status: 'pending'|'complete', waitingOnPubKey }
 
-  const generateKeys = async () => {
+  const generateKeys = async (options) => {
     setStatus('generating');
     try {
-      await generateAndStoreKeypair();
+      await generateAndStoreKeypair(options);
       setHasGeneratedKey(true);
       setStatus('generated');
     } catch (error) {
@@ -115,6 +115,14 @@ export default function RecoverDeviceScreen({ route, navigation }) {
           </Text>
           <TouchableOpacity style={styles.retryButton} onPress={submitNewPubKey}>
             <Text style={styles.retryButtonText}>Continue</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => generateKeys({ force: true })}
+          >
+            <Text style={styles.linkButtonText}>
+              Not this device's key? Generate a different one
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -226,5 +234,14 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  linkButton: {
+    marginTop: 16,
+  },
+  linkButtonText: {
+    color: '#64748b',
+    fontSize: 13,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
 });

@@ -10,9 +10,26 @@ const PRIVATE_KEY_STORAGE_KEY = 'privid_student_privkey';
  * BEFORE returning (D-02), and returns ONLY the public key hex. The private key is
  * never returned, logged, or transmitted.
  *
+ * Idempotent by default: if a key already exists in SecureStore, it is reused
+ * instead of overwritten. A caller's screen can remount (Fast Refresh, back/forward
+ * nav, a double-tap) between "generate" and "submit pubkey to backend" — without
+ * this guard, a second call here would silently regenerate a new private key,
+ * leaving the public key already wrapped server-side (dekEnvelopeCID) orphaned and
+ * every future ECIES unwrap failing the GCM auth-tag check.
+ *
+ * Pass force:true ONLY for a user-initiated "discard this key, generate a
+ * different one" action (e.g. the student suspects this device's key is
+ * compromised) — never from a retry/remount path.
+ *
+ * @param {{ force?: boolean }} [opts]
  * @returns {Promise<{ pubKeyHex: string }>}
  */
-export async function generateAndStoreKeypair() {
+export async function generateAndStoreKeypair({ force = false } = {}) {
+  const existingPrivKeyHex = force ? null : await SecureStore.getItemAsync(PRIVATE_KEY_STORAGE_KEY);
+  if (existingPrivKeyHex) {
+    return { pubKeyHex: PrivateKey.fromHex(existingPrivKeyHex).publicKey.toHex() };
+  }
+
   const priv = new PrivateKey();
   const privKeyHex = priv.toHex();
   const pubKeyHex = priv.publicKey.toHex();
