@@ -1,39 +1,47 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-19T17:32:00.641Z",
-  "phase": "08",
-  "phase_name": "daily-access-flow",
-  "phase_dir": ".planning/phases/08-daily-access-flow",
-  "plan": null,
-  "task": null,
-  "total_tasks": null,
+  "timestamp": "2026-06-23T02:13:07Z",
+  "phase": "11",
+  "phase_name": "recovery-crypto-shredding-erasure-e6-ops",
+  "phase_dir": ".planning/phases/11-recovery-crypto-shredding-erasure-e6-ops",
+  "plan": "11-02",
+  "task": "checkpoint",
+  "total_tasks": 5,
   "status": "paused",
   "completed_tasks": [
-    {"id": "07-04-T1", "name": "Create ClaimCredentialScreen.js", "status": "done", "commit": "cea4204"},
-    {"id": "07-04-T2", "name": "Register ClaimCredentialScreen in App.js + D-01 routing in LoginScreen", "status": "done", "commit": "fce0964"},
-    {"id": "07-cleanup", "name": "Remove TEMPORARY RNG probe, flip 07-03-SUMMARY.md to PASS, write 07-04-SUMMARY.md, update STATE.md", "status": "done", "commit": "7c7964c"},
-    {"id": "08-context", "name": "Reconcile 08-CONTEXT.md verify-proof decisions (no storage, two-hop QR, 15min expiry, consent-in-checklist)", "status": "done", "commit": "b64e6d1"}
+    {"id": "11-01", "name": "Recovery session state machine", "status": "done", "commit": "2552f3b"},
+    {"id": "11-02-orig-1-4", "name": "reissueWithDEK + Case A/B dispatch + ops smoke + RecoveryPage v1", "status": "done", "commit": "35437db"},
+    {"id": "11-02-redesign", "name": "Case A via Edit-409, Case B via mobile claim, either-order completion gate", "status": "done", "commit": "0eafddd"}
   ],
   "remaining_tasks": [
-    {"id": "07-04-T3", "name": "End-to-end claim flow verification on device (human-verify checkpoint)", "status": "deferred"},
-    {"id": "08-plan", "name": "Run /gsd:plan-phase 8 (08-CONTEXT.md is ready)", "status": "not_started"},
-    {"id": "08-docs-sweep", "name": "Reconcile ROADMAP.md / 08-DISCUSSION-LOG.md / e3_target_ux.md memory to match 08-CONTEXT.md's final verify-proof model", "status": "not_started"}
+    {"id": "11-02-checkpoint", "name": "Live human-verify: Case A Edit flow + Case B both orderings (mobile + 2 browser custodians)", "status": "awaiting_user"},
+    {"id": "11-03", "name": "Governed erasure / crypto shredding endpoint", "status": "deferred_by_user"}
   ],
   "blockers": [
-    {"description": "07-04 Task 3 is a human-verify device checkpoint — not yet run. User explicitly said: leave all human/device verification until the very end, batched with Phase 8's new two-device QR checkpoint once built.", "type": "human_action", "workaround": "does not block /gsd:plan-phase 8 or execution"}
+    {"description": "11-02 checkpoint requires live browser + Expo mobile walkthrough — cannot be automated", "type": "human_action", "workaround": "User chose to verify manually and report back"}
   ],
   "human_actions_pending": [
-    {"action": "Run the 07-04 Task 3 end-to-end device checkpoint AND the new Phase 8 Verify Proof two-phone QR checkpoint together at the end of the work session.", "context": "User explicitly batched all human/device verification to happen last, not gating each phase individually.", "blocking": false}
+    {"action": "Verify Case A: edit a claimed student, confirm dashboard shows 'Pending custodian approval' pill, have a custodian submit their share via /recovery, confirm pill clears and credential re-anchors", "context": "Smoke tests pass but no live on-chain/UI walkthrough done yet", "blocking": true},
+    {"action": "Verify Case B in BOTH orderings (shares-then-pubkey AND pubkey-then-shares) using the Expo mobile app's new RecoverDeviceScreen plus two browser custodian sessions", "context": "Either-order completion gate is new logic; smoke-tested at the unit level but not end-to-end live", "blocking": true}
   ],
   "decisions": [
-    {"decision": "Verify Proof drops the persistent Proof-ID store entirely. No database, no Proof-ID, no Verification URL.", "rationale": "User caught that persistent storage contradicts the existing single-use/5-min nonce anti-replay model. /verify is stateless crypto+on-chain check; proofs just stop verifying after their freshness window, no cleanup needed.", "phase": "08"},
-    {"decision": "Proof freshness window raised from 5 to 15 minutes.", "rationale": "A live two-phone QR round trip (issue challenge -> scan -> consent -> generate -> scan -> verify) needs more slack than the original company-automated 5-min nonce window.", "phase": "08"},
-    {"decision": "Verify Proof is a two-hop QR handshake: outgoing challenge QR (nonce from /session/nonce + requested fields) from verifier to prover, returning proof QR from prover to verifier. Both hops support scan-or-manual-entry.", "rationale": "Matches user's peer-to-peer 'student verifies another student' scenario; nonce must be backend-issued (not invented client-side) or anti-replay is meaningless.", "phase": "08"},
-    {"decision": "Consent is folded into the existing attribute-checklist screen, not a separate screen. Requested fields show pre-checked but editable; tapping 'Generate Proof' is the consent action.", "rationale": "User: consent should exist 'whenever the prover is starting to select their attributes' — avoid a redundant extra confirmation screen.", "phase": "08"},
-    {"decision": "Verify Proof folds back into Phase 8 — no separate Phase 8.1.", "rationale": "The only reason to split it off (needing a new persistent backend store) no longer applies once storage was dropped; it's now just a UI/orchestration build on existing endpoints.", "phase": "08"},
-    {"decision": "Phase 07 closed out mechanically: RNG probe removed, 07-03-SUMMARY.md flipped to PASS, 07-04-SUMMARY.md written, STATE.md updated. Task 3 (device checkpoint) explicitly deferred, not skipped.", "rationale": "User instruction: batch all remaining human/device verification to the end of the next session rather than gating phase closure now.", "phase": "07"}
+    {"decision": "Deferred plan 11-03 (governed erasure / crypto shredding) entirely for this session", "rationale": "User is short on time before a demo; erasure is lower priority than the Case A/B recovery flows", "phase": "11"},
+    {"decision": "Case A (credential-mod) removed from RecoveryPage dropdown; now triggered transparently by the existing Edit flow's 409 response", "rationale": "User reviewed actual architecture diagrams — Case A should happen naturally via Edit, not require manually re-entering changes on a separate page", "phase": "11"},
+    {"decision": "Case B (device-loss) no longer takes a manually-typed pubkey from the admin; student submits it via a new mobile RecoverDeviceScreen reusing the existing first-claim keypair.js pattern", "rationale": "Admin never legitimately knows the student's new device pubkey; only the student's device can generate and submit it", "phase": "11"},
+    {"decision": "Device-loss completion fires on whichever of '2-of-3 shares' or 'student pubkey' arrives second — either order accepted", "rationale": "User confirmed no strict ordering requirement; simpler for custodians and students, no one has to wait on the other", "phase": "11"},
+    {"decision": "Case A is fire-and-check-later: Edit modal closes immediately after opening the recovery session, status shown via a dashboard row pill, not an inline blocking wait", "rationale": "User confirmed admin shouldn't be stuck waiting in the modal for custodian approval", "phase": "11"}
   ],
-  "uncommitted_files": [],
-  "next_action": "Run /gsd:plan-phase 8 in a fresh session — 08-CONTEXT.md (D-04 through D-11) is the ready, correct input. Defer all human/device verification (Phase 07 Task 3 + Phase 8's new two-phone QR checkpoint) to the very end, per explicit user instruction. Non-blocking cleanup whenever convenient: sweep ROADMAP.md's stale 'Target End-to-End UX' section + Phase 9 note, 08-DISCUSSION-LOG.md, and memory file e3_target_ux.md to match the final no-storage/two-hop-QR model.",
-  "context_notes": "This pause is purely a context-budget precaution — Phase 07 is fully closed out (mechanically) and Phase 08's context is fully decided and committed. There is no open decision or unresolved thread; the only reason to pause rather than continue straight into /gsd:plan-phase 8 is that planning spawns research/pattern-mapper/planner agents and benefits from a full context budget. Resume by reading 08-CONTEXT.md and running /gsd:plan-phase 8 directly."
+  "uncommitted_files": [
+    ".planning/HANDOFF.json",
+    ".planning/STATE.md",
+    ".planning/phases/11-recovery-crypto-shredding-erasure-e6-ops/11-03-PLAN.md",
+    ".planning/phases/11-recovery-crypto-shredding-erasure-e6-ops/11-RESEARCH.md",
+    "privdId_admin/backend/utils/timing.js"
+  ],
+  "background_processes": [
+    {"process": "privdId_admin/backend: node server.js", "port": 5000, "log": "/tmp/backend.log", "note": "restarted this session with latest recovery code; may need restart again on resume if killed"},
+    {"process": "privdId_admin/frontend: vite dev", "port": 5173, "log": "/tmp/frontend.log", "note": "already running, HMR picks up changes"}
+  ],
+  "next_action": "User verifies 11-02 checkpoint live (Case A + Case B both orderings, including Expo mobile app). On 'approved', spawn a continuation agent to write 11-02-SUMMARY checkpoint closure (SUMMARY.md already exists from redesign — confirm it reflects final verified state), update STATE.md/ROADMAP.md, then run code_review_gate / regression_gate / verify_phase_goal for phase 11 — noting 11-03 is deferred so phase-level completion should NOT be marked until 11-03 is also done (or explicitly scoped out of phase 11's must-haves with user sign-off).",
+  "context_notes": "Phase 11 has 3 plans: 11-01 (done), 11-02 (done + redesigned, awaiting live verification), 11-03 (erasure, explicitly deferred — not started, no code written). Do not mark phase 11 complete in ROADMAP/STATE until either 11-03 ships or the user explicitly descopes it from this phase. workflow.use_worktrees=false for this project — all execution is sequential on the main tree, no worktree cleanup needed."
 }
