@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [emailSendDetails, setEmailSendDetails] = useState([]);
   const [pendingActions, setPendingActions] = useState([]);
+  const [recoverySessions, setRecoverySessions] = useState({}); // { [studentId]: { sessionId, operationType, hasPubKey, sharesReceived } }
 
   async function loadStudents() {
     setLoading(true);
@@ -35,6 +36,19 @@ export default function DashboardPage() {
       setPendingActions(response.data.pending || []);
     } catch (error) {
       toast.error(getApiErrorMessage(error));
+    }
+  }
+
+  // Manual-refresh-on-load status pill (per user decision: no websockets/
+  // aggressive polling needed for a demo) — shows "Recovery initiated" /
+  // "Waiting for student pubkey" / "Waiting for custodian shares" per row.
+  async function loadRecoveryStatuses() {
+    try {
+      const response = await api.get("/recovery/status");
+      setRecoverySessions(response.data.sessions || {});
+    } catch (error) {
+      // Non-fatal — status pills just won't show if this fails.
+      console.error("Failed to load recovery statuses:", getApiErrorMessage(error));
     }
   }
 
@@ -95,6 +109,7 @@ export default function DashboardPage() {
   useEffect(() => {
     void loadStudents();
     void loadPendingActions();
+    void loadRecoveryStatuses();
   }, []);
 
   const totalStudents = students.length;
@@ -156,13 +171,17 @@ export default function DashboardPage() {
       <StudentsTable
         students={students}
         loading={loading}
-        onRefresh={loadStudents}
+        onRefresh={() => {
+          void loadStudents();
+          void loadRecoveryStatuses();
+        }}
         selectedIds={selectedIds}
         onToggleSelect={handleToggleSelect}
         onToggleSelectAll={handleToggleSelectAll}
         onSendSelected={handleSendSelected}
         onRevoke={handleRevoke}
         onRecover={handleRecover}
+        recoverySessions={recoverySessions}
       />
 
       {emailSendDetails.length > 0 && (

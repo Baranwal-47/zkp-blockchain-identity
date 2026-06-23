@@ -1,6 +1,21 @@
 import { formatDate, truncate } from "../utils/format.js";
 import { Link } from "react-router-dom";
 
+function recoveryStatusLabel(session) {
+  if (!session) return null;
+  if (session.operationType === "credential-mod") {
+    return "Pending custodian approval";
+  }
+  // device-loss
+  if (!session.hasPubKey) {
+    return "Recovery initiated — waiting for student pubkey";
+  }
+  if (session.sharesReceived < 2) {
+    return "Waiting for custodian shares";
+  }
+  return "Recovery in progress";
+}
+
 export default function StudentsTable({
   students,
   loading,
@@ -11,6 +26,7 @@ export default function StudentsTable({
   onSendSelected,
   onRevoke,
   onRecover,
+  recoverySessions = {},
 }) {
   const allSelected = students.length > 0 && selectedIds.length === students.length;
   const someSelected = selectedIds.length > 0 && selectedIds.length < students.length;
@@ -86,6 +102,7 @@ export default function StudentsTable({
               <th className="px-4 py-2">Email Status</th>
               <th className="px-4 py-2">Hash</th>
               <th className="px-4 py-2">Created</th>
+              <th className="px-4 py-2">Recovery</th>
               <th className="px-4 py-2">Actions</th>
             </tr>
           </thead>
@@ -114,6 +131,15 @@ export default function StudentsTable({
                 </td>
                 <td className="px-4 py-4 font-mono text-xs text-zinc-300">{truncate(student.hashedData, 22)}</td>
                 <td className="px-4 py-4 text-slate-400">{formatDate(student.createdAt)}</td>
+                <td className="px-4 py-4">
+                  {recoveryStatusLabel(recoverySessions[student.id]) ? (
+                    <span className="rounded-full bg-indigo-400/15 px-3 py-1 text-xs font-medium text-indigo-200">
+                      {recoveryStatusLabel(recoverySessions[student.id])}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-500">—</span>
+                  )}
+                </td>
                 <td className="rounded-r-2xl px-4 py-4 text-slate-400">
                   <div className="flex items-center gap-2">
                     <Link to={`/students/${student.id}/edit`} className="text-xs font-semibold text-blue-400 hover:text-blue-300">

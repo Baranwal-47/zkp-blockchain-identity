@@ -4,6 +4,7 @@ import {
   submitShare,
   getMyShare,
   getRecoveryStatusForStudent,
+  listRecoveryStatuses,
   submitRecoveryPubKey,
 } from "../controllers/recoveryController.js";
 import { requireAuth } from "../middleware/requireAuth.js";
@@ -20,6 +21,11 @@ router.use(requireAuth);
 router.post("/initiate", initiateRecovery);
 router.post("/submit-share", submitShare);
 router.get("/:sessionId/my-share", getMyShare);
+// /status (bulk) must be registered BEFORE /status/:studentId — Express
+// matches in registration order and /status/:studentId would otherwise
+// swallow a bare GET /status with studentId="" never matching anyway, but
+// keeping bulk-first avoids any ambiguity as routes grow.
+router.get("/status", listRecoveryStatuses);
 router.get("/status/:studentId", getRecoveryStatusForStudent);
 
 export default router;

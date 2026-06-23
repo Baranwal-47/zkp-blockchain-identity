@@ -10,6 +10,7 @@ import {
   performDeviceLoss,
   performCredentialMod,
   findOpenSessionForStudent,
+  listOpenSessionsByStudent,
   submitStudentPubKey,
 } from "../services/recoveryService.js";
 
@@ -69,14 +70,25 @@ export const initiateRecovery = asyncHandler(async (req, res) => {
 /**
  * GET /api/recovery/status/:studentId — any custodian role.
  *
- * Lightweight lookup for the AcadAdmin dashboard ("Recovery initiated" /
- * "Waiting for student pubkey" / "Waiting for custodian shares" / no open
- * session) and for the mobile app to discover its own open session + id.
+ * Single-student lookup, used by the mobile app to discover its own open
+ * session + id (the student authenticates by studentId, not a custodian role).
  */
 export const getRecoveryStatusForStudent = asyncHandler(async (req, res) => {
   const { studentId } = req.params;
   const status = findOpenSessionForStudent(studentId);
   res.json({ status: "success", session: status });
+});
+
+/**
+ * GET /api/recovery/status — any custodian role.
+ *
+ * Bulk lookup, used by the AcadAdmin dashboard to render a status pill per
+ * row ("Recovery initiated" / "Waiting for student pubkey" / "Waiting for
+ * custodian shares") in a single request instead of one per student.
+ */
+export const listRecoveryStatuses = asyncHandler(async (_req, res) => {
+  const sessionsByStudent = listOpenSessionsByStudent();
+  res.json({ status: "success", sessions: sessionsByStudent });
 });
 
 /**

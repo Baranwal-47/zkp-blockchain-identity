@@ -89,10 +89,8 @@ export function initiateRecovery({ studentId, operationType, newPubKey, attribut
  * findOpenSessionForStudent(studentId) → { sessionId, operationType, hasPubKey,
  *   sharesReceived } | null
  *
- * Lightweight status lookup used by (a) the AcadAdmin dashboard to render
- * "Recovery initiated" / "Waiting for student pubkey" / "Waiting for
- * custodian shares" per student row, and (b) the mobile app to discover that
- * the logged-in student has an open recovery session and learn its sessionId.
+ * Lightweight status lookup used by the mobile app to discover that the
+ * logged-in student has an open recovery session and learn its sessionId.
  * Deletes expired sessions as a side effect (same expiry semantics as getSession).
  */
 export function findOpenSessionForStudent(studentId) {
@@ -111,6 +109,32 @@ export function findOpenSessionForStudent(studentId) {
     }
   }
   return null;
+}
+
+/**
+ * listOpenSessionsByStudent() → { [studentId]: { sessionId, operationType,
+ *   hasPubKey, sharesReceived } }
+ *
+ * Bulk variant for the AcadAdmin dashboard — one call renders status pills
+ * ("Recovery initiated" / "Waiting for student pubkey" / "Waiting for
+ * custodian shares") across every row instead of N per-student requests.
+ * Expired sessions are dropped as a side effect.
+ */
+export function listOpenSessionsByStudent() {
+  const byStudent = {};
+  for (const [sessionId, session] of sessions.entries()) {
+    if (Date.now() > session.expiresAt) {
+      sessions.delete(sessionId);
+      continue;
+    }
+    byStudent[session.studentId] = {
+      sessionId,
+      operationType: session.operationType,
+      hasPubKey: session.operationType === "device-loss" ? Boolean(session.newPubKey) : null,
+      sharesReceived: session.shares.length,
+    };
+  }
+  return byStudent;
 }
 
 /**

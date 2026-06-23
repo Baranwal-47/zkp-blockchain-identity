@@ -54,6 +54,31 @@ export default function EditStudentPage() {
       }
       navigate("/");
     } catch (error) {
+      // Phase 11 redesign: updateStudent() throws 409 for an already-claimed
+      // student (no pendingDek — re-issuance needs a live custodian 2-of-3
+      // Shamir session). Instead of surfacing this as an error, transparently
+      // open a credential-mod recovery session with the same attribute
+      // payload the form was submitting, then close the modal immediately
+      // (fire-and-check-later — the admin sees session status as a pill on
+      // the Dashboard row, not a blocking wait here).
+      if (error?.response?.status === 409) {
+        try {
+          await api.post("/recovery/initiate", {
+            studentId: id,
+            operationType: "credential-mod",
+            attributeUpdates: formData,
+          });
+          toast.success(
+            "This student has already claimed their credential — a custodian recovery session was opened to apply your changes. Check the Dashboard for status."
+          );
+          navigate("/");
+          return;
+        } catch (initiateError) {
+          toast.error(getApiErrorMessage(initiateError));
+          setLoading(false);
+          return;
+        }
+      }
       toast.error(getApiErrorMessage(error));
     } finally {
       setLoading(false);
