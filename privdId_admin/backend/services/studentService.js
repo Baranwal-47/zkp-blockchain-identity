@@ -1,3 +1,4 @@
+import { ethers } from "ethers";
 import AppError from "../utils/appError.js";
 import Student from "../models/Student.js";
 import { hashPoseidonFields } from "../utils/poseidonHash.js"; // kept for legacy callers; NOT called from new commitment path
@@ -421,29 +422,24 @@ export async function reissueWithDEK(studentId, attributeUpdates, dek) {
   student.ciphertextCID = newCid;
   await student.save();
 
-  // Re-anchor on-chain directly — mirrors createStudent's try/catch exactly.
-  // issueCredential is onlyIssuer (direct acad-admin EOA write), not Safe-governed
-  // (Q3) — anchorPending/lastAnchorError are used only as a failure-path retry
-  // signal, never a pendingRegistryAction/Safe proposal.
-  try {
-    const { txHash, blockNumber } = await anchorCredentialOnChain(student, newCid);
-    student.onChainTxHash = txHash;
-    student.onChainBlock = blockNumber;
-    student.anchorPending = false;
-    student.lastAnchorError = null;
-  } catch (err) {
-    console.error('[credential] Re-anchoring failed for', student.rollNo, ':', err.message);
-    student.anchorPending = true;
-    student.lastAnchorError = err.message;
-  }
+  // Phase 2 queues a Safe 2-of-3 updateCredential proposal — no direct EOA write.
+  // The admin PendingApprovals page proposes/signs/executes it after Shamir completes.
+  const newPubHash = ethers.zeroPadValue(ethers.toBeHex(BigInt(student.merkleRoot)), 32);
+  student.pendingRegistryAction = {
+    type: "updateCredential",
+    newCID: newCid,
+    newPubHash,
+    safeTxHash: null,
+  };
+  student.anchorPending = true;
   await student.save();
 
   return {
     student: sanitizeStudent(student),
     merkleRoot: student.merkleRoot,
     ciphertextCID: newCid,
-    onChainTxHash: student.onChainTxHash,
-    anchorPending: student.anchorPending,
+    anchorPending: true,
+    pendingRegistryAction: student.pendingRegistryAction,
   };
 }
 

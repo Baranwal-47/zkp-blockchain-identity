@@ -17,6 +17,7 @@ import recoveryRoutes from "./routes/recoveryRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
+app.set("etag", false);
 
 app.use(helmet());
 app.use(

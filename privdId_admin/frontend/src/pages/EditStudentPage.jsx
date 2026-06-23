@@ -10,6 +10,7 @@ export default function EditStudentPage() {
   const { id } = useParams();
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [recoverySessionId, setRecoverySessionId] = useState(null);
 
   useEffect(() => {
     async function fetchStudent() {
@@ -63,15 +64,14 @@ export default function EditStudentPage() {
       // the Dashboard row, not a blocking wait here).
       if (error?.response?.status === 409) {
         try {
-          await api.post("/recovery/initiate", {
+          const { data } = await api.post("/recovery/initiate", {
             studentId: id,
             operationType: "credential-mod",
             attributeUpdates: formData,
           });
-          toast.success(
-            "This student has already claimed their credential — a custodian recovery session was opened to apply your changes. Check the Dashboard for status."
-          );
-          navigate("/");
+          setRecoverySessionId(data.sessionId);
+          toast.success("Recovery session opened — share the Session ID with a custodian (Registrar or Dean).");
+          setLoading(false);
           return;
         } catch (initiateError) {
           toast.error(getApiErrorMessage(initiateError));
@@ -90,6 +90,45 @@ export default function EditStudentPage() {
       <div className="panel">
         <p className="text-center">Loading student data...</p>
       </div>
+    );
+  }
+
+  if (recoverySessionId) {
+    return (
+      <section className="space-y-6">
+        <div className="panel">
+          <p className="text-xs uppercase tracking-[0.3em] text-zinc-400">Edit student</p>
+          <h2 className="mt-2 text-2xl font-semibold text-white">Custodian recovery session opened</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            This student has already claimed their credential. A recovery session has been opened.
+            Share the Session ID below with a custodian (Registrar or Dean) — they go to
+            <strong className="text-white"> Recovery</strong> in the nav, select the open session, and submit their private key.
+          </p>
+        </div>
+        <div className="panel-soft space-y-3">
+          <p className="text-sm font-medium text-slate-300">Session ID</p>
+          <div className="flex items-center gap-3">
+            <code className="flex-1 select-all rounded-lg bg-slate-900 px-4 py-2 font-mono text-sm text-indigo-300 border border-slate-700">
+              {recoverySessionId}
+            </code>
+            <button
+              type="button"
+              onClick={() => { navigator.clipboard.writeText(recoverySessionId); toast.success("Copied."); }}
+              className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-400"
+            >
+              Copy
+            </button>
+          </div>
+          <p className="text-xs text-slate-500">Session expires in 30 minutes. The custodian will see this session listed automatically on the Recovery page.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="secondary-button"
+        >
+          ← Back to Dashboard
+        </button>
+      </section>
     );
   }
 

@@ -32,6 +32,15 @@ export async function registerCustodianPublicKey(role, publicKeyPem) {
     throw new AppError(`Custodian public-key path not configured for ${role} (${envVar} is unset).`, 500);
   }
 
+  // Onboarding is one-time: re-registering would silently orphan every share
+  // already wrapped under the existing key. Delete the file to rotate intentionally.
+  if (fs.existsSync(targetPath)) {
+    throw new AppError(
+      `A ${role} custodian key is already registered. Onboarding is one-time — delete ${targetPath} on the server to rotate.`,
+      409
+    );
+  }
+
   // 1. ARMOR CHECK — SPKI public armor required; private armor tokens forbidden.
   if (!publicKeyPem.includes("-----BEGIN PUBLIC KEY-----")) {
     throw new AppError("Only a PUBLIC key PEM may be registered (missing SPKI armor).", 400);

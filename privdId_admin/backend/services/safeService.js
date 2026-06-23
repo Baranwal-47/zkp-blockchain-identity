@@ -5,10 +5,16 @@ import { dirname, join } from 'path';
 import Safe from '@safe-global/protocol-kit';
 import SafeApiKit from '@safe-global/api-kit';
 import Student from '../models/Student.js';
+import DismissedTx from '../models/DismissedTx.js';
 import { reportGas } from '../utils/gas.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+export async function dismissSafeTx(safeTxHash) {
+  await DismissedTx.findOneAndUpdate({ safeTxHash }, { safeTxHash }, { upsert: true });
+  console.log(`[safe] dismissed ${safeTxHash.slice(0, 10)}… persisted to DB`);
+}
 
 const registryArtifact = JSON.parse(
   readFileSync(
@@ -73,6 +79,7 @@ function resolveSigner(externalSigner) {
 const PROPOSABLE_ACTIONS = {
   revoke: { fnName: 'revokeCredential', argCount: 1 },
   acceptAdmin: { fnName: 'acceptAdmin', argCount: 0 },
+  updateCredential: { fnName: 'updateCredential', argCount: 3 },
 };
 
 /**
@@ -187,7 +194,15 @@ export async function getPendingTransactions() {
   const pending = await getApiKit().getPendingTransactions(safeAddress);
 
   const threshold = safeInfo.threshold;
-  const rawResults = pending.results || [];
+  const dismissedDocs = await DismissedTx.find().select('safeTxHash').lean();
+  const dismissedSet = new Set(dismissedDocs.map((d) => d.safeTxHash));
+  const validTargets = new Set([
+    process.env.REGISTRY_ADDRESS?.toLowerCase(),
+    process.env.SAFE_ADDRESS?.toLowerCase(),
+  ]);
+  const rawResults = (pending.results || [])
+    .filter((t) => !dismissedSet.has(t.safeTxHash))
+    .filter((t) => !t.to || validTargets.has(t.to.toLowerCase()));
 
   // Join with Student so the approver UI can show human-readable action info
   // (rollNo + revoke/issue) — the Safe Tx Service only returns raw calldata.

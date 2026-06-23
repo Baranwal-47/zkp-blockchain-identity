@@ -471,23 +471,20 @@ No new env vars needed for Phase 11.
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Who can initiate a recovery session — any authenticated admin, or only specific roles?**
+1. **Who can initiate a recovery session — any authenticated admin, or only specific roles?** (RESOLVED: AcadAdmin only)
    - What we know: `/recovery/initiate` needs requireAuth (JWT). The current JWT roles are `acadadmin | registrar | dean`.
-   - What's unclear: Should the Registrar or Dean be able to open a recovery session, or only the AcadAdmin (since Share A is automatically loaded from their DB)?
-   - Recommendation: Allow any authenticated role to initiate (the initiate endpoint loads Share A from DB but doesn't require the AcadAdmin to be the HTTP caller). This matches the least-privilege principle — a Registrar could initiate a recovery and submit their own share B in a single session if no one else is available.
+   - Resolution: AcadAdmin-only initiates (locked decision, implemented in 11-01). Registrar/Dean only ever act as custodians submitting their own share, never as initiators — one consistent rule for "who can start a privileged ceremony" across recovery and erasure.
 
-2. **Who can initiate erasure — any admin, or require 2-of-3?**
+2. **Who can initiate erasure — any admin, or require 2-of-3?** (RESOLVED: AcadAdmin-only, single-call — no share ceremony for the destroy step itself)
    - What we know: ERASE-01 says "a governed erasure operation" — the word "governed" implies more than one person.
-   - What's unclear: Must erasure itself require 2-of-3 share submission (like a mini recovery session that then destroys), or can any authenticated admin trigger it unilaterally?
-   - Recommendation: For simplicity (CLAUDE.md: prefer the laziest solution that works), make erasure a single authenticated-admin endpoint (no share submission required for erasure itself). The requirement says the *result* must be ≥2 shares destroyed; it doesn't mandate a multi-party ceremony for the destroy operation. This is a judgment call for the user to confirm.
-   [ASSUMED — ERASE-01 does not specify who initiates erasure or whether it requires multi-party input]
+   - Resolution: Erasure is a single AcadAdmin-authenticated endpoint (no share submission required to trigger the destroy). The requirement's *result* (≥2 shares destroyed, irreversible) is satisfied by the atomic `$unset`; "governed" is satisfied by AcadAdmin-only + requireAuth + a deliberately scary client-side confirmation, not a multi-party ceremony. Implemented as-is in 11-03.
 
-3. **Case A: should the Case A flow wait for Safe execution before responding?**
-   - What we know: Safe propose → sign → execute is async (the second official signs via the web portal separately).
-   - What's unclear: Should `/recovery/submit-share` (at the 2-share threshold) return "complete" and let Safe signing happen out-of-band, or block until the Safe executes?
-   - Recommendation: Return "complete" after re-encryption + re-pin + Safe proposal is created. The MongoDB state is correct immediately. The Safe execution is tracked via the existing `pendingRegistryAction` field (Phase 9 pattern). Blocking for Safe execution would hang the HTTP response indefinitely.
+3. **Case A: should the Case A flow wait for Safe execution before responding?** (RESOLVED — Case A's on-chain write is NOT Safe-governed; corrects the original recommendation below)
+   - What we know: `CredentialRegistry.issueCredential` is gated `onlyIssuer` (a direct acad-admin EOA), not `onlyAdmin` (the Safe) — see `zk-proofs/contracts/CredentialRegistry.sol` (the `issueCredential` comment even reads "If re-issuing (student update), invalidate the old hash"). Only `revokeCredential` is `onlyAdmin`/Safe-governed (`services/safeService.js`: "routine issuance is now a DIRECT issuer-EOA write... only revocation/governance goes through admin"). `studentService.js`'s `createStudent` and `updateStudent` both already call `anchorCredentialOnChain`/`issueCredentialOnChain` directly, using `anchorPending`/`lastAnchorError` purely as a **retry signal** for a failed chain write, not as a marker that a Safe proposal is pending.
+   - Corrected resolution: Case A re-anchoring is a routine re-issuance, identical in shape to `updateStudent`'s existing (currently 409-blocked) re-anchor path. `reissueWithDEK` calls `anchorCredentialOnChain(student, cid)` directly inside a try/catch — success sets `onChainTxHash`/`onChainBlock`/`anchorPending:false`; failure sets `anchorPending:true`+`lastAnchorError` for retry, exactly mirroring `createStudent`. No Safe proposal, no `pendingRegistryAction` write, no blocking wait.
+   - ~~Original (incorrect) recommendation: return "complete" after re-encryption + re-pin + Safe proposal is created... tracked via the existing `pendingRegistryAction` field (Phase 9 pattern).~~ Superseded by the corrected resolution above — `pendingRegistryAction` is reserved for `revokeCredential`/`acceptAdmin` and does not apply to issuance/re-issuance.
 
 ---
 

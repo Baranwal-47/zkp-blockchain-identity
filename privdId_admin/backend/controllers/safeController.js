@@ -1,4 +1,5 @@
 import * as safeService from "../services/safeService.js";
+import { dismissSafeTx } from "../services/safeService.js";
 import Student from "../models/Student.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import AppError from "../utils/appError.js";
@@ -17,7 +18,7 @@ export const buildProposal = asyncHandler(async (req, res) => {
   const { action, rollNo } = req.body;
   const spec = safeService.PROPOSABLE_ACTIONS[action];
   if (!spec) {
-    throw new AppError("Unknown action. Expected 'revoke' or 'acceptAdmin'.", 400);
+    throw new AppError("Unknown action. Expected 'revoke', 'acceptAdmin', or 'updateCredential'.", 400);
   }
 
   let args = [];
@@ -27,6 +28,15 @@ export const buildProposal = asyncHandler(async (req, res) => {
     if (!student) throw new AppError("Student not found.", 404);
     if (student.revoked) throw new AppError("Credential is already revoked.", 400);
     args = [rollNo];
+  } else if (action === "updateCredential") {
+    if (!rollNo) throw new AppError("rollNo is required to propose a credential update.", 400);
+    const student = await Student.findOne({ rollNo });
+    if (!student) throw new AppError("Student not found.", 404);
+    const pra = student.pendingRegistryAction;
+    if (!pra || pra.type !== "updateCredential" || !pra.newCID || !pra.newPubHash) {
+      throw new AppError("No pending credential update found for this student.", 409);
+    }
+    args = [rollNo, pra.newCID, pra.newPubHash];
   }
 
   const built = await safeService.buildUnsignedRegistryTx(spec.fnName, args);
@@ -61,6 +71,13 @@ export const submitProposal = asyncHandler(async (req, res) => {
       student.pendingRegistryAction = { safeTxHash, type: "revoke" };
       await student.save();
     }
+  } else if (action === "updateCredential" && rollNo) {
+    const student = await Student.findOne({ rollNo });
+    if (student) {
+      // Preserve newCID/newPubHash already stored by reissueWithDEK; just stamp safeTxHash
+      student.pendingRegistryAction.safeTxHash = safeTxHash;
+      await student.save();
+    }
   }
 
   res.json({ status: "success", safeTxHash });
@@ -73,6 +90,8 @@ export const rejectProposal = asyncHandler(async (req, res) => {
   if (!safeTxHash || !SAFE_TX_HASH_REGEX.test(safeTxHash)) {
     throw new AppError("A valid safeTxHash is required.", 400);
   }
+
+  await dismissSafeTx(safeTxHash);
 
   const student = await Student.findOne({ "pendingRegistryAction.safeTxHash": safeTxHash });
   if (student) {
@@ -123,6 +142,10 @@ export const executePendingTx = asyncHandler(async (req, res) => {
     } else if (actionType === "revoke") {
       student.revoked = true;
       student.revokedAt = new Date();
+    } else if (actionType === "updateCredential") {
+      student.onChainTxHash = result.txHash;
+      student.onChainBlock = result.blockNumber;
+      student.anchorPending = false;
     }
 
     student.pendingRegistryAction = { safeTxHash: null, type: null };

@@ -82,6 +82,15 @@ export default function AdminDashboardScreen({ route, navigation }) {
   };
   
   const handleEdit = (studentId) => {
+    const student = students.find((s) => s.id === studentId);
+    if (student?.enrollmentPhase === 'active') {
+      Alert.alert(
+        'Use the web portal to edit',
+        `${student.rollNo || 'This student'} has already claimed their credential. Credential modifications must be done from the PrivdID admin web portal (Edit → custodian recovery flow).`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     navigation.navigate('AdminEditStudent', { studentId, token });
   };
 

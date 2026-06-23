@@ -122,7 +122,10 @@ const studentSchema = new mongoose.Schema(
     // revoked/revokedAt) is set only once the proposal executes (09-03).
     pendingRegistryAction: {
       safeTxHash: { type: String, default: null },
-      type: { type: String, enum: ["issue", "revoke"], default: null },
+      type: { type: String, enum: ["issue", "revoke", "updateCredential"], default: null },
+      // Phase 2 payload for credential-mod: stored after Phase 1 (Shamir) completes
+      newCID:    { type: String, default: null },
+      newPubHash: { type: String, default: null },
     },
     // --- 7-attribute salted Merkle commitment fields (plan 03) ---
     programmeLevel: {

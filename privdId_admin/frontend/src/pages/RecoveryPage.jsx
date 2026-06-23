@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import api, { getApiErrorMessage } from "../services/api.js";
@@ -129,15 +129,32 @@ function AcadAdminInitiatePanel({ preselectedStudentId }) {
   );
 }
 
-function CustodianSubmitPanel() {
-  const [sessionId, setSessionId] = useState("");
+const OP_LABELS = { "credential-mod": "Credential update", "device-loss": "Device-loss recovery" };
+
+export function CustodianSubmitPanel({ filter = null }) {
+  const navigate = useNavigate();
+  const [sessions, setSessions] = useState(null); // null = loading, [] = none
+  const [selectedId, setSelectedId] = useState("");
   const [pemFile, setPemFile] = useState(null);
   const [working, setWorking] = useState(false);
-  const [outcome, setOutcome] = useState(null); // { status, sharesReceived } | null
+  const [outcome, setOutcome] = useState(null);
+
+  useEffect(() => {
+    api.get("/recovery/status")
+      .then((r) => {
+        const map = r.data.sessions || {};
+        let list = Object.entries(map).map(([studentId, s]) => ({ studentId, ...s }));
+        if (filter) list = list.filter((s) => s.operationType === filter);
+        setSessions(list);
+      })
+      .catch((err) => { toast.error(getApiErrorMessage(err)); setSessions([]); });
+  }, [filter]);
+
+  const sessionId = selectedId;
 
   async function handleFetchAndSubmit() {
-    if (!sessionId.trim()) {
-      toast.error("Paste the Session ID first.");
+    if (!sessionId) {
+      toast.error("Select an open session first.");
       return;
     }
     if (!pemFile) {
@@ -158,7 +175,7 @@ function CustodianSubmitPanel() {
         ["decrypt"]
       );
 
-      const { data } = await api.get(`/recovery/${sessionId.trim()}/my-share`);
+      const { data } = await api.get(`/recovery/${sessionId}/my-share`);
 
       const decryptedBuffer = await window.crypto.subtle.decrypt(
         { name: "RSA-OAEP" },
@@ -168,13 +185,13 @@ function CustodianSubmitPanel() {
       const shareHex = new TextDecoder("utf-8").decode(decryptedBuffer);
 
       const { data: submitResult } = await api.post("/recovery/submit-share", {
-        sessionId: sessionId.trim(),
+        sessionId,
         shareHex,
       });
 
       setOutcome(submitResult);
       toast.success(
-        submitResult.status === "complete" ? "Recovery completed." : "Share submitted."
+        submitResult.status === "complete" ? "Recovery completed." : "Share submitted — waiting for more."
       );
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -185,22 +202,42 @@ function CustodianSubmitPanel() {
 
   return (
     <div className="panel-soft space-y-4">
-      <h2 className="text-lg font-semibold text-white">Submit My Share</h2>
+      <h2 className="text-lg font-semibold text-white">Submit My Custodian Share</h2>
       <p className="text-sm text-slate-400">
-        Paste the Session ID from the AcadAdmin, select your private key PEM (downloaded at
-        onboarding), and submit. Your decrypted share is never displayed or stored — it goes
-        straight from decryption into the submission request.
+        Open sessions are listed automatically. Pick one, load your private key PEM (downloaded at
+        onboarding), and submit. Your decrypted share goes straight to the server — never displayed.
       </p>
 
       <div>
-        <label className="block text-sm font-medium text-slate-300">Session ID</label>
-        <input
-          type="text"
-          value={sessionId}
-          onChange={(e) => setSessionId(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm font-mono text-slate-100"
-          placeholder="paste session id"
-        />
+        <label className="block text-sm font-medium text-slate-300">Open recovery sessions</label>
+        {sessions === null ? (
+          <p className="mt-1 text-sm text-slate-500">Loading…</p>
+        ) : sessions.length === 0 ? (
+          <p className="mt-1 rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-3 text-sm text-slate-400">
+            No open recovery sessions right now. Ask the AcadAdmin to initiate one.
+          </p>
+        ) : (
+          <div className="mt-1 space-y-2">
+            {sessions.map((s) => (
+              <button
+                key={s.sessionId}
+                type="button"
+                onClick={() => setSelectedId(s.sessionId)}
+                className={`w-full text-left rounded-lg border px-4 py-3 text-sm transition ${
+                  selectedId === s.sessionId
+                    ? "border-indigo-500 bg-indigo-500/10 text-white"
+                    : "border-slate-700 bg-slate-900/40 text-slate-300 hover:border-slate-500"
+                }`}
+              >
+                <span className="font-medium">{OP_LABELS[s.operationType] ?? s.operationType}</span>
+                <span className="ml-2 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-400">
+                  {s.sharesReceived}/2 shares
+                </span>
+                <span className="ml-1 font-mono text-xs text-slate-500">{s.sessionId.slice(0, 8)}…</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>
@@ -216,10 +253,10 @@ function CustodianSubmitPanel() {
       <button
         type="button"
         onClick={handleFetchAndSubmit}
-        disabled={working}
+        disabled={working || !selectedId}
         className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {working ? "Working…" : "Fetch & Submit My Share"}
+        {working ? "Working…" : "Submit My Share"}
       </button>
 
       {outcome && outcome.status === "pending" && (
@@ -247,15 +284,28 @@ function CustodianSubmitPanel() {
         <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-900 space-y-1">
           {outcome.result?.anchorPending ? (
             <>
-              <p className="font-semibold text-base">Credential updated — on-chain anchor pending</p>
+              <p className="font-semibold text-base">Credential re-encrypted — Safe proposal required</p>
               <p>
-                New ciphertext was pinned, but the on-chain anchor write failed and will need a
-                retry.
+                New ciphertext pinned. The on-chain update requires a 2-of-3 Safe approval —
+                go to Pending Approvals to propose and sign it.
               </p>
               {outcome.result?.ciphertextCID && (
                 <p className="font-mono text-xs text-green-800">
                   New ciphertext CID: {outcome.result.ciphertextCID}
                 </p>
+              )}
+              {outcome.result?.student?.rollNo && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate("/pending-approvals", {
+                      state: { proposeUpdateRollNo: outcome.result.student.rollNo },
+                    })
+                  }
+                  className="mt-2 rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+                >
+                  Propose on-chain update →
+                </button>
               )}
             </>
           ) : (
@@ -278,20 +328,30 @@ function CustodianSubmitPanel() {
 export default function RecoveryPage() {
   const role = getRole();
   const location = useLocation();
+  const navigate = useNavigate();
   const preselectedStudentId = location.state?.studentId;
 
   return (
     <div className="min-h-screen px-4 py-10 text-slate-100 sm:px-8">
       <div className="mx-auto max-w-3xl space-y-6">
-        <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-zinc-400">PrivdId Admin</p>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Credential Recovery</h1>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-zinc-400">PrivdId Admin</p>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Credential Recovery</h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(role === "acadadmin" ? "/" : "/pending-approvals")}
+            className="rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500 whitespace-nowrap"
+          >
+            ← Back
+          </button>
         </div>
 
         {role === "acadadmin" ? (
           <AcadAdminInitiatePanel preselectedStudentId={preselectedStudentId} />
         ) : (
-          <CustodianSubmitPanel />
+          <CustodianSubmitPanel filter="device-loss" />
         )}
       </div>
     </div>

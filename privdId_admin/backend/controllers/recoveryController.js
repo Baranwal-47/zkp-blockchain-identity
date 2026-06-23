@@ -64,6 +64,7 @@ export const initiateRecovery = asyncHandler(async (req, res) => {
     shareA: student.custodyShareA,
   });
 
+  console.log(`[recovery] session opened  type=${operationType} student=${studentId} session=${sessionId}`);
   res.json({ status: "pending", sessionId, sharesReceived: 1, sharesNeeded: 2 });
 });
 
@@ -150,6 +151,7 @@ export const submitShare = asyncHandler(async (req, res) => {
   }
 
   const session = addShare(sessionId, req.user.role, shareHex);
+  console.log(`[recovery] share submitted  role=${req.user.role} session=${sessionId} shares=${session.shares.length}`);
   const result = await reconstructIfReady(session);
 
   if (!result.ready) {
@@ -166,6 +168,7 @@ export const submitShare = asyncHandler(async (req, res) => {
       : (dek) => performCredentialMod(session, dek);
   const operationResult = await runOperation(sessionId, result.dek, opFn);
 
+  console.log(`[recovery] complete  type=${session.operationType} session=${sessionId}`);
   res.json({ status: "complete", operationType: session.operationType, result: operationResult });
 });
 

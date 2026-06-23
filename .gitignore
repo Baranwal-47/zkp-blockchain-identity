@@ -93,3 +93,5 @@ CLAUDE.md
 # graphify
 .claude/
 graphify-out/
+# serena MCP tool config
+.serena/

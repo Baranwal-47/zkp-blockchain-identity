@@ -86,6 +86,7 @@ export default function PendingApprovalsPage() {
   const [walletAddress, setWalletAddress] = useState(null);
   const [connecting, setConnecting] = useState(false);
   const [pending, setPending] = useState([]);
+  const [dismissed, setDismissed] = useState(() => new Set());
   const [loading, setLoading] = useState(true);
   const [keyRegistered, setKeyRegistered] = useState(null); // null=loading, true, false
 
@@ -97,6 +98,7 @@ export default function PendingApprovalsPage() {
   }, [role]);
   // Roll number handed in by the dashboard "Revoke" button (auto-propose target).
   const [revokeTarget, setRevokeTarget] = useState(() => location.state?.proposeRevokeRollNo || null);
+  const [updateTarget, setUpdateTarget] = useState(() => location.state?.proposeUpdateRollNo || null);
 
   const roleLabel = ROLE_LABELS[role] || role || "Unknown";
   const expectedOwner = EXPECTED_OWNER_BY_ROLE[role];
@@ -184,7 +186,11 @@ export default function PendingApprovalsPage() {
         signature,
         signerAddress: walletAddress,
       });
-      toast.success(action === "revoke" ? `Revocation proposed for ${rollNo}.` : "Admin handoff proposed.");
+      toast.success(
+        action === "revoke" ? `Revocation proposed for ${rollNo}.`
+        : action === "updateCredential" ? `Credential update proposed for ${rollNo}.`
+        : "Admin handoff proposed."
+      );
       await loadPending();
     } catch (error) {
       toast.error(getApiErrorMessage(error));
@@ -195,6 +201,7 @@ export default function PendingApprovalsPage() {
     if (!window.confirm("Reject and dismiss this proposal? It will not be executed.")) return;
     try {
       await api.post("/safe/reject", { safeTxHash: tx.safeTxHash });
+      setDismissed((prev) => new Set([...prev, tx.safeTxHash]));
       toast.success("Proposal rejected.");
       await loadPending();
     } catch (error) {
@@ -203,6 +210,7 @@ export default function PendingApprovalsPage() {
   }
 
   async function handleExecute(tx) {
+    if (!requireWallet()) return;
     const typeLabel = tx.type === "issue" ? "issue" : "revoke";
     if (
       window.confirm(
@@ -210,8 +218,25 @@ export default function PendingApprovalsPage() {
       )
     ) {
       try {
-        await api.post("/safe/execute", { safeTxHash: tx.safeTxHash });
-        toast.success("Transaction executed successfully.");
+        const { data } = await api.post("/safe/execute", { safeTxHash: tx.safeTxHash });
+        const hash = data?.txHash || data?.onChainTxHash;
+        if (hash) {
+          toast.success(
+            <span>
+              Executed!{" "}
+              <span
+                className="cursor-pointer font-mono text-xs underline"
+                onClick={() => { navigator.clipboard.writeText(hash); toast.success("Tx hash copied."); }}
+              >
+                {hash.slice(0, 10)}…{hash.slice(-6)}
+              </span>
+              {" "}(click to copy)
+            </span>,
+            { duration: 10000 }
+          );
+        } else {
+          toast.success("Transaction executed successfully.");
+        }
         await loadPending();
       } catch (error) {
         toast.error(getApiErrorMessage(error));
@@ -260,6 +285,13 @@ export default function PendingApprovalsPage() {
               className="rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500"
             >
               Recovery
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/credential-mod")}
+              className="rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500"
+            >
+              Credential Mod
             </button>
             {role !== "acadadmin" && (
               <button
@@ -349,13 +381,33 @@ export default function PendingApprovalsPage() {
           </div>
         )}
 
+        {updateTarget && role === "acadadmin" && (
+          <div className="panel-soft border border-indigo-400/30">
+            <h3 className="text-base font-semibold text-white">Propose credential update: {updateTarget}</h3>
+            <p className="mt-1 text-sm text-slate-400">
+              Recovery re-encrypted this credential. Sign in MetaMask to propose the on-chain anchor update via Safe 2-of-3.
+            </p>
+            <button
+              type="button"
+              disabled={!walletAddress || addressMismatch}
+              onClick={async () => {
+                await proposeAction("updateCredential", updateTarget);
+                setUpdateTarget(null);
+              }}
+              className="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Sign &amp; Propose Credential Update
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div className="panel grid gap-3">
             {Array.from({ length: 2 }).map((_, index) => (
               <div key={index} className="h-20 animate-pulse rounded-2xl bg-white/5" />
             ))}
           </div>
-        ) : pending.length === 0 ? (
+        ) : pending.filter((tx) => !dismissed.has(tx.safeTxHash)).length === 0 ? (
           <div className="panel">
             <h3 className="text-lg font-semibold text-white">No pending approvals.</h3>
             <p className="mt-2 text-sm text-slate-400">
@@ -364,7 +416,7 @@ export default function PendingApprovalsPage() {
           </div>
         ) : (
           <div className="panel space-y-3">
-            {pending.map((tx) => (
+            {pending.filter((tx) => !dismissed.has(tx.safeTxHash)).map((tx) => (
               <PendingTxCard
                 key={tx.safeTxHash}
                 tx={tx}

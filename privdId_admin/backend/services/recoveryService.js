@@ -291,12 +291,12 @@ export async function performDeviceLoss(session, dek) {
 }
 
 /**
- * performCredentialMod(session, dek) → { ciphertextCID, onChainTxHash, anchorPending }
+ * performCredentialMod(session, dek) → { ciphertextCID, anchorPending, pendingRegistryAction }
  *
  * Case A (REC-03): delegates to studentService.reissueWithDEK, which decrypts/
  * re-encrypts the credential under the SAME reconstructed DEK, preserves the
- * frozen 7-attribute field set, and re-anchors on-chain via the direct
- * issuer-EOA write (Q3 — not Safe-governed).
+ * frozen 7-attribute field set, and stores a pendingRegistryAction for the
+ * Safe 2-of-3 updateCredential proposal (Phase 2 — not a direct EOA write).
  */
 export async function performCredentialMod(session, dek) {
   return await reissueWithDEK(session.studentId, session.attributeUpdates ?? {}, dek);

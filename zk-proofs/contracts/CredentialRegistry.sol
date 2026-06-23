@@ -23,6 +23,7 @@ contract CredentialRegistry {
 
     event CredentialIssued(string indexed rollNo, string ipfsCID, bytes32 pubHash, uint256 timestamp);
     event CredentialRevoked(string indexed rollNo, bytes32 pubHash, uint256 timestamp);
+    event CredentialUpdated(string indexed rollNo, string newCID, bytes32 newPubHash, uint256 timestamp);
     event AdminTransferStarted(address indexed previousAdmin, address indexed newAdmin);
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event IssuerChanged(address indexed previousIssuer, address indexed newIssuer);
@@ -77,6 +78,32 @@ contract CredentialRegistry {
         isValidHash[pubHash]        = true;
 
         emit CredentialIssued(rollNo, ipfsCID, pubHash, block.timestamp);
+    }
+
+    // Safe-governed credential update (Phase 2 of credential-mod recovery).
+    // Phase 1 (Shamir SSS) re-encrypts and pins to IPFS off-chain; this call
+    // anchors the new CID and pubHash on-chain after 2-of-3 Safe approval.
+    function updateCredential(
+        string  calldata rollNo,
+        string  calldata newCID,
+        bytes32          newPubHash
+    ) external onlyAdmin {
+        Credential storage cred = credentialsByRollNo[rollNo];
+        require(cred.exists,   "Credential not found");
+        require(!cred.revoked, "Credential is revoked");
+
+        // Invalidate old pubHash mappings
+        if (cred.pubHash != bytes32(0)) {
+            isValidHash[cred.pubHash] = false;
+            delete rollNoByHash[cred.pubHash];
+        }
+
+        cred.ipfsCID = newCID;
+        cred.pubHash = newPubHash;
+        rollNoByHash[newPubHash] = rollNo;
+        isValidHash[newPubHash]  = true;
+
+        emit CredentialUpdated(rollNo, newCID, newPubHash, block.timestamp);
     }
 
     function revokeCredential(string calldata rollNo) external onlyAdmin {

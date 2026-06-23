@@ -1,5 +1,6 @@
 import { formatDate, truncate } from "../utils/format.js";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 
 function recoveryStatusLabel(session) {
   if (!session) return null;
@@ -132,13 +133,28 @@ export default function StudentsTable({
                 <td className="px-4 py-4 font-mono text-xs text-zinc-300">{truncate(student.hashedData, 22)}</td>
                 <td className="px-4 py-4 text-slate-400">{formatDate(student.createdAt)}</td>
                 <td className="px-4 py-4">
-                  {recoveryStatusLabel(recoverySessions[student.id]) ? (
-                    <span className="rounded-full bg-indigo-400/15 px-3 py-1 text-xs font-medium text-indigo-200">
-                      {recoveryStatusLabel(recoverySessions[student.id])}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-slate-500">—</span>
-                  )}
+                  {(() => {
+                    const sess = recoverySessions[student.id];
+                    const label = recoveryStatusLabel(sess);
+                    if (!label) return <span className="text-xs text-slate-500">—</span>;
+                    return (
+                      <div className="flex flex-col gap-1">
+                        <span className="rounded-full bg-indigo-400/15 px-3 py-1 text-xs font-medium text-indigo-200 w-fit">
+                          {label}
+                        </span>
+                        {sess?.sessionId && (
+                          <button
+                            type="button"
+                            onClick={() => { navigator.clipboard.writeText(sess.sessionId); toast.success("Session ID copied."); }}
+                            className="text-left font-mono text-xs text-slate-500 hover:text-slate-300 truncate max-w-[120px]"
+                            title={sess.sessionId}
+                          >
+                            {sess.sessionId.slice(0, 8)}… copy
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </td>
                 <td className="rounded-r-2xl px-4 py-4 text-slate-400">
                   <div className="flex items-center gap-2">
