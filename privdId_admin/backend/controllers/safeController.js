@@ -12,6 +12,13 @@ export const getPendingApprovals = asyncHandler(async (req, res) => {
   res.json({ status: "success", pending: results, threshold });
 });
 
+// AcadAdmin-facing discovery list: credential-mod recoveries whose Shamir
+// Phase 1 is done but no Safe proposal exists yet for Phase 2.
+export const getAwaitingProposal = asyncHandler(async (req, res) => {
+  const awaiting = await safeService.getAwaitingProposalUpdates();
+  res.json({ status: "success", awaiting });
+});
+
 // Step 1 of the MetaMask-driven proposal: build the unsigned Safe tx for a
 // whitelisted registry action so the proposer's wallet can sign its hash.
 export const buildProposal = asyncHandler(async (req, res) => {

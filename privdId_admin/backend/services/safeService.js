@@ -184,6 +184,20 @@ export async function executeTransaction(safeTxHash, externalSigner) {
 }
 
 /**
+ * Students whose Shamir Phase 1 (credential-mod) finished but Phase 2 (Safe
+ * proposal) was never created — the AcadAdmin discovers these here instead of
+ * relying on the custodian's submit-share screen handing off a location.state
+ * the AcadAdmin was never on to receive.
+ */
+export async function getAwaitingProposalUpdates() {
+  const students = await Student.find({
+    "pendingRegistryAction.type": "updateCredential",
+    "pendingRegistryAction.safeTxHash": null,
+  }).select("rollNo pendingRegistryAction");
+  return students.map((s) => ({ rollNo: s.rollNo, newCID: s.pendingRegistryAction.newCID }));
+}
+
+/**
  * Pending-approvals read path (GOV-04 / D-07 dashboard indicator). threshold
  * lives on the Safe (getSafeInfo), NOT on the individual transaction object
  * (RESEARCH Pitfall 3) — fetch it once and decorate each pending tx with it.

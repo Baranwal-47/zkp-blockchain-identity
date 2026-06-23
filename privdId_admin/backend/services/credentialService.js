@@ -81,6 +81,31 @@ export async function encryptAndPinCredential(student, dek) {
   return cid;
 }
 
+// Server-boot guard: if the backend died mid-tx last run, a broadcast-but-unmined
+// tx can sit in the mempool forever, blocking every subsequent issuer-EOA write at
+// the next nonce (ponytail: trusts no enroll request is in-flight at boot, since
+// the server just started — true on every real boot/restart).
+export async function clearStuckIssuerNonce() {
+  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+  const latest = await provider.getTransactionCount(wallet.address, 'latest');
+  const pending = await provider.getTransactionCount(wallet.address, 'pending');
+  if (pending === latest) return;
+
+  console.warn(`[startup] Issuer wallet has ${pending - latest} stuck tx(es) at nonce ${latest} — clearing.`);
+  const feeData = await provider.getFeeData();
+  const tx = await wallet.sendTransaction({
+    to: wallet.address,
+    value: 0,
+    nonce: latest,
+    maxFeePerGas: (feeData.maxFeePerGas ?? ethers.parseUnits('20', 'gwei')) * 4n,
+    maxPriorityFeePerGas: (feeData.maxPriorityFeePerGas ?? ethers.parseUnits('2', 'gwei')) * 4n,
+  });
+  await tx.wait();
+  console.warn(`[startup] Cleared stuck nonce via ${tx.hash}`);
+}
+
 // Routine issuance is a DIRECT on-chain write signed by the issuer EOA
 // (acad-admin backend key). Only revocation/governance goes through the Safe
 // 2-of-3 (proposed from the official's MetaMask, executed via safeController).

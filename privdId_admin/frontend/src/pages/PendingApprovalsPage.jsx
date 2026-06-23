@@ -99,6 +99,17 @@ export default function PendingApprovalsPage() {
   // Roll number handed in by the dashboard "Revoke" button (auto-propose target).
   const [revokeTarget, setRevokeTarget] = useState(() => location.state?.proposeRevokeRollNo || null);
   const [updateTarget, setUpdateTarget] = useState(() => location.state?.proposeUpdateRollNo || null);
+  const [awaitingProposal, setAwaitingProposal] = useState([]);
+
+  async function loadAwaitingProposal() {
+    if (role !== "acadadmin") return;
+    try {
+      const { data } = await api.get("/safe/awaiting-proposal");
+      setAwaitingProposal(data.awaiting || []);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    }
+  }
 
   const roleLabel = ROLE_LABELS[role] || role || "Unknown";
   const expectedOwner = EXPECTED_OWNER_BY_ROLE[role];
@@ -192,6 +203,7 @@ export default function PendingApprovalsPage() {
         : "Admin handoff proposed."
       );
       await loadPending();
+      await loadAwaitingProposal();
     } catch (error) {
       toast.error(getApiErrorMessage(error));
     }
@@ -246,8 +258,10 @@ export default function PendingApprovalsPage() {
 
   useEffect(() => {
     void loadPending();
+    void loadAwaitingProposal();
     const interval = setInterval(() => {
       void loadPending();
+      void loadAwaitingProposal();
     }, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
@@ -360,6 +374,31 @@ export default function PendingApprovalsPage() {
             </div>
           )}
         </div>
+
+        {role === "acadadmin" && awaitingProposal.length > 0 && (
+          <div className="panel-soft border border-indigo-400/30 space-y-3">
+            <h3 className="text-base font-semibold text-white">
+              Credential updates awaiting Safe proposal
+            </h3>
+            <p className="text-sm text-slate-400">
+              Shamir re-encryption is done for these — sign in MetaMask to propose the on-chain anchor
+              update via Safe 2-of-3.
+            </p>
+            {awaitingProposal.map((item) => (
+              <div key={item.rollNo} className="flex items-center justify-between gap-3 rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2">
+                <span className="text-sm text-slate-200">{item.rollNo}</span>
+                <button
+                  type="button"
+                  disabled={!walletAddress || addressMismatch}
+                  onClick={() => proposeAction("updateCredential", item.rollNo)}
+                  className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Sign &amp; Propose
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {revokeTarget && role === "acadadmin" && (
           <div className="panel-soft border border-amber-400/30">
