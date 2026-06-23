@@ -25,12 +25,15 @@ function copyToClipboard(text) {
   toast.success("Copied to clipboard.");
 }
 
+// 11-02 REDESIGN: this panel is now device-loss-only. Credential-mod sessions
+// are opened transparently from the Edit flow's 409 (EditStudentPage.jsx) —
+// no dropdown, no manual-pubkey input. The student supplies their new pubkey
+// later from their own device (mobile app), so the admin's only job here is
+// to pick the student and open the session; the resulting Session ID is what
+// the student and a custodian both need.
 function AcadAdminInitiatePanel({ preselectedStudentId }) {
   const [students, setStudents] = useState([]);
   const [studentId, setStudentId] = useState(preselectedStudentId || "");
-  const [operationType, setOperationType] = useState("device-loss");
-  const [newPubKey, setNewPubKey] = useState("");
-  const [batchInput, setBatchInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { sessionId, sharesReceived, sharesNeeded }
 
@@ -47,19 +50,12 @@ function AcadAdminInitiatePanel({ preselectedStudentId }) {
       toast.error("Pick a student.");
       return;
     }
-    if (operationType === "device-loss" && !newPubKey.trim()) {
-      toast.error("Enter the student's new public key.");
-      return;
-    }
 
     setSubmitting(true);
     try {
       const { data } = await api.post("/recovery/initiate", {
         studentId,
-        operationType,
-        newPubKey: operationType === "device-loss" ? newPubKey.trim() : undefined,
-        attributeUpdates:
-          operationType === "credential-mod" ? { batch: Number(batchInput) } : undefined,
+        operationType: "device-loss",
       });
       setResult(data);
       toast.success("Recovery session opened.");
@@ -72,7 +68,11 @@ function AcadAdminInitiatePanel({ preselectedStudentId }) {
 
   return (
     <div className="panel-soft space-y-4">
-      <h2 className="text-lg font-semibold text-white">Initiate Recovery</h2>
+      <h2 className="text-lg font-semibold text-white">Initiate Device-Loss Recovery</h2>
+      <p className="text-sm text-slate-400">
+        The student will generate a fresh keypair on their own device and submit the new public
+        key into this session — you don&apos;t need to know or enter it here.
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -91,50 +91,12 @@ function AcadAdminInitiatePanel({ preselectedStudentId }) {
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-300">Recovery type</label>
-          <select
-            value={operationType}
-            onChange={(e) => setOperationType(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100"
-          >
-            <option value="device-loss">Device loss (re-wrap DEK to new keypair)</option>
-            <option value="credential-mod">Credential modification (attribute update)</option>
-          </select>
-        </div>
-
-        {operationType === "device-loss" ? (
-          <div>
-            <label className="block text-sm font-medium text-slate-300">
-              Student&apos;s new public key (hex)
-            </label>
-            <input
-              type="text"
-              value={newPubKey}
-              onChange={(e) => setNewPubKey(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100"
-              placeholder="0x..."
-            />
-          </div>
-        ) : (
-          <div>
-            <label className="block text-sm font-medium text-slate-300">New batch year</label>
-            <input
-              type="number"
-              value={batchInput}
-              onChange={(e) => setBatchInput(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100"
-              placeholder="2026"
-            />
-          </div>
-        )}
-
         <button
           type="submit"
           disabled={submitting}
           className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitting ? "Opening session…" : "Open Recovery Session"}
+          {submitting ? "Opening session…" : "Initiate Device-Loss Recovery"}
         </button>
       </form>
 
@@ -158,7 +120,8 @@ function AcadAdminInitiatePanel({ preselectedStudentId }) {
           </div>
           <p>
             Share this Session ID with one custodian (Registrar or Dean) so they can submit their
-            share below.
+            share below, and with the student so they can log in on the mobile app and claim a
+            new device key. Either can happen first.
           </p>
         </div>
       )}
@@ -261,7 +224,9 @@ function CustodianSubmitPanel() {
 
       {outcome && outcome.status === "pending" && (
         <p className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
-          Waiting on one more share.
+          {outcome.waitingOnPubKey
+            ? "Share received — now waiting on the student to submit their new device key before this can complete."
+            : "Waiting on one more share."}
         </p>
       )}
       {outcome && outcome.status === "complete" && outcome.operationType === "device-loss" && (
