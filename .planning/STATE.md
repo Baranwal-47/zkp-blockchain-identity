@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: — Governance & Custody
-status: executing
-stopped_at: context exhaustion at 78% (2026-06-23)
-last_updated: "2026-06-23T07:30:32.676Z"
-last_activity: 2026-06-22
+status: shipped
+stopped_at: n/a — milestone complete (erasure descoped) (2026-06-23)
+last_updated: "2026-06-24T00:00:00.000Z"
+last_activity: 2026-06-23
 progress:
   total_phases: 3
-  completed_phases: 2
-  total_plans: 11
-  completed_plans: 11
-  percent: 67
+  completed_phases: 3
+  total_plans: 12
+  completed_plans: 12
+  percent: 100
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-19)
 
 **Core value:** A student's credential is never stored in plaintext anywhere off-device; only the student (via their on-device secp256k1 key) can decrypt their own data to generate a proof.
-**Current focus:** Phase 11 — recovery-crypto-shredding-erasure-e6-ops
+**Current focus:** v3.0 shipped 2026-06-23. No active milestone — next step is `/gsd-new-milestone`.
 
 ## Current Position
 
-Phase: 11 (recovery-crypto-shredding-erasure-e6-ops) — EXECUTING
-Plan: 2 of 3
-Status: Ready to execute
+Phase: 11 (recovery-e6-ops) — COMPLETE (erasure sub-scope descoped)
+Plan: 3 of 3
+Status: Shipped
 
   10-01: splitDEK/reconstructDEK (secrets.js-grempe 2-of-3) + wrapShare/unwrapShare
          (Node RSA-OAEP-SHA256). Both smoke tests pass. Commit c3cfed6.
@@ -40,10 +40,22 @@ Status: Ready to execute
          (private key device-local, never transmitted); status endpoint + nav button
          with green/amber dot in PendingApprovalsPage. Human checkpoint approved.
          Commit 324cb13.
+  11-01: Recovery session Map + /initiate + /submit-share + auth/duplicate-role guards.
+         Commit 2552f3b.
+  11-02: Case A (credential-mod, via Edit-flow 409) + Case B (device-loss, student-driven
+         mobile RecoverDeviceScreen) + either-order completion gate. Live-verified;
+         idempotent keypair-gen fix afterward. Commits 0eafddd, 9dc818f.
+  11-03: Original scope (governed erasure, ERASE-01/02) explicitly deferred by the user
+         mid-session — never built, no erasureService.js/controller/routes exist. Slot
+         repurposed for: Case A re-anchoring routed through Phase 9 Safe 2-of-3
+         governance (commit 7b271d6), awaiting-proposal discovery panel + issuer-nonce
+         startup guard (commit c0b95dc). Descoping confirmed with user 2026-06-23/24 —
+         no security gap reopened (on-chain `revoked` flag already independently blocks
+         a revoked credential's proof verification).
 
-Next: Phase 11 — DEK recovery (Case A: 2-of-3 custodian Shamir reconstruction for
-  attribute-change re-issuance; Case B: student device loss recovery).
-Last activity: 2026-06-22
+Next: No active milestone. Erasure (ERASE-01/02) remains a valid, unstarted candidate
+  for a future milestone if crypto-shredding is needed beyond on-chain revocation.
+Last activity: 2026-06-23
 
 ## Performance Metrics
 
@@ -116,6 +128,9 @@ Recent decisions affecting current work:
 - [Phase 09]: Phase 09-04: Sign button uses explicit bg-blue-600 (not literal .primary-button, which is actually zinc) to satisfy UI-SPEC's Sign=blue/Execute=red color-separation contract
 - [Phase ?]: Phase 09-05: stopped autonomous execution at Task 3 (human-action checkpoint) — generateSafeOwners.js and proposeAcceptAdmin.js authored/verified/committed; live Sepolia deploy/handoff/sign/execute requires operator-provided funded wallets, RPC URL, Safe API key, and MetaMask interaction.
 - [Phase ?]: Phase 11-01: getMyShare implemented inline with initiateRecovery/submitShare in the same controller/router files rather than a separate commit
+- [Phase 11-02]: Case A removed from RecoveryPage dropdown — triggered transparently by the existing Edit-flow's 409 response, matching the real architecture (admin shouldn't manually re-enter changes on a separate page)
+- [Phase 11-02]: Case B no longer takes an admin-typed pubkey — student submits it via mobile RecoverDeviceScreen; device-loss completion fires on whichever of "2-of-3 shares" or "student pubkey" arrives second (either order accepted)
+- [Phase 11-03 / Milestone close, 2026-06-23]: Governed erasure (ERASE-01/02) explicitly descoped from v3.0 — user was time-constrained before a demo and deferred it mid-session; never implemented. No security gap: the on-chain `revoked` flag already independently blocks proof verification for a revoked credential, so erasure was defense-in-depth storage cleanup, not a runtime-security requirement. v3.0 is otherwise complete and shipped.
 
 ### Pending Todos
 
@@ -123,14 +138,15 @@ Recent decisions affecting current work:
 - **Non-blocking cleanup, anytime:** `.planning/ROADMAP.md`'s "Target End-to-End UX" section + Phase 9 note, `08-DISCUSSION-LOG.md`, and memory file `e3_target_ux.md` still describe the old (superseded) Proof-ID/durable-store model — `08-CONTEXT.md` is the corrected source of truth and is what `/gsd:plan-phase` will read. Revisit when planning Phase 09's revocation/verify-status surface.
 - Phase 07-03 on-device RNG check: PASSED; temporary probe removed from `App.js`; `07-03-SUMMARY.md` updated to PASS.
 
-Next: v3.0 roadmap is in place (Phases 9-11). Run `/gsd:plan-phase 9` to plan Multisig Registry Governance (E5) first — it has no dependency on the Shamir track. Phase 10 (custody split) and Phase 11 (recovery + erasure) follow in sequence; Phase 11 depends on both 9 and 10.
+Next: v3.0 shipped (Phases 9-11 complete, erasure descoped). Run `/gsd-new-milestone` to scope the next milestone. Erasure (ERASE-01/02) remains a valid candidate to pick up if revisited — `11-03-PLAN.md`'s original must-haves are unstarted and still accurate.
 
 ### Blockers/Concerns
 
 - SINGLE-CUSTODY GAP (documented, accepted): between admin enrollment and student claim, the plaintext DEK exists only in backend process memory with no real Shamir split (E6 deferred). This is a deliberate interim gap, not a defect — do not attempt to backport E6 into this milestone.
 - FIELD-SET CONSISTENCY (carried from v1.0): the §E3.2 encrypted credential JSON must contain the same 7 attrs + 7 salts in the same frozen order as the v1.0 circuit leaves — any drift breaks proof generation after decryption.
 - NO MIGRATION: existing test students' plaintext-pinned credentials from v1.0 are not migrated — wipe and re-seed under the new encrypted flow, consistent with v1.0's approach.
-- Phase 09 Plan 05 (Sepolia Safe deployment) stopped at Task 3 human-action checkpoint: needs funded Sepolia testnet wallets (deployer + 3 fresh owners), a live SEPOLIA_RPC_URL, a SAFE_API_KEY from developer.safe.global, and live MetaMask browser interaction to complete the live deploy/handoff/sign/execute verification.
+- RESOLVED: Phase 09 Plan 05 (Sepolia Safe deployment) completed — real Safe 2-of-3 deployed at `0xC0c5D7E08631A0f8552e03F388732162896Ae6F5` on Sepolia; propose/sign/execute live-verified (09-06).
+- ERASURE DESCOPED (2026-06-23): ERASE-01/02 (governed crypto-shredding) cut from v3.0. No security gap — on-chain `revoked` already independently blocks proof verification for revoked credentials.
 
 ## Deferred Items
 
@@ -138,17 +154,17 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| Governance (E5) | Gnosis Safe 2-of-3 registry admin | Deferred to v3+ | 2026-06-16 |
-| Key Recovery (E6) | Shamir 2-of-3 split/reconstruct; replaces this milestone's single-custody interim gap | Deferred to v3+ | 2026-06-16 |
-| UI & Hardening | Theme token system, auth/bcrypt/JWT/rate-limit | Deferred to v3+ | 2026-06-16 |
+| Governance (E5) | Gnosis Safe 2-of-3 registry admin | Shipped in v3.0 (Phase 9) | 2026-06-23 |
+| Key Recovery (E6) | Shamir 2-of-3 split/reconstruct/recovery | Shipped in v3.0 (Phases 10-11) | 2026-06-23 |
+| Crypto-Shredding Erasure (E6-04) | ERASE-01/02 governed share destruction | Descoped from v3.0, unstarted | 2026-06-23 |
+| UI & Hardening | Theme token system, auth/bcrypt/JWT/rate-limit | Still deferred (HARD-01) | 2026-06-16 |
 | Data migration | Existing plaintext-pinned test credentials | Wipe and re-seed instead | 2026-06-19 |
 
 ## Session Continuity
 
-Last session: 2026-06-23T07:30:32.670Z
-Stopped at: context exhaustion at 78% (2026-06-23)
+Last session: 2026-06-24T00:00:00.000Z
+Stopped at: v3.0 milestone complete, erasure descoped (2026-06-23)
 Resume file: None
-</content>
 
 ## Operator Next Steps
 

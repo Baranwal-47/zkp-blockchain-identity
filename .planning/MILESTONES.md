@@ -1,5 +1,18 @@
 # Milestones
 
+## v3.0 Governance & Custody — E5 + E6 (Shipped: 2026-06-23)
+
+**Phases completed:** 3 phases, 12 plans. Erasure (ERASE-01/02) explicitly descoped — see below.
+
+**Key accomplishments:**
+
+- **E5 — Multisig Registry Governance:** `CredentialRegistry` admin moved from a single deployer EOA to a real Gnosis Safe 2-of-3 (3 official owners: AcadAdmin, Asst. Registrar, Dean) via a 2-step `transferAdmin`/`acceptAdmin` handoff. `services/safeService.js` wraps propose→confirm→execute (`@safe-global/protocol-kit`/`api-kit`); issue/revoke now both require 2 of 3 signatures — no single official can mutate registry state. Live Safe deployed and verified on Sepolia at `0xC0c5D7E08631A0f8552e03F388732162896Ae6F5`; full propose/sign/execute walkthrough done with MetaMask and real gas costs measured (`safeExecute`: ~82k–146k gas).
+- **E6 — Threshold Custody Split:** `crypto/shamir.js` (secrets.js-grempe, 2-of-3) splits every issued DEK into 3 shares across separated custodian stores at issuance — the admin alone never holds ≥2 shares, closing v2.0's documented single-custody interim gap. Custodian onboarding (dev keygen + `POST /api/custodians/register-key` + client-side WebCrypto keygen page) keeps each custodian's private key device-local.
+- **E6 — Recovery:** `POST /recovery/initiate` + `/submit-share` reconstruct the DEK in memory only once 2-of-3 authenticated custodian shares arrive, wiping it immediately after use. Case A (credential modification) is triggered transparently from the existing Edit-flow's 409 and re-anchors through the new Safe governance path. Case B (student device loss) is student-driven via a new mobile `RecoverDeviceScreen` that submits only a freshly-generated public key; completion fires on whichever of "shares" or "pubkey" arrives second (either order).
+- **Descoped:** Governed erasure / crypto-shredding (ERASE-01, ERASE-02 — destroy ≥2 shares + best-effort IPFS unpin) was explicitly deferred mid-session by the user (time-constrained before a demo) and never implemented; no `erasureService.js`/controller/routes exist. No security gap results — the existing on-chain `revoked` flag already independently blocks proof verification for a revoked credential, so erasure was defense-in-depth storage cleanup, not a runtime-security requirement. Remains a valid candidate for a future milestone; `11-03-PLAN.md`'s original must-haves are unstarted and still accurate.
+
+---
+
 ## v2.0 E3 Encrypted Holder-Controlled Storage (Shipped: 2026-06-20)
 
 **Phases completed:** 3 phases, 12 plans, 23 tasks

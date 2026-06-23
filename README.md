@@ -1,270 +1,71 @@
-# Digital Identity App with Zero-Knowledge Proofs
+# PrivdID
 
-A React Native application that enables privacy-preserving student identity verification using zero-knowledge proofs and blockchain technology.
+A privacy-preserving student identity system for **IIITDM Jabalpur**, built on ZK-SNARKs, IPFS, and Ethereum.
 
-The current app opens on a landing screen, then moves into identity entry, proof generation, QR sharing, and off-chain/on-chain verification.
+A student's credential is never stored in plaintext anywhere off-device. It's encrypted (AES-256-GCM) with a per-student key that is itself wrapped to the student's own on-device keypair (ECIES) — only the student can decrypt their own data to generate a proof. Admins and custodians can pin and manage ciphertext, but cannot read it. Selective-disclosure proofs (e.g. "is over 18", "is postgrad") are generated from a depth-3 salted-attribute Merkle tree and verified on-chain via a Groth16 verifier, with replay protection via a one-time verifier nonce.
 
-## 📁 Project Structure
+Two layers of 2-of-3 threshold control by the same three institute officials (Academic Admin, Assistant Registrar, Dean) gate the system:
+- **E5 — Governance:** the on-chain `CredentialRegistry` is administered by a Gnosis Safe 2-of-3; issuing or revoking a credential requires 2 of 3 signatures, not a single admin key.
+- **E6 — Custody:** each credential's decryption key (DEK) is Shamir-split 2-of-3 across separated custodian stores at issuance, so the admin alone never holds enough material to decrypt a student's credential. The same 2-of-3 custodian quorum can reconstruct the DEK to recover a student's access after device loss, or to support a credential modification.
 
-```
-digital_id_app/
-├── digital-app/           # React Native frontend
-├── zk-proofs/            # Zero-knowledge circuits and smart contracts
-├── zkp-backend/          # Express.js backend server
-└── README.md            # This file
-```
+Authors: Utkarsh Baranwal & Dhruv Anand Singh · Supervisor: Dr. Durgesh Singh.
 
-## 🚀 Quick Setup Guide
+## Repo layout
 
-### Prerequisites
+5 services:
 
-1. **Node.js** (v16 or higher)
-2. **npm** or **yarn**
-3. **Expo CLI**: `npm install -g @expo/cli`
-4. **Hardhat**: For blockchain development
-5. **Circom**: For zero-knowledge circuit compilation
+| Service | Path | Stack | Role |
+|---|---|---|---|
+| Mobile app | `digital-app/` | Expo React Native | Student-facing: claim credential, view/decrypt on-device, generate proof QR, two-hop verify, device-loss recovery screen |
+| Admin web portal | `privdId_admin/frontend/` | React + Vite | Admin/custodian-facing: student CRUD, Safe governance (propose/sign/execute), custodian onboarding, recovery dashboard |
+| Admin backend | `privdId_admin/backend/` | Express 5 + MongoDB (ESM) | Student CRUD, Poseidon hash + Merkle root, encryption, Pinata/IPFS pinning, Shamir split/reconstruct, Safe propose/sign/execute, recovery sessions |
+| ZKP backend | `zkp-backend/` | Express + snarkjs + ethers v6 | Proof generation (server-side), off-chain verify, read-only on-chain verify, verifier-nonce issuance/check |
+| Circuits & contracts | `zk-proofs/` | Hardhat + Circom 2.1.6 + Solidity | `identity.circom` (frozen), `IdentityVerifier.sol`, `CredentialRegistry.sol`, deploy scripts |
 
-### Step 1: Install Dependencies
+**The ZK circuit (`identity.circom`) and its Groth16 verifier are frozen** — any change forces a new trusted setup and redeploy, so treat them as immutable.
 
-```bash
-# Install frontend dependencies
-cd digital-app
-npm install
+The frozen leaf set (7 attributes, exact order matters everywhere a credential commitment is built): `name, rollNo, dob, programmeLevel, discipline, batch, email`.
 
-# Install backend dependencies
-cd ../zkp-backend
-npm install
+## How a credential moves through the system
 
-# Install blockchain dependencies
-cd ../zk-proofs
-npm install
-```
+1. **Issuance** — admin enters a student's attributes. Backend computes the Merkle root over the 7 salted attributes, generates a random DEK, AES-256-GCM-encrypts the credential JSON, Shamir-splits the DEK 2-of-3 across custodian stores, pins the ciphertext to IPFS, and proposes `issueCredential(rollNo, CID, pubHash)` through the Gnosis Safe 2-of-3 (2 of 3 officials must sign before it executes on-chain).
+2. **Claim** — the student installs the app, generates an on-device secp256k1 keypair (private key never leaves the device), and submits the public key. The backend ECIES-wraps the DEK to that public key and pins the wrapped envelope.
+3. **Daily access** — the student's device fetches the ciphertext + wrapped-DEK envelope from IPFS, unwraps the DEK on-device, decrypts the credential, and can generate a selective-disclosure ZK proof (server-side proof generation, but only after on-device decryption supplies the witness input).
+4. **Verification** — a verifier issues a one-time nonce; the student's proof embeds it; the verifier checks proof validity off-chain, on-chain revocation status, and nonce freshness/single-use.
+5. **Recovery (E6)** — if a student loses their device, or a credential needs modification, 2 of the 3 custodians submit their Shamir shares to reconstruct the DEK in memory just long enough to re-wrap it to a new device key (device-loss) or re-encrypt updated attributes (credential modification, re-anchored through the Safe). The DEK is wiped immediately after use and never persisted or logged.
 
-### Step 2: Configuration Files to Update
+Erasure / crypto-shredding (destroying ≥2 Shamir shares for irreversible unrecoverability) was scoped for this milestone but explicitly descoped — see `.planning/MILESTONES.md`. It does not represent a security gap: a revoked credential is already independently blocked by the on-chain `revoked` flag.
 
-The project now uses environment files instead of scattering values through code.
+## Quick start (local dev)
 
-**1. Frontend backend URL**
-```javascript
-// File: digital-app/environment.js
-export const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://10.199.147.52:3001';
-```
-- For Expo Go on a phone, use the Windows LAN IP, not the WSL IP.
-- Current fallback: `http://10.199.147.52:3001`
-- You can override it in `digital-app/.env` with `EXPO_PUBLIC_BACKEND_URL=...`
-
-**2. Backend blockchain RPC and verifier address**
-```javascript
-// File: zkp-backend/server.js
-const provider = new ethers.JsonRpcProvider(process.env.BLOCKCHAIN_RPC_URL || 'http://127.0.0.1:8545');
-const verifierAddress = process.env.VERIFIER_ADDRESS || '0x5FbDB2315678afecb367f032d93F642f64180aa3';
-```
-- For local development: keep the RPC pointed at `http://127.0.0.1:8545`
-- If you redeploy the contract, update `VERIFIER_ADDRESS`
-- You can store the values in `zkp-backend/.env`
-
-**3. Hardhat network configuration**
-```javascript
-// File: zk-proofs/hardhat.config.js
-networks: {
-  hardhat: {},
-  localhost: {
-    url: 'http://127.0.0.1:8545'
-  }
-}
-```
-- The verifier contract is redeployed against the local Hardhat node.
-- After redeploying, copy the new address from the terminal output.
-
-**4. Android native project warning**
-```javascript
-// File: digital-app/android/local.properties
-sdk.dir=/mnt/c/Users/DELL/AppData/Local/Android/Sdk
-```
-- This only matters if VS Code inspects the native Android project.
-- If you are only using Expo Go and `expo start --tunnel`, you can ignore native Android build warnings.
-
-## 🛠️ Step-by-Step Restart Process
-
-### Step 3: Start Blockchain Network
+Each service has its own `.env` — check `.env.example` (or ask a maintainer) for required keys (Mongo URI, Pinata JWT, Sepolia RPC URL, Safe address/owner keys, custodian PEM paths).
 
 ```bash
-cd zk-proofs
-npx hardhat node
-```
-- This starts a local Ethereum network on `http://127.0.0.1:8545`
-- Keep this terminal open
-- Note: Network resets when you restart this command
+# 1. Blockchain — local Hardhat node (or point everything at Sepolia instead)
+cd zk-proofs && npx hardhat node
 
-### Step 4: Deploy Smart Contracts
+# 2. Deploy contracts (separate terminal, only needed against a fresh local node)
+cd zk-proofs && npx hardhat run scripts/deploy.js --network localhost
 
-```bash
-# In a new terminal
-cd zk-proofs
-npx hardhat run scripts/deployVerifier.js --network localhost
-```
+# 3. ZKP backend — proof generation + verification
+cd zkp-backend && npm install && npm run dev   # port 3001
 
-**📝 Important**: Copy the deployed contract address from terminal output:
-```
-Groth16Verifier deployed to: 0xYOUR_NEW_CONTRACT_ADDRESS
-```
+# 4. Admin backend — student CRUD, governance, custody, recovery
+cd privdId_admin/backend && npm install && npm run dev   # port 5000
 
-### Step 5: Set Backend Environment Values
+# 5. Admin web portal
+cd privdId_admin/frontend && npm install && npm run dev   # vite, port 5173
 
-```bash
-# zkp-backend/.env
-PORT=3001
-BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545
-VERIFIER_ADDRESS=0xYOUR_NEW_CONTRACT_ADDRESS
+# 6. Mobile app (Expo)
+cd digital-app && npm install && npx expo start
 ```
 
-### Step 6: Prepare ZK Circuit Files
+Project currently runs live against **Sepolia testnet** for the contracts (`CredentialRegistry`, `IdentityVerifier`, the Gnosis Safe) rather than a local Hardhat node — see `.env` files for the deployed addresses and RPC URL. Real performance/gas numbers from a live walkthrough are recorded in `docs/improvement/PERFORMANCE_METRICS.md`.
 
-Ensure these files exist in `zkp-backend/`:
-- `identity.wasm`
-- `identity_final.zkey` 
-- `verification_key.json`
+## Where to look next
 
-If missing, copy from `zk-proofs/` build outputs:
-```bash
-cd zkp-backend
-cp ../zk-proofs/build/identity_js/identity.wasm ./
-cp ../zk-proofs/identity_final.zkey ./
-cp ../zk-proofs/verification_key.json ./
-```
-
-### Step 7: Start Backend Server
-
-```bash
-cd zkp-backend
-node server.js
-```
-- Server runs on port 3001
-- Should display: `Verifier API listening on port 3001`
-- `curl http://YOUR_IP:3001/` should return `ZKP backend running`
-
-### Step 8: Start Frontend App
-
-```bash
-cd digital-app
-expo start --tunnel
-```
-- Scan the QR code with Expo Go on your phone
-- Use tunnel mode if the phone cannot reach the local network directly
-- If you are debugging the UI only, you can still run the web version
-
-## 🔁 Current Runtime Flow
-
-1. Hardhat node starts first.
-2. `deployVerifier.js` deploys the verifier contract to the local chain.
-3. `zkp-backend/server.js` starts and reads the proving artifacts plus contract address.
-4. Expo starts the mobile app.
-5. The app opens on the landing screen in `digital-app/screens/HomeScreen.js`.
-6. The user enters identity data in `IdentityForm.js`.
-7. `LoadingScreen.js` sends the data to the backend to generate and verify the proof.
-8. `ShowProof.js` packages the proof into QR-friendly JSON.
-9. `VerifyProof.js`, `QRScannerScreen.js`, and `ManualQRInput.js` verify the shared payload.
-
-## 🔍 Troubleshooting
-
-### Common Issues & Solutions
-
-**❌ "Network Error" in app**
-- Check `BACKEND_URL` in `environment.js`
-- Ensure backend server is running
-- Verify the backend URL is reachable from the phone
-- If you are using WSL, prefer the Windows LAN IP in `EXPO_PUBLIC_BACKEND_URL`
-
-**❌ "Contract call failed"**
-- Verify contract address in `server.js`
-- Ensure Hardhat node is running
-- Redeploy contracts if needed
-
-**❌ "Missing circuit files"**
-- Copy `.wasm`, `.zkey`, and `verification_key.json` to `zkp-backend/`
-- Rebuild circuits if necessary
-
-**❌ App won't load on device**
-- Ensure device and computer are on same network
-- Check firewall settings
-- Try different IP address format
-
-**❌ Android SDK location warning in VS Code**
-- This warning only affects native Android tooling
-- It does not block Expo Go with `expo start --tunnel`
-- Reload VS Code if the diagnostic remains after `local.properties` is added
-
-### Verification Commands
-
-```bash
-# Check if backend is running
-curl http://YOUR_IP:3001
-
-# Check blockchain connection
-npx hardhat console --network localhost
-
-# Test proof generation
-# Use the app or send POST request to /generate-proof
-```
-
-## 🔧 Development Configuration
-
-### Environment Variables (Optional)
-
-Create `.env` files for easier configuration:
-
-```bash
-# digital-app/.env
-EXPO_PUBLIC_BACKEND_URL=http://10.199.147.52:3001
-
-# zkp-backend/.env
-PORT=3001
-BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545
-VERIFIER_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512(for example, you will get the address when u deploy the contract)
-```
-
-Example files are available in:
-- `digital-app/.env.example`
-- `zkp-backend/.env.example`
-- `zk-proofs/.env.example`
-
-### Network Configuration for Different Environments
-
-**Local Development:**
-- Blockchain: `http://127.0.0.1:8545`
-- Backend: `http://YOUR_IP:3001`
-- Expo Go: `expo start --tunnel`
-
-**Production/Remote:**
-- Update RPC URLs accordingly
-- Configure proper CORS settings
-- Use environment variables
-
-## 📱 App Features
-
-- **Identity Form**: Input student details
-- **Landing Screen**: New first screen with app overview and action buttons
-- **Privacy Controls**: Choose which details to share
-- **QR Code Generation**: Share proof via QR code
-- **Dual Verification**: Off-chain + blockchain validation
-- **Zero-Knowledge Privacy**: No personal data exposed
-
-## 🔒 Security Notes
-
-- Never commit private keys to version control
-- ZK circuits provide mathematical proof without revealing data
-- Smart contracts are immutable once deployed
-- Always verify proof authenticity before trusting
-
-## 🆘 Need Help?
-
-1. Check console logs in all terminals
-2. Verify all services are running
-3. Ensure network connectivity
-4. Review configuration files
-5. Restart services in order: Blockchain → Contracts → Backend → Frontend
-
----
-
-**Last Updated**: April 6, 2026
-**Version**: 1.0.0
+- **`.planning/STATE.md`** — current milestone status, accumulated decisions, blockers (the live source of truth — read this before `docs/current/`, which is stale pre-rebuild research).
+- **`.planning/ROADMAP.md`** — phase-by-phase breakdown of what shipped.
+- **`.planning/REQUIREMENTS.md`** — per-requirement status (shipped / descoped).
+- **`docs/CLAUDE_CODE_BLUEPRINT.md`** — the implementation spec for the enhanced architecture (E1, E2, E3, E5, E6).
+- **`docs/improvement/PERFORMANCE_METRICS.md`** — measured timings, gas costs, and storage sizes, including real numbers pulled from live dev-server logs.

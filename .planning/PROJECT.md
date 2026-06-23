@@ -31,7 +31,7 @@ A student's credential is never stored in plaintext anywhere off-device. Only th
 - ✓ Smart contracts: `CredentialRegistry.sol` (admin-gated issue/revoke/lookup) + `IdentityVerifier.sol`, deployed to Sepolia + local
 - ✓ ZK toolchain: Circom 2.1.6 — E1 depth-3 Merkle circuit (salted leaves, selective disclosure, isOver18/isPostgrad predicates) + E2 verifier-nonce binding, frozen and trusted-setup complete
 - ✓ ZKP backend: new 19-signal proof shape; nonce lifecycle (issue → match → 5-min freshness → one-time use)
-- ✓ Benchmarked: constraint count, proof-gen, off-/on-chain verify, nonce ops, QR payload size (mean ± σ, n≥19) — `docs/improvement/PERFORMANCE_METRICS_E1E2.md`
+- ✓ Benchmarked: constraint count, proof-gen, off-/on-chain verify, nonce ops, QR payload size (mean ± σ, n≥19) — `docs/improvement/PERFORMANCE_METRICS.md`
 
 <!-- Shipped in v2.0 E3 (completed 2026-06-20). -->
 

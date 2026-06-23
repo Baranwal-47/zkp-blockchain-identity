@@ -1,47 +1,9 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-23T02:13:07Z",
-  "phase": "11",
-  "phase_name": "recovery-crypto-shredding-erasure-e6-ops",
-  "phase_dir": ".planning/phases/11-recovery-crypto-shredding-erasure-e6-ops",
-  "plan": "11-02",
-  "task": "checkpoint",
-  "total_tasks": 5,
-  "status": "paused",
-  "completed_tasks": [
-    {"id": "11-01", "name": "Recovery session state machine", "status": "done", "commit": "2552f3b"},
-    {"id": "11-02-orig-1-4", "name": "reissueWithDEK + Case A/B dispatch + ops smoke + RecoveryPage v1", "status": "done", "commit": "35437db"},
-    {"id": "11-02-redesign", "name": "Case A via Edit-409, Case B via mobile claim, either-order completion gate", "status": "done", "commit": "0eafddd"}
-  ],
-  "remaining_tasks": [
-    {"id": "11-02-checkpoint", "name": "Live human-verify: Case A Edit flow + Case B both orderings (mobile + 2 browser custodians)", "status": "awaiting_user"},
-    {"id": "11-03", "name": "Governed erasure / crypto shredding endpoint", "status": "deferred_by_user"}
-  ],
-  "blockers": [
-    {"description": "11-02 checkpoint requires live browser + Expo mobile walkthrough — cannot be automated", "type": "human_action", "workaround": "User chose to verify manually and report back"}
-  ],
-  "human_actions_pending": [
-    {"action": "Verify Case A: edit a claimed student, confirm dashboard shows 'Pending custodian approval' pill, have a custodian submit their share via /recovery, confirm pill clears and credential re-anchors", "context": "Smoke tests pass but no live on-chain/UI walkthrough done yet", "blocking": true},
-    {"action": "Verify Case B in BOTH orderings (shares-then-pubkey AND pubkey-then-shares) using the Expo mobile app's new RecoverDeviceScreen plus two browser custodian sessions", "context": "Either-order completion gate is new logic; smoke-tested at the unit level but not end-to-end live", "blocking": true}
-  ],
-  "decisions": [
-    {"decision": "Deferred plan 11-03 (governed erasure / crypto shredding) entirely for this session", "rationale": "User is short on time before a demo; erasure is lower priority than the Case A/B recovery flows", "phase": "11"},
-    {"decision": "Case A (credential-mod) removed from RecoveryPage dropdown; now triggered transparently by the existing Edit flow's 409 response", "rationale": "User reviewed actual architecture diagrams — Case A should happen naturally via Edit, not require manually re-entering changes on a separate page", "phase": "11"},
-    {"decision": "Case B (device-loss) no longer takes a manually-typed pubkey from the admin; student submits it via a new mobile RecoverDeviceScreen reusing the existing first-claim keypair.js pattern", "rationale": "Admin never legitimately knows the student's new device pubkey; only the student's device can generate and submit it", "phase": "11"},
-    {"decision": "Device-loss completion fires on whichever of '2-of-3 shares' or 'student pubkey' arrives second — either order accepted", "rationale": "User confirmed no strict ordering requirement; simpler for custodians and students, no one has to wait on the other", "phase": "11"},
-    {"decision": "Case A is fire-and-check-later: Edit modal closes immediately after opening the recovery session, status shown via a dashboard row pill, not an inline blocking wait", "rationale": "User confirmed admin shouldn't be stuck waiting in the modal for custodian approval", "phase": "11"}
-  ],
-  "uncommitted_files": [
-    ".planning/HANDOFF.json",
-    ".planning/STATE.md",
-    ".planning/phases/11-recovery-crypto-shredding-erasure-e6-ops/11-03-PLAN.md",
-    ".planning/phases/11-recovery-crypto-shredding-erasure-e6-ops/11-RESEARCH.md",
-    "privdId_admin/backend/utils/timing.js"
-  ],
-  "background_processes": [
-    {"process": "privdId_admin/backend: node server.js", "port": 5000, "log": "/tmp/backend.log", "note": "restarted this session with latest recovery code; may need restart again on resume if killed"},
-    {"process": "privdId_admin/frontend: vite dev", "port": 5173, "log": "/tmp/frontend.log", "note": "already running, HMR picks up changes"}
-  ],
-  "next_action": "User verifies 11-02 checkpoint live (Case A + Case B both orderings, including Expo mobile app). On 'approved', spawn a continuation agent to write 11-02-SUMMARY checkpoint closure (SUMMARY.md already exists from redesign — confirm it reflects final verified state), update STATE.md/ROADMAP.md, then run code_review_gate / regression_gate / verify_phase_goal for phase 11 — noting 11-03 is deferred so phase-level completion should NOT be marked until 11-03 is also done (or explicitly scoped out of phase 11's must-haves with user sign-off).",
-  "context_notes": "Phase 11 has 3 plans: 11-01 (done), 11-02 (done + redesigned, awaiting live verification), 11-03 (erasure, explicitly deferred — not started, no code written). Do not mark phase 11 complete in ROADMAP/STATE until either 11-03 ships or the user explicitly descopes it from this phase. workflow.use_worktrees=false for this project — all execution is sequential on the main tree, no worktree cleanup needed."
+  "timestamp": "2026-06-24T00:00:00Z",
+  "phase": null,
+  "phase_name": null,
+  "status": "no_active_handoff",
+  "note": "v3.0 milestone (Phases 9-11) shipped 2026-06-23. 11-02's live-verify checkpoint passed (idempotency fix landed in commit 9dc818f). Erasure (ERASE-01/02, original 11-03 scope) was explicitly descoped by the user with sign-off given 2026-06-23/24 and never built; no security gap (on-chain `revoked` flag already independently blocks proof verification for a revoked credential). See .planning/MILESTONES.md and .planning/STATE.md for full closure details. Next action: /gsd-new-milestone.",
+  "background_processes_note": "Any dev-server processes from the prior session (admin backend :5000, vite :5173) may no longer be running — restart via npm run dev in each service dir if needed."
 }
