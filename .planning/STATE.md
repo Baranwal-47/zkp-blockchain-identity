@@ -162,8 +162,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-24T00:00:00.000Z
-Stopped at: v3.0 milestone complete, erasure descoped (2026-06-23)
+Last session: 2026-06-23T22:36:54.365Z
+Stopped at: context exhaustion at 75% (2026-06-23)
 Resume file: None
 
 ## Operator Next Steps
