@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import WelcomeScreen from './screens/WelcomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import ClaimCredentialScreen from './screens/ClaimCredentialScreen';
+import RecoverDeviceScreen from './screens/RecoverDeviceScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import ViewCredentialsScreen from './screens/ViewCredentialsScreen';
 import GenerateProofScreen from './screens/GenerateProofScreen';
@@ -80,6 +81,11 @@ export default function App() {
           name="ClaimCredentialScreen"
           component={ClaimCredentialScreen}
           options={{ title: 'Claim Your Credential', headerLeft: null, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="RecoverDeviceScreen"
+          component={RecoverDeviceScreen}
+          options={{ title: 'Recover Device Access', headerLeft: null, gestureEnabled: false }}
         />
 
         {/* ── Daily Access Flow (Phase 8) ── */}

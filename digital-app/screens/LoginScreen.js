@@ -47,6 +47,33 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
+      // 11-02 (Phase 11 device-loss redesign): check whether an AcadAdmin has
+      // opened a device-loss recovery session for this student. If so, route
+      // to RecoverDeviceScreen instead of the normal dashboard — the student
+      // must submit a fresh on-device pubkey before daily access is restored
+      // on this device. Minimal-plumbing approach: the student looks this up
+      // by their own studentId right after login (no new login-response field
+      // needed on the backend).
+      try {
+        const recoveryResponse = await fetch(
+          `${ADMIN_BACKEND_URL}/api/recovery/status/${data.student.id}`
+        );
+        if (recoveryResponse.ok) {
+          const recoveryData = await recoveryResponse.json();
+          const session = recoveryData.session;
+          if (session && session.operationType === 'device-loss' && !session.hasPubKey) {
+            navigation.navigate('RecoverDeviceScreen', {
+              sessionId: session.sessionId,
+              student: data.student,
+            });
+            return;
+          }
+        }
+      } catch (_recoveryCheckError) {
+        // Non-fatal — if the status check fails, fall through to the normal
+        // dashboard; the admin/student can retry recovery separately.
+      }
+
       navigation.navigate('DashboardScreen', { student: data.student });
     } catch (error) {
       Alert.alert('Login Failed', error.message || 'Invalid credentials. Please try again.');
