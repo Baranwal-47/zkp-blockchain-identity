@@ -67,5 +67,3 @@ Project currently runs live against **Sepolia testnet** for the contracts (`Cred
 - **`.planning/STATE.md`** — current milestone status, accumulated decisions, blockers (the live source of truth).
 - **`.planning/ROADMAP.md`** — phase-by-phase breakdown of what shipped.
 - **`.planning/REQUIREMENTS.md`** — per-requirement status (shipped / descoped).
-- **`docs/CLAUDE_CODE_BLUEPRINT.md`** — the implementation spec for the enhanced architecture (E1, E2, E3, E5, E6).
-- **`docs/current_v2(final)/research_v2/PERFORMANCE_METRICS.md`** — measured timings, gas costs, and storage sizes, including real numbers pulled from live dev-server logs.
